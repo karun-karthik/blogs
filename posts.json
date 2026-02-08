@@ -1,0 +1,12 @@
+{
+  "posts": [
+    {
+      "slug": "arrays-mastery",
+      "title": "Arrays Mastery",
+      "date": "2026-02-08",
+      "domain": "Data Structures & Algorithms",
+      "topic": "Arrays",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/Arrays-mastery.md"
+    }
+  ]
+}
