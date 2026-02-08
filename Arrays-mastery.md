@@ -1,5 +1,3 @@
-# Arrays Mastery
-
 ## Fundamentals
 
 ### Largest Element
