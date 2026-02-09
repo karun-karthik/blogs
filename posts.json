@@ -1,12 +1,20 @@
 {
   "posts": [
     {
-      "slug": "arrays-mastery",
-      "title": "Arrays Mastery",
-      "date": "2026-02-08",
-      "domain": "Data Structures & Algorithms",
+      "slug": "arrays",
+      "title": "Arrays: A Comprehensive Guide",
+      "date": "2026-02-01",
+      "domain": "DSA",
       "topic": "Arrays",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/Arrays-mastery.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/arrays.md"
+    },
+    {
+      "slug": "sorting",
+      "title": "Sorting Algorithms Explained",
+      "date": "2026-02-08",
+      "domain": "DSA",
+      "topic": "Sorting",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/sorting.md"
     }
   ]
 }

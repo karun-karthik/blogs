@@ -1,5 +1,17 @@
 ## Fundamentals
 
+### Linear Search
+
+```cpp
+int linearSearch(vector<int>& nums, int target) {
+    for (int i=0; i< nums.size(); i++) {
+        if (nums[i] == target) 
+            return i;
+    }
+    return -1;
+}
+```
+
 ### Largest Element
 
 ```cpp
@@ -72,7 +84,10 @@ void rotateArray(vector<int>& nums, int k) {
     reverse(nums.begin() + k, nums.end());
     reverse(nums.begin(), nums.end());
 }
+```
+
 Shift to right by K
+```cpp
 void rotateArray(vector<int>& nums, int k) {
     int n = nums.size();
     k = k % n;
@@ -478,6 +493,30 @@ int maxSubArray(vector<int>& nums) {
 ```
 
 ## FAQ - Hard
+
+
+### Majority Element - 1 - Moore’s Voting Algorithm
+
+Given an integer array nums of size n, return the majority element of the array.
+The majority element of an array is an element that appears more than n/2 times in the array. The array is guaranteed to have a majority element.
+
+```cpp
+int majorityElement(vector<int>& nums) {
+    int ele;
+    int count = 0;
+    for (int i: nums) {
+        if (count == 0) {
+            count = 1;
+            ele = i;
+        } else if (ele == i) {
+            count++;
+        } else {
+            count--;
+        }
+    }
+    return ele;
+}
+```
 
 ### Majority Element - 2
 
