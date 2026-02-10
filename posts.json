@@ -1,6 +1,14 @@
 {
   "posts": [
     {
+      "slug": "sorting",
+      "title": "Sorting Algorithms Explained",
+      "date": "2026-02-08",
+      "domain": "DSA",
+      "topic": "Sorting",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/sorting.md"
+    },
+    {
       "slug": "arrays",
       "title": "Arrays: A Comprehensive Guide",
       "date": "2026-02-01",
@@ -9,12 +17,12 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/arrays.md"
     },
     {
-      "slug": "sorting",
-      "title": "Sorting Algorithms Explained",
-      "date": "2026-02-08",
+      "slug": "hashing",
+      "title": "Hashing",
+      "date": "2026-02-01",
       "domain": "DSA",
-      "topic": "Sorting",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/sorting.md"
+      "topic": "Hashing",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/hashing.md"
     }
   ]
 }
