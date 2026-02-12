@@ -1,4 +1,4 @@
-## Longest Consecutive Sequence in an Array
+### Longest Consecutive Sequence in an Array
 
 **Brute**
 
@@ -104,7 +104,7 @@ int longestConsecutiveSequence(vector<int>& arr) {
 }
 ```
 
-## Longest Subarry with sum K
+### Longest Subarry with sum K
 
 **Brute**
 1. The first loop handles the starting indexes from 0 to n-1, i
@@ -204,7 +204,7 @@ int longestSubarray(vector<int> &nums, int k){
 }
 ```
 
-## Count subarrays with given sum
+### Count subarrays with given sum
 
 **Brute**
 1. The first loop handles the starting indexes from 0 to n-1, i
@@ -302,7 +302,7 @@ int subarraySum(vector<int> &nums, int k) {
 }
 ```
 
-## Count subarrays with given xor
+### Count subarrays with given xor
 
 **Brute**
 1. The first loop handles the starting indexes from 0 to n-1, i

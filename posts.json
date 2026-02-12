@@ -3,7 +3,7 @@
     {
       "slug": "sorting",
       "title": "Sorting Algorithms Explained",
-      "date": "2026-02-08",
+      "date": "2026-02-01",
       "domain": "DSA",
       "topic": "Sorting",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/sorting.md"
@@ -11,7 +11,7 @@
     {
       "slug": "arrays",
       "title": "Arrays: A Comprehensive Guide",
-      "date": "2026-02-01",
+      "date": "2026-02-07",
       "domain": "DSA",
       "topic": "Arrays",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/arrays.md"
@@ -19,10 +19,18 @@
     {
       "slug": "hashing",
       "title": "Hashing",
-      "date": "2026-02-01",
+      "date": "2026-02-11",
       "domain": "DSA",
       "topic": "Hashing",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/hashing.md"
+    },
+    {
+      "slug": "binary-search",
+      "title": "Binary Search & Variants",
+      "date": "2026-02-12",
+      "domain": "DSA",
+      "topic": "Binary Search",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/binary-search.md"
     }
   ]
 }
