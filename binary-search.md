@@ -627,3 +627,245 @@ int aggressiveCows(vector<int> &nums, int k) {
     return ans;
 }
 ```
+
+### Book Allocation Problem
+
+Given an array nums of n integers, where nums[i] represents the number of pages in the i-th book, and an integer m representing the number of students, allocate all the books to the students so that each student gets at least one book, each book is allocated to only one student, and the allocation is contiguous.
+
+Allocate the books to m students in such a way that the maximum number of pages assigned to a student is minimized. If the allocation of books is not possible, return -1.
+
+```cpp
+int countStudents(vector<int> &nums, int pageLimit) {
+    int n = nums.size();
+    int students = 1;
+    int pages = 0;
+
+    for (int i = 0; i<n; i++) {
+        if (pages + nums[i] <= pageLimit) {
+            pages += nums[i];
+        } else {
+            students++;
+            pages = nums[i];
+        }
+    }
+
+    return students;
+}
+
+int findPages(vector<int> &nums, int m)  {
+    int n = nums.size();
+    // if more students than books then all students cannot get atleast 1 book
+    if (m > n)  return -1; 
+    int low = *max_element(nums.begin(), nums.end());
+    int high = accumulate(nums.begin(), nums.end(), 0);
+    int ans;
+    while (low <= high) {
+        int mid = low + (high - low)/2;
+        int students = countStudents(nums, mid);
+        if (students <= m) {
+            ans = mid;
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    return ans;
+}
+```
+
+### Find Peak Element
+
+Given an array arr of integers. A peak element is defined as an element greater than both of its neighbors.
+
+Formally, if arr[i] is the peak element, arr[i - 1] < arr[i] and arr[i + 1] < arr[i].
+
+
+Find the index(0-based) of a peak element in the array. If there are multiple peak numbers, return the index of any peak number.
+
+```cpp
+int findPeakElement(vector<int> &arr) {
+    int n = arr.size();
+    if (n == 1) return 0;
+    if (arr[0] > arr[1])    return 0;
+    if (arr[n-1] > arr[n-2])    return n-1;
+    int low = 1, high = n-2;
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        if (arr[mid] > arr[mid-1] && arr[mid] > arr[mid+1])
+            return mid;
+        if (arr[mid] > arr[mid-1])  low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
+}
+```
+
+### Median of 2 sorted arrays
+
+Given two sorted arrays arr1 and arr2 of size m and n respectively, return the median of the two sorted arrays.
+
+The median is defined as the middle value of a sorted list of numbers. In case the length of the list is even, the median is the average of the two middle elements.
+
+```
+Input: arr1 = [2, 4, 6], arr2 = [1, 3, 5]
+Output: 3.5
+Explanation: The array after merging arr1 and arr2 will be [ 1, 2, 3, 4, 5, 6 ]. As the length of the merged list is even, the median is the average of the two middle elements. Here two medians are 3 and 4. So the median will be the average of 3 and 4, which is 3.5.
+```
+
+> Brute:
+Create a new array and add elements from both arrays in increasing order.
+If n is odd then (n1 + n2)/2;
+If n is even then (mid1 & mid2)/2
+
+
+> Better:
+This approach optimizes the extra space used in brute-force by eliminating the array to store final merged result.
+Ultimately only 2 middle elements at indexes (m + n)/2 and (m + n)/2 - 1, are needed to solve the problem.
+
+```cpp
+double median(vector<int>& arr1, vector<int>& arr2) {
+    // Sizes
+    int size1 = arr1.size();
+    int size2 = arr2.size();
+    int totalSize = size1 + size2;
+
+    // Median indices
+    int rightMedianIndex = totalSize / 2;
+    int leftMedianIndex = rightMedianIndex - 1;
+
+    int mergedIndex = 0;
+    int leftMedianValue = -1;
+    int rightMedianValue = -1;
+
+    // Merge pointers
+    int ptr1 = 0, ptr2 = 0;
+
+    // Merge step
+    while (ptr1 < size1 && ptr2 < size2) {
+        int currentValue;
+
+        if (arr1[ptr1] < arr2[ptr2]) {
+            currentValue = arr1[ptr1++];
+        } else {
+            currentValue = arr2[ptr2++];
+        }
+
+        if (mergedIndex == leftMedianIndex) leftMedianValue = currentValue;
+        if (mergedIndex == rightMedianIndex)
+            rightMedianValue = currentValue;
+
+        mergedIndex++;
+    }
+
+    // Remaining elements from arr1
+    while (ptr1 < size1) {
+        if (mergedIndex == leftMedianIndex)
+            leftMedianValue = arr1[ptr1];
+        if (mergedIndex == rightMedianIndex)
+            rightMedianValue = arr1[ptr1];
+        mergedIndex++;
+        ptr1++;
+    }
+
+    // Remaining elements from arr2
+    while (ptr2 < size2) {
+        if (mergedIndex == leftMedianIndex)
+            leftMedianValue = arr2[ptr2];
+        if (mergedIndex == rightMedianIndex)
+            rightMedianValue = arr2[ptr2];
+        mergedIndex++;
+        ptr2++;
+    }
+
+    // Compute median
+    if (totalSize % 2 == 1) {
+        return (double)rightMedianValue;
+    }
+
+    return (leftMedianValue + rightMedianValue) / 2.0;
+}
+```
+
+**Optimal**
+
+```cpp
+double median(vector<int> &arr1, vector<int> &arr2) {
+    int n1 = arr1.size(), n2 = arr2.size();
+    // Ensure arr1 is the smaller array
+    if (n1 > n2)    return median(arr2, arr1);
+    int n = n1 + n2; // total elements
+    int left = (n1 + n2 + 1)/2; // length of left half of array
+    int low = 0, high = n1; // bs on the smallest array always
+
+    while (low <= high) {
+        int mid1 = (low + high) / 2;
+        int mid2 = left - mid1;
+        // Calculate l1, l2, r1, and r2
+        int l1 = (mid1 > 0) ? arr1[mid1 - 1] : INT_MIN;
+        int r1 = (mid1 < n1) ? arr1[mid1] : INT_MAX;
+        int l2 = (mid2 > 0) ? arr2[mid2 - 1] : INT_MIN;
+        int r2 = (mid2 < n2) ? arr2[mid2] : INT_MAX;
+
+        if (l1 <= r2 && l2 <= r1) {
+            if (n % 2 == 1) return max(l1, l2);
+            else return (max(l1, l2) + min(r1, r2)) / 2.0;
+        }
+        else if (l1 > r2) {
+            high = mid1 - 1;
+        } else {
+            low = mid1 + 1;
+        }
+    }
+    return 0;
+}
+```
+
+### Kth element of 2 sorted arrays
+
+```cpp
+int kthElement(vector<int>& a, vector<int>& b, int k) {
+    int m = a.size();
+    int n = b.size();
+
+    // Ensure a is smaller array for optimization
+    if (m > n) {
+        // Swap a and b
+        return kthElement(b, a, k); 
+    }
+    
+    // Length of the left half
+    int left = k; 
+
+    // Apply binary search
+    int low = max(0, k - n), high = min(k, m);
+    while (low <= high) {
+        int mid1 = (low + high) >> 1;
+        int mid2 = left - mid1;
+
+        // Initialize l1, l2, r1, r2
+        // l1 = largest on left of a
+        // l2 = largest on left of b
+        // r1 = smallest on right of a
+        // r2 = smallest on right of b
+        int l1 = (mid1 > 0) ? a[mid1 - 1] : INT_MIN;
+        int l2 = (mid2 > 0) ? b[mid2 - 1] : INT_MIN;
+        int r1 = (mid1 < m) ? a[mid1] : INT_MAX;
+        int r2 = (mid2 < n) ? b[mid2] : INT_MAX;
+
+        // Check if we have found the answer
+        if (l1 <= r2 && l2 <= r1) {
+            return max(l1, l2);
+        } 
+        else if (l1 > r2) {
+            // Eliminate the right half
+            high = mid1 - 1;
+        } 
+        else {
+            // Eliminate the left half
+            low = mid1 + 1;
+        }
+    }
+    // Dummy return statement 
+    return -1;
+}
+```
