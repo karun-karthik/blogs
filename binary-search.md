@@ -226,7 +226,7 @@ vector<int> searchRange(vector<int> &nums, int target) {
 }
 ```
 
-### Search in a rotated sorted array - 1
+### Search in a rotated sorted array 1
 Given an integer array nums, sorted in ascending order (with distinct values) and a target value k. The array is rotated at some pivot point that is unknown. Find the index at which k is present and if k is not present return -1.
 ```cpp
 int search(vector<int> &nums, int k) {
@@ -256,7 +256,7 @@ int search(vector<int> &nums, int k) {
 }
 ```
 
-### Search in a rotated sorted array - 2
+### Search in a rotated sorted array 2
 Given an integer array nums, sorted in ascending order (may contain duplicate values) and a target value k. Now the array is rotated at some pivot point unknown to you. Return True if k is present and otherwise, return False.
 ```cpp
 bool searchInARotatedSortedArrayII(vector<int> &nums, int k) {
@@ -289,5 +289,102 @@ bool searchInARotatedSortedArrayII(vector<int> &nums, int k) {
         }
     }
     return false;
+}
+```
+
+### Find Minimum using BS
+
+```cpp
+// TC: O(logN) SC: O(1)
+int findMin(vector<int> &arr)  {
+    int low = 0, high = arr.size()-1;
+    int ans = INT_MAX;
+
+    while (low <= high) {
+        int mid = (low + high)/2;
+        if (arr[low] <= arr[mid]) {
+            // left space is sorted
+            ans = min(arr[low], ans);
+            low = mid + 1;
+        } else {
+            ans = min(ans, arr[mid]);
+            high = mid - 1;
+        }
+    }
+
+    return ans;
+}
+```
+
+### Find no. of right rotations in sorted array
+
+```
+Input : nums = [4, 5, 6, 7, 0, 1, 2, 3]
+Output: 4
+Explanation: The original array should be [0, 1, 2, 3, 4, 5, 6, 7].
+So, we can notice that the array has been rotated 4 times.
+```
+
+```cpp
+int findKRotation(vector<int> &arr)  {
+    int low = 0, high = arr.size()-1;
+    int idx = -1;
+    int mini = INT_MAX;
+
+    while (low <= high) {
+        int mid = (low + high)/2;
+        if (arr[low] <= arr[mid]) {
+            if (arr[low] <= mini) {
+                idx = low;
+                mini = arr[low];
+            }
+            low = mid + 1;
+        } else {
+            if (arr[mid] <= mini) {
+                idx = mid;
+                mini = arr[mid];
+            }
+            high = mid - 1;
+        }
+    }
+
+    return idx;
+}
+```
+
+### Single element in rotated sorted array
+- **Mid is an Even index**
+  - If `arr[mid] == arr[mid + 1]` → single element is in **right half**
+  - If `arr[mid] == arr[mid - 1]` → single element is in **left half**
+
+- **Mid is an Odd index**
+  - If `arr[mid] == arr[mid + 1]` → single element is in **left half**
+  - If `arr[mid] == arr[mid - 1]` → single element is in **right half**
+
+```
+int singleNonDuplicate(vector<int> &nums) {
+    int n = nums.size();
+    if (n == 1) return nums[0];
+    if (nums[0] != nums[1]) return nums[0];
+    if (nums[n-1] != nums[n-2]) return nums[n-1];
+
+    int low = 1, high = n-2;
+    while (low <= high) {
+        int mid = (low + high) / 2;
+
+        if (nums[mid-1] != nums[mid] && nums[mid] != nums[mid+1])
+            return nums[mid];   // mid is a single element
+
+        bool oddIndex = (mid % 2 == 1 && nums[mid] == nums[mid - 1]);
+        bool evenIndex = (mid % 2 == 0 && nums[mid] == nums[mid + 1]);
+
+        if (oddIndex || evenIndex) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    return -1;
 }
 ```
