@@ -388,3 +388,242 @@ int singleNonDuplicate(vector<int> &nums) {
     return -1;
 }
 ```
+
+### Find square root of a number
+
+```
+Given a positive integer n. Find and return its square root.
+If n is not a perfect square, then return the floor value of sqrt(n).
+```
+
+```cpp
+int floorSqrt(int n)  {
+    int low = 1, high = n;
+    int ans = 0;
+    while (low <= high) {
+        int mid = low + (high - low)/2;
+        long long val = 1LL * mid * mid;
+
+        if (val <= (long long)n) {
+            low = mid + 1;
+            ans = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return ans;
+}
+```
+
+### Find nth root of a number
+
+```
+Given two numbers N and M, find the Nth root of M.
+The Nth root of a number M is defined as a number X
+such that when X is raised to the power of N, it equals M.
+If the Nth root is not an integer, return -1.
+```
+
+```cpp
+int check(int mid, int n, int m) {
+    long long res = 1;
+    for (int i = 0; i < n; i++) {
+      res = res * mid;
+      if (res > m)  return 2; // larger than required
+    }
+    if (res == m)  return 1; // exact match found
+    return 0; // smaller than required
+}
+
+int checkLogN(int mid, int n, int m) {
+    long long res = 1;
+    long long base = mid;
+
+    while (n > 0) {
+      // if n is odd, multiply once
+        if (n & 1) {
+            res *= base;
+            if (res > m) return 2;
+            n--;
+        } else {
+            // if even, square the base
+            base *= base;
+            if (base > m) return 2;
+            n = n/2;
+        }
+    }
+    if (res == m) return 1;
+    return 0;
+}
+
+int NthRoot(int N, int M) {
+    int low = 1, high = M;
+
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        int res = checkLogN(mid, N, M);
+        // int res = check(mid, N, M);
+
+        if (res == 1) return mid;
+        else if (res == 2)  high = mid - 1;
+        else low = mid + 1; // when res = 0
+    }
+    return -1; // no integer with Nth root
+}
+```
+
+### Find the smallest divisor
+Given an array of integers nums and an integer limit as the threshold value,
+find the smallest positive integer divisor such that upon dividing all the elements of the array by this divisor,
+the sum of the division results is less than or equal to the threshold value.
+After dividing each element by the chosen divisor,
+take the ceiling of the result (i.e., round up to the next whole number).
+
+```cpp
+int helper(int mid, vector<int>& nums) {
+    int sum = 0;
+    for (auto it: nums) {
+        sum += ceil((double)(it) / (double)(mid));
+    }
+    return sum;
+}
+int smallestDivisor(vector<int> &nums, int limit) {
+    int max = *max_element(nums.begin(), nums.end());
+    int low = 1, high = max;
+    int ans = -1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        int sumDivisor = helper(mid, nums);
+        if (sumDivisor <= limit) {
+            ans = mid;
+            high = mid - 1; // if it's within the limit then go further less
+        } else {
+            low = mid + 1;
+        }
+    }
+    return ans;
+}
+```
+
+### Koko eating bananas
+
+A monkey is given n piles of bananas, where the 'ith' pile has nums[i] bananas. An integer h represents the total time in hours to eat all the bananas.
+
+
+
+Each hour, the monkey chooses a non-empty pile of bananas and eats k bananas. If the pile contains fewer than k bananas, the monkey eats all the bananas in that pile and does not consume any more bananas in that hour.
+
+
+
+Determine the minimum number of bananas the monkey must eat per hour to finish all the bananas within h hours.
+
+```
+int helper(int mid, vector<int> &nums) {
+    int sum = 0;
+    for (int i: nums) {
+        sum += ceil((double) i / (double) mid);
+    }
+    return sum;
+}
+
+int minimumRateToEatBananas(vector<int> nums, int h) {
+    int low = 1, high = *max_element(nums.begin(), nums.end());
+    int ans = -1;
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        int minimumBananas = helper(mid, nums);
+        if (minimumBananas <= h) {
+            ans = mid;
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    return ans;
+}
+```
+
+### Minimum days to make M bouquets
+
+Given n roses and an array nums where nums[i] denotes that the 'ith' rose will bloom on the nums[i]th day, only adjacent bloomed roses can be picked to make a bouquet. Exactly k adjacent bloomed roses are required to make a single bouquet. Find the minimum number of days required to make at least m bouquets, each containing k roses. Return -1 if it is not possible.
+
+```
+bool checkBouquets(vector<int> &nums, int mid, int m, int k) {
+    int countOfFlowers = 0;
+    int noOfBouquets = 0;
+
+    for (int flowerOnDay: nums) {
+        if (flowerOnDay <= mid) {
+        countOfFlowers++;
+        } else {
+        // if more flowers are available on a day
+        noOfBouquets += (countOfFlowers)/k;
+        countOfFlowers = 0;
+        }
+    }
+
+    // create another bouquet with remaining flowers
+    noOfBouquets += (countOfFlowers)/k;
+    return noOfBouquets >= m; // true if required bouquet count is met 
+}
+
+int roseGarden(int n,vector<int> nums, int k, int m) {
+    long long targetFlowers = m * k;
+    if (targetFlowers > n)  return -1;
+    int low = *min_element(nums.begin(), nums.end());
+    int high = *max_element(nums.begin(), nums.end());
+    int ans = -1;
+    while (low <= high) {
+        int mid = low + (high - low)/2;
+        if (checkBouquets(nums, mid, m, k)) {
+            ans = mid;
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    return ans;
+  }
+```
+
+## FAQ
+
+### Aggressive Cows
+Given an array nums of size n, which denotes the positions of stalls, and an integer k, which denotes the number of aggressive cows, assign stalls to k cows such that the minimum distance between any two cows is the maximum possible. Find the maximum possible minimum distance.
+```
+bool canPlaceCow(vector<int>&nums, int dist, int cows) {
+    int n = nums.size();
+    int placedCows = 1;
+    int lastCowPosition = nums[0];
+
+    for (int i = 1; i < n; i++) {
+        // if distance between curr cow and last placed cow
+        // is greater than dist, then place cow and update last
+        if (nums[i] - lastCowPosition >= dist) {
+            placedCows++;
+            lastCowPosition = nums[i];
+        }
+        // if more cows are placed than k,
+        // then it's a possible answer, return true
+        if (placedCows >= cows) return true;
+    }
+    return false;
+}
+int aggressiveCows(vector<int> &nums, int k) {
+    int n = nums.size();
+    sort(nums.begin(), nums.end());
+    int low = 1, high = nums[n-1] - nums[0];
+    // high is max possible distance between first and last stall
+    int ans;
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        if (canPlaceCow(nums, mid, k)) {
+            low = mid + 1; // if max then use low, min use high
+            ans = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return ans;
+}
+```
