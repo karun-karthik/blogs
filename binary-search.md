@@ -35,7 +35,7 @@ int search(vector<int> &nums, int target) {
 }
 ```
 
-### Lower Bound ==(1st element >= x)==
+### Lower Bound ==(1st element &gt;= x)==
 Lower bound is the first element in the array i.e greater than or equal to x.
 
 **Brute**
@@ -74,7 +74,7 @@ int lowerBound(vector<int> &nums, int x){
 ```
 
 
-### Upper Bound ==(1st element > x)==
+### Upper Bound ==(1st element &gt; x)==
 Upper bound is the first element in the array i.e greater than x.
 
 **Brute**
@@ -725,64 +725,59 @@ Ultimately only 2 middle elements at indexes (m + n)/2 and (m + n)/2 - 1, are ne
 ```cpp
 double median(vector<int>& arr1, vector<int>& arr2) {
     // Sizes
-    int size1 = arr1.size();
-    int size2 = arr2.size();
-    int totalSize = size1 + size2;
+    int len1 = arr1.size();
+    int len2 = arr2.size();
+    int totalLen = len1 + len2;
 
-    // Median indices
-    int rightMedianIndex = totalSize / 2;
-    int leftMedianIndex = rightMedianIndex - 1;
+    // Median positions in merged order
+    int rightMidPos = totalLen / 2;
+    int leftMidPos  = rightMidPos - 1;
 
-    int mergedIndex = 0;
-    int leftMedianValue = -1;
-    int rightMedianValue = -1;
+    int mergePos = 0;
+    int leftMidValue  = -1;
+    int rightMidValue = -1;
 
-    // Merge pointers
-    int ptr1 = 0, ptr2 = 0;
+    // Pointers for merging
+    int i = 0, j = 0;
 
-    // Merge step
-    while (ptr1 < size1 && ptr2 < size2) {
-        int currentValue;
+    // Merge until one array is exhausted
+    while (i < len1 && j < len2) {
+        int picked;
 
-        if (arr1[ptr1] < arr2[ptr2]) {
-            currentValue = arr1[ptr1++];
+        if (arr1[i] <= arr2[j]) {
+            picked = arr1[i++];
         } else {
-            currentValue = arr2[ptr2++];
+            picked = arr2[j++];
         }
 
-        if (mergedIndex == leftMedianIndex) leftMedianValue = currentValue;
-        if (mergedIndex == rightMedianIndex)
-            rightMedianValue = currentValue;
+        if (mergePos == leftMidPos)  leftMidValue  = picked;
+        if (mergePos == rightMidPos) rightMidValue = picked;
 
-        mergedIndex++;
+        mergePos++;
     }
 
-    // Remaining elements from arr1
-    while (ptr1 < size1) {
-        if (mergedIndex == leftMedianIndex)
-            leftMedianValue = arr1[ptr1];
-        if (mergedIndex == rightMedianIndex)
-            rightMedianValue = arr1[ptr1];
-        mergedIndex++;
-        ptr1++;
+    // Remaining elements of arr1
+    while (i < len1) {
+        if (mergePos == leftMidPos)  leftMidValue  = arr1[i];
+        if (mergePos == rightMidPos) rightMidValue = arr1[i];
+        mergePos++;
+        i++;
     }
 
-    // Remaining elements from arr2
-    while (ptr2 < size2) {
-        if (mergedIndex == leftMedianIndex)
-            leftMedianValue = arr2[ptr2];
-        if (mergedIndex == rightMedianIndex)
-            rightMedianValue = arr2[ptr2];
-        mergedIndex++;
-        ptr2++;
+    // Remaining elements of arr2
+    while (j < len2) {
+        if (mergePos == leftMidPos)  leftMidValue  = arr2[j];
+        if (mergePos == rightMidPos) rightMidValue = arr2[j];
+        mergePos++;
+        j++;
     }
 
-    // Compute median
-    if (totalSize % 2 == 1) {
-        return (double)rightMedianValue;
+    // Final median calculation
+    if (totalLen % 2 == 1) {
+        return (double) rightMidValue;
     }
 
-    return (leftMedianValue + rightMedianValue) / 2.0;
+    return (leftMidValue + rightMidValue) / 2.0;
 }
 ```
 
@@ -867,5 +862,136 @@ int kthElement(vector<int>& a, vector<int>& b, int k) {
     }
     // Dummy return statement 
     return -1;
+}
+```
+
+## 2D Arrays
+
+### Find row with maximum 1s
+
+Given a non-empty grid mat consisting of only 0s and 1s, where all the rows are sorted in ascending order, find the index of the row with the maximum number of ones.
+
+If two rows have the same number of ones, consider the one with a smaller index. If no 1 exists in the matrix, return -1.
+
+```cpp
+int lower_bound(vector<int> arr, int x) {
+    int low = 0;
+    int high = arr.size() - 1;
+    int ans = arr.size();
+    while (low <= high) {
+        int mid = (low + high)/2;
+        if (arr[mid] >= x) {
+            ans = mid;
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    return ans;
+}
+
+int rowWithMax1s(vector < vector < int >> & mat) {
+    int res = 0;
+    int idx = -1;
+    for (int i=0; i<mat.size(); i++) {
+        int oneCount = mat[i].size() - lower_bound(mat[i], 1);
+        if (oneCount > res) {
+            res = oneCount;
+            idx = i;
+        }
+    }
+    return idx;
+}
+```
+
+### Search in 2D Matrix
+
+Given a 2-D array mat where the elements of each row are sorted in non-decreasing order, and the first element of a row is greater than the last element of the previous row (if it exists), and an integer target, determine if the target exists in the given mat or not.
+
+```cpp
+// TC: O(log(N*M)) SC: O(1)
+bool searchMatrix(vector<vector<int>> &mat, int target){
+    int m = mat.size(); // rows
+    int n = mat[0].size(); // columns
+    int low = 0, high = m * n-1;
+    while (low <= high) {
+        int mid = (low + high)/2;
+        int ele = mat[mid/n][mid%n];
+        if (ele == target) {
+            return true;
+        } else if (ele < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return false;
+}
+```
+
+### Search in 2D Matrix ii
+
+Given a 2D array matrix where each row is sorted in ascending order from left to right and each column is sorted in ascending order from top to bottom, write an efficient algorithm to search for a specific integer target in the matrix.
+
+```cpp
+bool searchMatrix(vector<vector<int>> &mat, int target){
+    int m = mat.size(); // rows
+    int n = mat[0].size(); // columns
+    int row = 0, col = n-1;
+    while (row < m && col >= 0) {
+        if (mat[row][col] == target)    return true;
+        else if (mat[row][col] > target)   col--;
+        else row++;
+    }
+    return false;
+}
+```
+
+### Find Peak Element ii
+
+Given a 0-indexed n x m matrix mat where no two adjacent cells are equal, find any peak element mat[i][j] and return the array [i, j].A peak element in a 2D grid is an element that is strictly greater than all of its adjacent neighbours to the left, right, top, and bottom.
+
+Assume that the entire matrix is surrounded by an outer perimeter with the value -1 in each cell.
+
+Note: As there can be many peak values, 1 is given as output if the returned index is a peak number, otherwise 0.
+
+```cpp
+int maxElement(vector<vector<int>>&arr, int col) {
+    int m = arr.size();
+    int maxVal = INT_MIN;
+    int idx = -1;
+    for (int i=0; i<m; i++) {
+        if (arr[i][col] > maxVal) {
+            maxVal = arr[i][col];
+            idx = i;
+        }
+    }
+    return idx;
+}
+
+vector<int> findPeakGrid(vector<vector<int>>& arr) {
+    int m = arr.size(); // rows
+    int n = arr[0].size(); // columns
+
+    int low = 0;
+    int high = n-1;
+
+    while (low <= high) {
+        int mid = (low + high)/2;
+        int row = maxElement(arr, mid);
+
+        int leftEle = mid > 0 ? arr[row][mid-1] : INT_MIN;
+        int rightEle = mid + 1 < n ? arr[row][mid+1] : INT_MIN;
+
+        if (arr[row][mid] > leftEle && arr[row][mid] > rightEle) {
+            return {row, mid};
+        } else if (leftEle > arr[row][mid]) {
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+
+    return {-1, -1};
 }
 ```
