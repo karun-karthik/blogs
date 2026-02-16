@@ -6,7 +6,7 @@
       "date": "2026-02-01",
       "domain": "DSA",
       "topic": "Sorting",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/sorting.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/sorting.md"
     },
     {
       "slug": "arrays",
@@ -14,7 +14,7 @@
       "date": "2026-02-07",
       "domain": "DSA",
       "topic": "Arrays",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/arrays.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/arrays.md"
     },
     {
       "slug": "hashing",
@@ -22,7 +22,7 @@
       "date": "2026-02-11",
       "domain": "DSA",
       "topic": "Hashing",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/hashing.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/hashing.md"
     },
     {
       "slug": "binary-search",
@@ -30,7 +30,7 @@
       "date": "2026-02-12",
       "domain": "DSA",
       "topic": "Binary Search",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/binary-search.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/binary-search.md"
     },
     {
       "slug": "recursion",
@@ -38,7 +38,7 @@
       "date": "2026-02-15",
       "domain": "DSA",
       "topic": "Recursion",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/recursion.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/recursion.md"
     }
   ]
 }
