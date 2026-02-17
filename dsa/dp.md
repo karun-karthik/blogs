@@ -83,3 +83,66 @@ int climbStairs(int n) {
     return climbStairsConstant(n);
 }
 ```
+
+### Frog Jump
+
+A frog wants to climb a staircase with n steps. Given an integer array heights, where heights[i] contains the height of the ith step.
+
+To jump from the ith step to the jth step, the frog requires abs(heights[i] - heights[j]) energy, where abs() denotes the absolute difference. The frog can jump from any step either one or two steps, provided it exists.
+
+Return the minimum amount of energy required by the frog to go from the 0th step to the (n-1)th step.
+
+```cpp
+int helper(int idx, vector<int>& heights, vector<int> &dp) {
+    if (idx == 0)   return 0;
+    if (dp[idx] != -1)  return dp[idx];
+
+    int jumpOne = helper(idx-1, heights, dp) + abs(heights[idx]-heights[idx-1]);
+    int jumpTwo = INT_MAX;
+    if (idx > 1)
+        jumpTwo = helper(idx-2, heights, dp) + abs(heights[idx]-heights[idx-2]);
+    return dp[idx] = min(jumpOne, jumpTwo);
+}
+
+int frogJumpMemo(vector<int>& heights) {
+    int n = heights.size();
+    vector<int> dp(n, -1);
+    return helper(n-1, heights, dp);
+}
+
+int frogJumpTabulation(vector<int> &heights) {
+    int n = heights.size();
+    vector<int> dp(n, -1);
+    dp[0] = 0;
+    for (int i=1; i<n; i++) {
+        int jumpOne = dp[i-1] + abs(heights[i-1] - heights[i]);
+        int jumpTwo = INT_MAX;
+        if (i > 1)
+            jumpTwo = dp[i-2] + abs(heights[i-2] - heights[i]);
+        dp[i] = min(jumpOne, jumpTwo);
+    }
+    return dp[n-1];
+}
+
+int frogJumpConstant(vector<int> &heights) {
+    int n = heights.size();
+    int prev = 0;
+    int prev2 = 0;
+    for (int i=1; i<n; i++) {
+        int jumpOne = prev + abs(heights[i-1] - heights[i]);
+        int jumpTwo = INT_MAX;
+        if (i > 1)
+            jumpTwo = prev2 + abs(heights[i-2] - heights[i]);
+        int curr = min(jumpOne, jumpTwo);
+        prev2 = prev;
+        prev = curr;
+    }
+    return prev;
+}
+
+int frogJump(vector<int>& heights) {
+    // return frogJumpMemo(heights);
+    // return frogJumpTabulation(heights);
+    return frogJumpConstant(heights);
+}
+```
