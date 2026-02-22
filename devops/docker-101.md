@@ -191,7 +191,7 @@ OverlayFS stacks the immutable lower layers, applies any modifications in the up
 
 ### Docker Components & Flow
 
-#### Core stack (Linux native)
+**Core stack (Linux native)**
 
 - **Docker CLI** → user‑facing client
 - **dockerd** (daemon / manager) → controls API, lifecycle, networking
@@ -199,7 +199,7 @@ OverlayFS stacks the immutable lower layers, applies any modifications in the up
 - **runc** (OCI runtime) → spawns containers using kernel syscalls
 - **Linux kernel** → enforces isolation & limits via namespaces, cgroups, overlayFS, capabilities
 
-#### Responsibilities
+**Responsibilities**
 
 | Component    | Role                                     | Mnemonic        |
 |--------------|------------------------------------------|-----------------|
@@ -209,7 +209,7 @@ OverlayFS stacks the immutable lower layers, applies any modifications in the up
 | runc         | Executes containers via kernel           | Executor        |
 | Linux kernel | Provides the actual isolation & control  | Infrastructure  |
 
-#### Execution flow (`docker run nginx`)
+**Execution flow (`docker run nginx`)**
 
 1. CLI sends a REST request to dockerd.
 2. dockerd validates the request and coordinates with containerd.
@@ -221,7 +221,7 @@ OverlayFS stacks the immutable lower layers, applies any modifications in the up
    - starts the container process.
 5. The kernel then executes and isolates the process.
 
-#### Docker Desktop vs native engine
+**Docker Desktop vs native engine**
 
 On **Linux hosts** the engine runs directly:
 
@@ -243,7 +243,7 @@ Docker Desktop packages the engine inside that VM (WSL2 or Apple framework).
 | Typical use     | Production servers  | Developer machines       |
 | Hypervisor      | None                | Required (WSL2/Hyperkit) |
 
-#### Five key points to remember
+**Five key points to remember**
 
 1. The **Linux kernel** provides isolation, not Docker itself.
 2. `runc` interacts directly with the kernel.
@@ -270,7 +270,7 @@ When we create a container from a container image, everything in the image is tr
 
 ![](./readme-assets/container-filesystem.jpg)
 
-#### A. Installing Dependencies:
+- **A. Installing Dependencies:**
 
 Let's experiment with how installing something into a container at runtime behaves!
 
@@ -344,7 +344,7 @@ The `FROM... RUN...` stuff is part of what is called a `Dockerfile` that is used
 
 The one exception to this rule is environment specific configuration (environment variables, config files, etc...) which can be provided at runtime as a part of the environment (see: https://12factor.net/config).
 
-#### B. Persisting Data Produced by the Application:
+- **B. Persisting Data Produced by the Application:**
 
 Often, our applications produce data that we need to safely persist (e.g. database data, user uploaded data, etc...) even if the containers are destroyed and recreated. Luckily, Docker (and containers more generally) have a feature to handle this use case called `Volumes` and `mounts`!
 
@@ -379,7 +379,7 @@ docker run -it --rm ubuntu:22.04
 cat my-data/hello.txt # Produces error: `cat: my-data/hello.txt: No such file or directory`
 ```
 
-##### i. Volume Mounts
+- **i. Volume Mounts**
 We can use volumes and mounts to safely persist the data.
 
 ```bash
@@ -428,7 +428,7 @@ This approach can then be used to mount a volume at the known path where a progr
 docker run -it --rm -v pgdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=foobarbaz postgres:15.1-alpine
 ```
 
-##### ii. Bind Mounts
+- **ii. Bind Mounts**
 
 Alternatively, we can mount a directory from the host system using a bind mount:
 
@@ -453,7 +453,7 @@ Now that we have an understanding of how data storage works with containers we c
 
 For me, the main categories are databases, interactive test environments, and CLI utilities.
 
-#### A. Databases
+- **A. Databases**
 
 Databases are notoriously fickle to install and configure. The instructions are often complex and vary across different versions and operating systems. For development, where you might need to run multiple versions of a single database or create a fresh database for testing purposes running in a container can be a massive improvement.
 
@@ -468,7 +468,7 @@ Here are a some useful databases container images and sample commands that attem
 
 🚨🚨🚨 ***WARNING:** While I have made a best effort to set up the volume mounts properly, please confirm the volume mounts match the location data is persisted within the container independently to ensure your data safety.* 🚨🚨🚨
 
-#### Postgres 
+- **Postgres**
 https://hub.docker.com/_/postgres
 ```bash
 docker run -d --rm \
@@ -486,7 +486,7 @@ docker run -d --rm \
   postgres:15.1-alpine -c 'config_file=/etc/postgresql/postgresql.conf'
 ```
 
-#### Mongo
+- **Mongo**
 https://hub.docker.com/_/mongo
 ```bash
 docker run -d --rm \
@@ -506,7 +506,7 @@ docker run -d --rm \
   mongo:6.0.4 --config /etc/mongod.conf
 ```
 
-#### Redis
+- **Redis**
 https://hub.docker.com/_/redis
 
 Depending how you are using redis within your application, you may or may not care if the data is persisted.
@@ -523,7 +523,7 @@ docker run -d --rm \
   redis:7.0.8-alpine redis-server /usr/local/etc/redis/redis.conf
 ```
 
-#### MySQL
+- **MySQL**
 https://hub.docker.com/_/mysql
 ```bash
 docker run -d --rm \
@@ -541,7 +541,7 @@ docker run -d --rm \
   mysql:8.0.32
 ```
 
-#### Elasticsearch
+- **Elasticsearch**
 https://hub.docker.com/_/elasticsearch
 ```bash
 docker run -d --rm \
@@ -553,7 +553,7 @@ docker run -d --rm \
   elasticsearch:8.6.0
 ```
 
-#### Neo4j
+- **Neo4j**
 https://hub.docker.com/_/neo4j
 
 ```bash
@@ -565,9 +565,9 @@ docker run -d --rm \
     neo4j:5.4.0-community
 ```
 
-#### B. Interactive Test Environments
+- **B. Interactive Test Environments**
 
-#### i. Operating systems
+- **i. Operating systems**
 
 ```bash
 # https://hub.docker.com/_/ubuntu
@@ -584,7 +584,7 @@ docker run -it --rm busybox:1.36.0 # small image with lots of useful utilities
 ```
 
 
-#### ii. Programming runtimes:
+- **ii. Programming runtimes:**
 ```bash
 # https://hub.docker.com/_/python
 docker run -it --rm python:3.11.1
@@ -599,7 +599,7 @@ docker run -it --rm php:8.1
 docker run -it --rm ruby:alpine3.17
 ```
 
-#### C. CLI Utilities
+- **C. CLI Utilities**
 
 Sometimes you don't have a particular utility installed on your current system, or breaking changes between versions make it handy to be able to run a specific version of a utility inside of a container without having to install anything on the host!
 
@@ -651,7 +651,7 @@ docker run --rm -v ~/.config/gcloud:/root/.config/gcloud gcr.io/google.com/cloud
 # Why is the container image so big 😭?! 2.8GB
 ```
 
-#### D. Improving the Ergonomics
+- **D. Improving the Ergonomics**
 
 If you plan to use one of these utilities inside of a container frequently, it can be useful to use a shell function or alias to make the ergonomics feel like the program is installed on the host. Here are examples of this for `yq`:
 
@@ -665,7 +665,7 @@ yq-shell-function <sample-data/test.yaml '.key_1 + .key_2'
 
 ---
 
-#### Alias
+- **Alias**
 alias 'yq-alias=docker run --rm -i -v ${PWD}:/workdir mikefarah/yq'
 yq-alias <sample-data/test.yaml '.key_1 + .key_2'
 ```
