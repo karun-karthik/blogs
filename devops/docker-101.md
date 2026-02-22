@@ -380,6 +380,7 @@ cat my-data/hello.txt # Produces error: `cat: my-data/hello.txt: No such file or
 ```
 
 - **i. Volume Mounts**
+
 We can use volumes and mounts to safely persist the data.
 
 ```bash
@@ -666,6 +667,7 @@ yq-shell-function <sample-data/test.yaml '.key_1 + .key_2'
 ---
 
 - **Alias**
+```bash
 alias 'yq-alias=docker run --rm -i -v ${PWD}:/workdir mikefarah/yq'
 yq-alias <sample-data/test.yaml '.key_1 + .key_2'
 ```
