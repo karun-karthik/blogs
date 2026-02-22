@@ -251,7 +251,7 @@ Docker Desktop packages the engine inside that VM (WSL2 or Apple framework).
 4. `dockerd` adds orchestration, networking, and API features.
 5. Docker Desktop simply adds a Linux VM layer to the stack.
 
-## Using 3rd party containers
+## Using third-party libraries (containers/tools)
 
 Need a database, a one‑off shell or a utility without touching your host?
 Grab a public image and run it with Docker. Keep any state you care about on a
@@ -264,13 +264,13 @@ Switching versions is as easy as changing the image tag; unless you mount a
 path, containers throw away their filesystem when removed.
 
 
-## I. Understanding data persistence
+### I. Understanding data persistence
 
 When we create a container from a container image, everything in the image is treated as read-only, and there is a new layer overlayed on top that is read/write.
 
 ![](./readme-assets/container-filesystem.jpg)
 
-### A. Installing Dependencies:
+#### A. Installing Dependencies:
 
 Let's experiment with how installing something into a container at runtime behaves!
 
@@ -344,7 +344,7 @@ The `FROM... RUN...` stuff is part of what is called a `Dockerfile` that is used
 
 The one exception to this rule is environment specific configuration (environment variables, config files, etc...) which can be provided at runtime as a part of the environment (see: https://12factor.net/config).
 
-### B. Persisting Data Produced by the Application:
+#### B. Persisting Data Produced by the Application:
 
 Often, our applications produce data that we need to safely persist (e.g. database data, user uploaded data, etc...) even if the containers are destroyed and recreated. Luckily, Docker (and containers more generally) have a feature to handle this use case called `Volumes` and `mounts`!
 
@@ -379,7 +379,7 @@ docker run -it --rm ubuntu:22.04
 cat my-data/hello.txt # Produces error: `cat: my-data/hello.txt: No such file or directory`
 ```
 
-#### i. Volume Mounts
+##### i. Volume Mounts
 We can use volumes and mounts to safely persist the data.
 
 ```bash
@@ -428,7 +428,7 @@ This approach can then be used to mount a volume at the known path where a progr
 docker run -it --rm -v pgdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=foobarbaz postgres:15.1-alpine
 ```
 
-#### ii. Bind Mounts
+##### ii. Bind Mounts
 
 Alternatively, we can mount a directory from the host system using a bind mount:
 
@@ -447,13 +447,13 @@ exit
 
 Bind mounts can be nice if you want easy visibility into the data being stored, but there are a number of reasons outlined at https://docs.docker.com/storage/volumes/ (including speed if you are running Docker Desktop on windows/mac) for why volumes are preferred. 
 
-## II. Use Cases
+### II. Use Cases
 
 Now that we have an understanding of how data storage works with containers we can start to explore various use cases for running 3rd party containers.
 
 For me, the main categories are databases, interactive test environments, and CLI utilities.
 
-### A. Databases
+#### A. Databases
 
 Databases are notoriously fickle to install and configure. The instructions are often complex and vary across different versions and operating systems. For development, where you might need to run multiple versions of a single database or create a fresh database for testing purposes running in a container can be a massive improvement.
 
@@ -565,7 +565,7 @@ docker run -d --rm \
     neo4j:5.4.0-community
 ```
 
-### B. Interactive Test Environments
+#### B. Interactive Test Environments
 
 #### i. Operating systems
 
@@ -599,7 +599,7 @@ docker run -it --rm php:8.1
 docker run -it --rm ruby:alpine3.17
 ```
 
-### C. CLI Utilities
+#### C. CLI Utilities
 
 Sometimes you don't have a particular utility installed on your current system, or breaking changes between versions make it handy to be able to run a specific version of a utility inside of a container without having to install anything on the host!
 
@@ -651,7 +651,7 @@ docker run --rm -v ~/.config/gcloud:/root/.config/gcloud gcr.io/google.com/cloud
 # Why is the container image so big 😭?! 2.8GB
 ```
 
-### D. Improving the Ergonomics
+#### D. Improving the Ergonomics
 
 If you plan to use one of these utilities inside of a container frequently, it can be useful to use a shell function or alias to make the ergonomics feel like the program is installed on the host. Here are examples of this for `yq`:
 
@@ -665,14 +665,7 @@ yq-shell-function <sample-data/test.yaml '.key_1 + .key_2'
 
 ---
 
-# Alias
+#### Alias
 alias 'yq-alias=docker run --rm -i -v ${PWD}:/workdir mikefarah/yq'
 yq-alias <sample-data/test.yaml '.key_1 + .key_2'
 ```
-
-## Bonus -- Jessie's talks:
-
-[Jess Frazelle](https://github.com/jessfraz) was an early engineer at Docker (among many other things), where she made many contributions to the container runtime. She also gave many fun talks about doing interesting things inside of containers. These two from 2015 are definitely worth a watch:
-
-- [Willy Wonka of Containers - Jessie Frazelle](https://www.youtube.com/watch?v=GsLZz8cZzc)
-- [Container Hacks and Fun Images](https://www.youtube.com/watch?v=cYsVvV1aVss)
