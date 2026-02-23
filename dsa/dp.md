@@ -28,6 +28,13 @@
 - **Strategy**: Start from base cases
 - **Approach**: Build solution iteratively
 
+#### Flow of solving DP problems!
+* If greedy fails, then try all possible ways
+* If trying all possible ways => Recursion O(k^n); k < n, [could lead to TLE or OOM] 
+* Once recursion is done, convert to memoization O(n^k), [k < n]
+* Convert memoized solution to tabulation
+* Convert tabulation to space optimized solution!
+
 ---
 
 ## 1D DP
@@ -343,5 +350,101 @@ int houseRobber(vector<int>& money) {
     // return max(nonAdjacentTab(a), nonAdjacentTab(b));
     // return max(nonAdjacentMemo(a), nonAdjacentMemo(b));
     return max(nonAdjacentConstant(a), nonAdjacentConstant(b));
+}
+```
+
+## 2D DP
+### Ninja's Training
+
+```cpp
+int solve(int day, int last, vector<vector<int>>& matrix, vector<vector<int>> &dp) {
+    if (dp[day][last] != -1)    return dp[day][last];
+
+    if (day == 0) {
+        // then find max of all scores;
+        int maxi = 0;
+        for (int i = 0; i < 3; i++) {
+            if (i != last)  maxi = max(maxi, matrix[0][i]);
+        }
+        return dp[day][last] = maxi;
+    }
+
+    int maxi = 0;
+    for (int i = 0; i<3; i++) {
+        if (i != last)  {
+            int score = matrix[day][i] + solve(day - 1, i, matrix, dp);
+            maxi = max(maxi, score);
+        }
+    }
+
+    return dp[day][last] = maxi;
+}
+
+int ninjaTrainingMemo(vector<vector<int>>& matrix) {
+    int days = matrix.size();
+    // [days X m] is dp order; (m, -1) => m is no. of activities
+    int last = 3;
+    vector<vector<int>> dp(days, vector<int>(last + 1, -1));
+    return solve(days - 1, last, matrix, dp);
+}
+
+// Tabulation -----------
+int ninjaTrainingTabulation(vector<vector<int>> &matrix) {
+    int days = matrix.size();
+    // [days X m] is dp order; (m, -1) => m is no. of activities
+    int last = 3;
+    vector<vector<int>> dp(days, vector<int>(last + 1, 0));
+    dp[0][0] = max(matrix[0][1], matrix[0][2]);
+    dp[0][1] = max(matrix[0][0], matrix[0][2]);
+    dp[0][2] = max(matrix[0][0], matrix[0][1]);
+    dp[0][3] = max(matrix[0][0], max(matrix[0][1], matrix[0][2]));
+    
+    // iterate on all days
+    for (int day = 1; day < days; day++) {
+        // for every day I can have tasks either of 0, 1, 2, 3
+        for (int last = 0; last < 4; last++) {
+            // dp[day][last] = 0;
+            // iterate through the tasks
+            for (int task = 0; task < 3; task++) {
+                if (task != last) {
+                    int score = matrix[day][task] + dp[day-1][task];
+                    dp[day][last] = max(dp[day][last], score);
+                }
+            }
+        }
+    }
+    return dp[days - 1][last];
+}
+
+// Space -----------
+int ninjaTrainingConstant(vector<vector<int>>& matrix) {
+    int days = matrix.size();
+    int last = 3;
+    vector<int> prev(last + 1, 0), curr(last + 1, 0);
+    prev[0] = max(matrix[0][1], matrix[0][2]);
+    prev[1] = max(matrix[0][0], matrix[0][2]);
+    prev[2] = max(matrix[0][0], matrix[0][1]);
+    prev[3] = max(matrix[0][0], max(matrix[0][1], matrix[0][2]));
+    // iterate on all days
+    for (int day = 1; day < days; day++) {
+        // for every day I can have tasks either of 0, 1, 2, 3
+        for (int last = 0; last < 4; last++) {
+            // iterate through the tasks
+            for (int task = 0; task < 3; task++) {
+                if (task != last) {
+                    int score = matrix[day][task] + prev[task];
+                    curr[last] = max(curr[last], score);
+                }
+            }
+        }
+        prev = curr;
+    }
+    return prev[last];
+}
+
+int ninjaTraining(vector<vector<int>>& matrix) {
+    // return ninjaTrainingMemo(matrix);
+    // return ninjaTrainingTabulation(matrix);
+    return ninjaTrainingConstant(matrix);
 }
 ```
