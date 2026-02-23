@@ -356,6 +356,20 @@ int houseRobber(vector<int>& money) {
 ## 2D DP
 ### Ninja's Training
 
+A ninja has planned a n-day training schedule. Each day he has to perform one of three activities - running, stealth training, or fighting practice. The same activity cannot be done on two consecutive days and the ninja earns a specific number of merit points, based on the activity and the given day.
+
+
+
+Given a n x 3-sized matrix, where matrix[i][0], matrix[i][1], and matrix[i][2], represent the merit points associated with running, stealth and fighting practice, on the (i+1)th day respectively. Return the maximum possible merit points that the ninja can earn.
+
+>   Input: matrix = [[10, 40, 70], [20, 50, 80], [30, 60, 90]]
+    Output: 210
+    Explanation:
+    Day 1: fighting practice = 70
+    Day 2: stealth training = 50
+    Day 3: fighting practice = 90
+    Total = 70 + 50 + 90 = 210
+
 ```cpp
 int solve(int day, int last, vector<vector<int>>& matrix, vector<vector<int>> &dp) {
     if (dp[day][last] != -1)    return dp[day][last];
@@ -446,5 +460,422 @@ int ninjaTraining(vector<vector<int>>& matrix) {
     // return ninjaTrainingMemo(matrix);
     // return ninjaTrainingTabulation(matrix);
     return ninjaTrainingConstant(matrix);
+}
+```
+
+## DP on Grids
+
+### Grid Unique Paths
+
+Given two integers m and n, representing the number of rows and columns of a 2d array named matrix. Return the number of unique ways to go from the top-left cell (matrix[0][0]) to the bottom-right cell (matrix[m-1][n-1]).
+
+```cpp
+int solve(int m, int n, vector<vector<int>> &dp) {
+    if (m == 0 && n == 0)   return 1;
+    if (m < 0 || n < 0) return 0;
+    if (dp[m][n] != -1) return dp[m][n];
+    return dp[m][n] = solve(m-1, n, dp) + solve(m, n-1, dp);
+}
+
+int uniquePathsMemo(int m, int n) {
+    vector<vector<int>>dp(m, vector<int>(n, -1));
+    return solve(m-1, n-1, dp);
+}
+
+int uniquePathsTab(int m, int n) {
+    vector<vector<int>>dp(m, vector<int>(n, 0));
+    for (int i=0; i<m; i++) {
+        for (int j=0; j<n; j++) {
+            if (i == 0 && j == 0) {
+                dp[0][0] = 1;
+                continue;
+            } else {
+                int top = (i > 0) ? dp[i-1][j] : 0;
+                int left = (j > 0) ? dp[i][j-1] : 0;
+                dp[i][j] = top + left;
+            }
+        }
+    }
+    return dp[m-1][n-1];
+}
+
+int uniquePathsConst(int m, int n) {
+    vector<int> prev(n, 0), curr(n, 0);
+    for (int i=0; i<m; i++) {
+        for (int j=0; j<n; j++) {
+            if (i == 0 && j == 0) {
+                curr[0] = 1;
+                continue;
+            } else {
+                int top = i > 0 ? prev[j] : 0;
+                int left = j > 0 ? curr[j-1] : 0;
+                curr[j] = top + left;
+            }
+        }
+        prev = curr;
+    }
+    return prev[n-1];
+}
+
+int uniquePaths(int m, int n) {
+    // return uniquePathsMemo(m, n);
+    // return uniquePathsTab(m, n);
+    return uniquePathsConst(m, n);
+}
+```
+
+### Unique Paths ii
+Given an m x n 2d array named matrix, where each cell is either 0 or 1. Return the number of unique ways to go from the top-left cell (matrix[0][0]) to the bottom-right cell (matrix[m-1][n-1]). A cell is blocked if its value is 1, and no path is possible through that cell.
+
+>   Input: matrix = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+<br/>Output: 2
+
+```cpp
+int solve(int m, int n, vector<vector<int>> &matrix, vector<vector<int>> &dp) {
+    if (m < 0 || n < 0 || matrix[m][n] == 1)  return 0;
+    if (m == 0 && n == 0)   return 1;
+    if (dp[m][n] != -1) return dp[m][n];
+
+    return dp[m][n] = solve(m-1, n, matrix, dp) + solve(m, n-1, matrix, dp);
+}
+
+int memo(vector<vector<int>>& matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    vector<vector<int>>dp (m, vector<int>(n, -1));
+    return solve(m-1, n-1, matrix, dp);
+}
+
+int tab(vector<vector<int>> &matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    vector<vector<int>>dp (m, vector<int>(n, 0));
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (matrix[i][j] == 1) {
+                // if there are obstacles at cell,
+                // then it cannot be passed, i.e dp[i][j] = 0
+                dp[i][j] = 0;
+                continue;
+            }
+            if (i == 0 && j == 0) {
+                // if we're at starting point,
+                // then there's one path 
+                dp[0][0] = 1;
+                continue;
+            }
+            int top = i > 0 ? dp[i-1][j] : 0;
+            int left = j > 0 ? dp[i][j-1] : 0;
+            dp[i][j] = top + left;
+        }
+    }
+    return dp[m-1][n-1];
+}
+
+int space(vector<vector<int>> &matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    vector<int> prev(n, 0), curr(n, 0);
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (matrix[i][j] == 1) {
+                curr[j] = 0;
+                continue;
+            }
+            if (i == 0 && j == 0) {
+                curr[0] = 1;
+                continue;
+            }
+            int top = i > 0 ? prev[j] : 0;
+            int left = j > 0 ? curr[j-1] : 0;
+            curr[j] = top + left;
+        }
+        prev = curr;
+    }
+    return prev[n-1];
+}
+
+int uniquePathsWithObstacles(vector<vector<int>>& matrix) {
+    // return memo(matrix);
+    // return tab(matrix);
+    return space(matrix);
+}
+```
+
+### Minimum Falling Path Sum
+
+Given a 2d array called matrix consisting of integer values. Return the minimum path sum that can be obtained by starting at any cell in the first row and ending at any cell in the last row.
+
+Movement is allowed only to the bottom, bottom-right, or bottom-left cell of the current cell.
+
+> Input: matrix = [[1, 2, 10, 4], [100, 3, 2, 1], [1, 1, 20, 2], [1, 2, 2, 1]]
+Output: 6
+Explanation:
+One optimal route can be:-
+Start at 1st cell of 1st row -> bottom-right -> bottom -> bottom-left.
+
+```cpp
+int solve(int i, int j, vector<vector<int>>& matrix, vector<vector<int>> &dp) {
+    if (j < 0 || j >= matrix[0].size()) return 1e9;
+    if (i == 0)   return matrix[0][j];
+    if (dp[i][j] != -1) return dp[i][j];
+
+    int bottom = matrix[i][j] + solve(i-1, j, matrix, dp);
+    int bottomRight = matrix[i][j] + solve(i-1, j+1, matrix, dp);
+    int bottomLeft = matrix[i][j] + solve(i-1, j-1, matrix, dp);
+
+    return dp[i][j] = min(bottom, min(bottomLeft, bottomRight));   
+}
+
+int minFallingPathSumMemo(vector<vector<int>>& matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    vector<vector<int>> dp(m, vector<int>(n, -1));
+    int res = INT_MAX;
+    for (int j = 0; j<n; j++) {
+        res = min(res, solve(m-1, j, matrix, dp));
+    }
+    return res;
+}
+
+int minFallingPathSumTab(vector<vector<int>> &matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    vector<vector<int>> dp(m, vector<int>(n, 0));
+
+    for (int j=0; j<n; j++) {
+        dp[0][j] = matrix[0][j];
+    }
+
+    for (int i=1; i<m; i++) {
+        for (int j=0; j<n; j++) {
+            int up = matrix[i][j] + dp[i-1][j];
+            int leftDiagonal = 0;
+            if (j-1 >= 0) {
+                leftDiagonal = matrix[i][j] + dp[i-1][j-1];
+            } else {
+                leftDiagonal = 1e9;
+            }
+            int rightDiagonal = 0;
+            if (j+1 < n) {
+                rightDiagonal = matrix[i][j] + dp[i-1][j+1];
+            } else {
+                rightDiagonal = 1e9;
+            }
+            dp[i][j] = min(up, min(leftDiagonal, rightDiagonal));
+        }
+    }
+
+    int res = 1e9;
+    for (int j=0; j<n; j++) {
+        res = min(res, dp[m-1][j]);
+    }
+    return res;
+}
+
+int minFallingPathSumConstant(vector<vector<int>> &matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    vector<int> prev(n, 0);
+
+    for (int j=0; j<n; j++) {
+        prev[j] = matrix[0][j];
+    }
+
+    for (int i=1; i<m; i++) {
+        vector<int> curr(n, 0);
+        for (int j=0; j<n; j++) {
+            int up = matrix[i][j] + prev[j];
+            int leftDiagonal = 0;
+            if (j-1 >= 0) {
+                leftDiagonal = matrix[i][j] + prev[j-1];
+            } else {
+                leftDiagonal = 1e9;
+            }
+            int rightDiagonal = 0;
+            if (j+1 < n) {
+                rightDiagonal = matrix[i][j] + prev[j+1];
+            } else {
+                rightDiagonal = 1e9;
+            }
+            curr[j] = min(up, min(leftDiagonal, rightDiagonal));
+        }
+        prev = curr;
+    }
+
+    int res = 1e9;
+    for (int j=0; j<n; j++) {
+        res = min(res, prev[j]);
+    }
+    return res;
+}
+
+int minFallingPathSum(vector<vector<int>>& matrix) {
+    // return minFallingPathSumMemo(matrix);
+    // return minFallingPathSumTab(matrix);
+    return minFallingPathSumConstant(matrix);
+}
+```
+
+### Triangle
+
+Given a 2d integer array named triangle with n rows. Its first row has 1 element and each succeeding row has one more element in it than the row above it.
+Return the minimum falling path sum from the first row to the last.
+Movement is allowed only to the bottom or bottom-right cell from the current cell.
+
+```cpp
+int solve(int i, int j, vector<vector<int>>& triangle, vector<vector<int>> &dp) {
+    int n = triangle.size();
+    if (dp[i][j] != -1) return dp[i][j];
+    if (i == n-1)   return triangle[i][j];
+
+    int bottom =  solve(i+1, j, triangle, dp);
+    int bottomRight = solve(i+1, j+1, triangle, dp);
+    return dp[i][j] = triangle[i][j] + min(bottom, bottomRight);
+}
+
+int minTriangleSumMemo(vector<vector<int>>& triangle) {
+    int n = triangle.size();
+    vector<vector<int> > dp(n, vector<int>(n, -1));
+    return solve(0, 0, triangle, dp);
+}
+
+int minTriangleSumTab(vector<vector<int>>& triangle) {
+    int n = triangle.size();
+    vector<vector<int> > dp(n, vector<int>(n, -1));
+    
+    for (int j=0; j<n; j++) dp[n-1][j] = triangle[n-1][j];
+
+    for (int i=n-2; i >= 0; i--) {
+        for (int j=i; j >= 0; j--) {
+            int down = triangle[i][j] + dp[i+1][j];
+            int right = triangle[i][j] + dp[i+1][j+1];
+            dp[i][j] = min(down, right);
+        }
+    }
+    return dp[0][0];
+}
+
+int minTriangleSumConstant(vector<vector<int>>& triangle) {
+    int n = triangle.size();
+    vector<int> prev(n, 0);
+    
+    for (int j=0; j<n; j++) prev[j] = triangle[n-1][j];
+
+    for (int i=n-2; i >= 0; i--) {
+        vector<int> curr(n, 0);
+        for (int j=i; j >= 0; j--) {
+            int down = triangle[i][j] + prev[j];
+            int right = triangle[i][j] + prev[j+1];
+            curr[j] = min(down, right);
+        }
+        prev = curr;
+    }
+    return prev[0];
+}
+
+int minTriangleSum(vector<vector<int>>& triangle) {
+    // return minTriangleSumMemo(triangle);
+    // return minTriangleSumTab(triangle);
+    return minTriangleSumConstant(triangle);
+}
+```
+
+### Cherry Pickup ii
+Given a n x m 2d integer array called matrix where matrix[i][j] represents the number of cherries you can pick up from the (i, j) cell.Given two robots that can collect cherries, one is located at the top-leftmost (0, 0) cell and the other at the top-rightmost (0, m-1) cell.
+Return the maximum number of cherries that can be picked by the two robots in total, following these rules:
+* Robots that are standing on (i, j) cell can only move to cell (i + 1, j - 1), (i + 1, j), or (i + 1, j + 1), if it exists in the matrix.
+* A robot will pick up all the cherries in a given cell when it passes through that cell.
+* If both robots come to the same cell at the same time, only one robot takes the cherries.
+* Both robots must reach the bottom row in matrix.
+
+
+```cpp
+int solve(int i, int j1, int j2, vector<vector<int>>& matrix, vector<vector<vector<int>>> &dp) {
+    int m = matrix.size(); // row size
+    int n = matrix[0].size(); // column size
+
+    if (j1 < 0 || j2 < 0 || j1 >= n || j2 >= n)   return -1e8;
+    if (i == m-1) {
+        if (j1 == j2)   return matrix[i][j1];
+        else return matrix[i][j1] + matrix[i][j2];
+    }
+    if (dp[i][j1][j2] != -1)    return dp[i][j1][j2];
+
+    int maxi = -1e8;
+    for (int dj1 = -1; dj1 <= 1; dj1++) {
+        for (int dj2 = -1; dj2 <= 1; dj2++) {
+            int value = 0;
+            if (j1 == j2)   value = matrix[i][j1];
+            else value = matrix[i][j1] + matrix[i][j2];
+            value += solve(i+1, j1 + dj1, j2 + dj2, matrix, dp);
+            maxi = max(maxi, value);
+        }
+    }
+
+    return dp[i][j1][j2] = maxi;
+}
+
+int cherryPickupMemo(vector<vector<int>>& matrix) {
+    int m = matrix.size(); // row size
+    int n = matrix[0].size(); // column size
+    vector<vector<vector<int>>> dp(m, vector<vector<int>>(n, vector<int>(n, -1)));
+    return solve(0, 0, n-1, matrix, dp);
+}
+
+int cherryPickupTab(vector<vector<int>>& matrix) {
+    int n = matrix.size(); // row size
+    int m = matrix[0].size(); // column size
+    vector<vector<vector<int>>> dp(n, vector<vector<int>>(m, vector<int>(m, 0)));
+    
+    // base-cases
+    for (int j1 = 0; j1 < m; j1++) {
+        for (int j2 = 0; j2 < m; j2++) {
+            if (j1 == j2)
+                dp[n - 1][j1][j2] = matrix[n - 1][j1];
+            else
+                dp[n - 1][j1][j2] = matrix[n - 1][j1] + matrix[n - 1][j2];
+        }
+    }
+
+    for (int i = n - 2; i >= 0; i--) {
+        for (int j1 = 0; j1 < m; j1++) {
+            for (int j2 = 0; j2 < m; j2++) {
+                int maxi = INT_MIN;
+
+                // Inner nested loops to try out 9 options 
+                for (int di = -1; di <= 1; di++) {
+                    for (int dj = -1; dj <= 1; dj++) {
+                        int ans;
+
+                        if (j1 == j2)
+                            ans = matrix[i][j1];
+                        else
+                            ans = matrix[i][j1] + matrix[i][j2];
+
+                        // Check if the move is valid 
+                        if ((j1 + di < 0 || j1 + di >= m) || (j2 + dj < 0 || j2 + dj >= m))
+                            /* A very large negative value 
+                            to represent an invalid move*/
+                            ans += -1e9; 
+                        else
+                            ans += dp[i + 1][j1 + di][j2 + dj]; 
+                            
+                        // Update the maximum result
+                        maxi = max(ans, maxi); 
+                    }
+                }
+                /* Store the maximum result for 
+                this state in the DP array*/
+                dp[i][j1][j2] = maxi; 
+            }
+        }
+    }
+    return dp[0][0][m-1];
+}
+
+int cherryPickup(vector<vector<int>>& matrix) {
+    // return cherryPickupMemo(matrix);
+    return cherryPickupTab(matrix);
 }
 ```
