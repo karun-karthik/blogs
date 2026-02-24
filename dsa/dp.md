@@ -879,3 +879,227 @@ int cherryPickup(vector<vector<int>>& matrix) {
     return cherryPickupTab(matrix);
 }
 ```
+
+## DP on Stocks
+
+### Best time to buy and sell stock
+Given an array arr of n integers, where arr[i] represents price of the stock on the ith day. Determine the maximum profit achievable by buying and selling the stock at most once.
+The stock should be purchased before selling it, and both actions cannot occur on the same day.
+> Input: arr = [10, 7, 5, 8, 11, 9]<br/>Output: 6
+<br/>Explanation: Buy on day 3 (price = 5) and sell on day 5 (price = 11), profit = 11 - 5 = 6.
+
+```cpp
+int stockBuySell(vector<int> prices, int n) {
+    int lowestSoFar = prices[0];
+    int bestProfit = 0;
+
+    for (int day = 1; day < n; day++) {
+        int todayProfit = prices[day] - lowestSoFar;
+        bestProfit = max(bestProfit, todayProfit);
+        lowestSoFar = min(lowestSoFar, prices[day]);
+    }
+
+    return bestProfit;
+}
+```
+
+### Best time to buy and sell stock ii
+Given an array arr of n integers, where arr[i] represents price of the stock on the ith day. Determine the maximum profit achievable by buying and selling the stock any number of times.
+
+Holding at most one share of the stock at any given time is allowed, meaning buying and selling the stock can be done any number of times, but the stock must be sold before buying it again. Buying and selling the stock on the same day is permitted.
+
+>Input: arr = [9, 2, 6, 4, 7, 3]<br/>Output: 7<br/>Explanation: Buy on day 2 (price = 2) and sell on day 3 (price = 6), profit = 6 - 2 = 4. Then buy on day 4 (price = 4) and sell on day 5 (price = 7), profit = 7 - 4 = 3. Total profit is 4 + 3 = 7.
+
+```cpp
+int solve(int idx, bool buy, int n, vector<int> &arr, vector<vector<int>> &dp) {
+    if (idx == n) return 0;
+
+    if (dp[idx][buy] != -1) return dp[idx][buy];
+
+    int profit = 0;
+
+    if (buy) {
+        // if I'm buying then my profit would not be
+        // considered as I'm spending so (-) amt and I cannot buy next time
+        int pick = (-1)*arr[idx] + solve(idx+1, !buy, n, arr, dp);
+        // if I'm not buying then I can buy next time
+        int notPick = 0 + solve(idx+1, buy, n, arr, dp);
+        profit = max(pick, notPick);
+    } else {
+        // if I'm selling then profit would be coming so (+)
+        int pick = arr[idx] + solve(idx+1, !buy, n, arr, dp);
+        int notPick = 0 + solve(idx+1, buy, n, arr, dp);
+        profit = max(pick, notPick);
+    }
+
+    return dp[idx][buy] = profit;
+}
+
+int stockBuySellMemo(vector<int> arr, int n) {
+    if (n == 0) return 0;
+    vector<vector<int>> dp(n, vector<int>(2, -1));
+    int res = solve(0, true, n, arr, dp);
+    return res;
+}
+
+int stockBuySellTab(vector<int> arr, int n) {
+    vector<vector<int>> dp(n+1, vector<int>(2, -1));
+    dp[n][0] = dp[n][1] = 0;
+
+    int profit;
+    for (int ind = n - 1; ind >= 0; ind--) {
+        for (int buy = 0; buy <= 1; buy++) {
+            // We can buy the stock
+            if (buy == 0) {
+                int pick = (-1)*arr[ind] + dp[ind + 1][1];
+                int notPick = 0 + dp[ind + 1][0];
+                profit = max(pick, notPick);
+            }
+        
+            // We can sell the stock
+            if (buy == 1) {
+                int pick = arr[ind] + dp[ind + 1][0];
+                int notPick = 0 + dp[ind + 1][1];
+                profit = max(pick, notPick);
+            }
+
+            dp[ind][buy] = profit;
+        }
+    }
+    return dp[0][0];
+}
+
+int stockBuySellConst(vector<int> arr, int n) {
+    /* Declare two arrays to store the profits ahead of 
+    current position (0 for not holding, 1 for holding)*/
+    vector<long> ahead(2, 0);
+    vector<long> cur(2, 0);
+    ahead[0] = ahead[1] = 0;
+
+    int profit;
+
+    for (int ind = n - 1; ind >= 0; ind--) {
+        for (int buy = 0; buy <= 1; buy++) {
+            // We can buy the stock
+            if (buy == 0) {
+                int pick = (-1)*arr[ind] + ahead[1];
+                int notPick = 0 + ahead[0];
+                profit = max(notPick, pick);
+            }
+            // We can sell the stock
+            if (buy == 1) {
+                int pick = arr[ind] + ahead[0];
+                int notPick = 0 + ahead[1];
+                profit = max(notPick, pick);
+            }
+            cur[buy] = profit;
+        }
+        // Update the "ahead" array with the current values
+        ahead = cur; 
+    }
+
+    // Maximum profit is stored in cur[0] 
+    return cur[0];
+}
+
+int stockBuySell(vector<int> arr, int n){
+    // return stockBuySellMemo(arr, n);
+    // return stockBuySellTab(arr, n);
+    return stockBuySellConst(arr, n);
+}
+```
+
+### Best time to buy and sell stock iii
+
+Given an array, arr, of n integers, where arr[i] represents the price of the stock on an ith day, determine the maximum profit achievable by completing at most two transactions in total.
+
+Holding at most one share of the stock at any time is allowed, meaning buying and selling the stock twice is permitted, but the stock must be sold before buying it again. Buying and selling the stock on the same day is allowed.
+
+>Input: arr = [4, 2, 7, 1, 11, 5]
+<br/>Output: 15
+<br/>Explanation: Buy on day 2 (price = 2) and sell on day 3 (price = 7), profit = 7 - 2 = 5. Then buy on day 4 (price = 1) and sell on day 5 (price = 11), profit = 11 - 1 = 10. Total profit is 5 + 10 = 15.
+
+```cpp
+int solve(int idx, int buy, int cap, int n, vector<int> &arr, vector<vector<vector<int>>> &dp) {
+    if (idx == n || cap == 0)   return 0;
+    if (dp[idx][buy][cap] != -1)    return dp[idx][buy][cap];
+    int profit = 0;
+    if (buy == 0) {
+        // we can buy stock
+        int pick = (-1)* arr[idx] + solve(idx + 1, !buy, cap, n, arr, dp);
+        int notPick = 0 + solve(idx + 1, buy, cap, n, arr, dp);
+        profit = max(pick, notPick);
+    }
+    if (buy == 1) {
+        // sell stock
+        int pick = arr[idx] + solve(idx + 1, !buy, cap - 1, n, arr, dp);
+        int notPick = 0 + solve(idx + 1, buy, cap, n, arr, dp);
+        profit = max(pick, notPick);
+    }
+    return dp[idx][buy][cap] = profit;
+}
+
+int stockBuySellMemo(vector<int> arr, int n){
+    if (n == 0) return 0;
+    vector<vector<vector<int>>> dp(n, vector<vector<int>>(2, vector<int>(3, -1)));
+    return solve(0, 0, 2, n, arr, dp);
+}
+
+int stockBuySellTab(vector<int> arr, int n){
+    vector<vector<vector<int>>> dp(n + 1, vector<vector<int>>(2, vector<int>(3, 0)));
+    for (int idx = n - 1; idx >= 0; idx--) {
+        for (int buy = 0; buy <= 1; buy++) {
+            for (int cap = 1; cap <= 2; cap++) {
+                int profit = 0;
+                if (buy == 0) {
+                    // we can buy stock
+                    int pick = (-1)* arr[idx] + dp[idx + 1][!buy][cap];
+                    int notPick = 0 + dp[idx + 1][buy][cap];
+                    profit = max(pick, notPick);
+                }
+                if (buy == 1) {
+                    // sell stock
+                    int pick = arr[idx] + dp[idx + 1][!buy][cap-1];
+                    int notPick = 0 + dp[idx + 1][buy][cap];
+                    profit = max(pick, notPick);
+                }
+                dp[idx][buy][cap] = profit;
+            }
+        }
+    }
+    return dp[0][0][2];
+}
+
+int stockBuySellConstant(vector<int> arr, int n){
+    vector<vector<int>> curr(2, vector<int>(3, 0));
+    vector<vector<int>> ahead(2, vector<int>(3, 0));
+    for (int idx = n - 1; idx >= 0; idx--) {
+        for (int buy = 0; buy <= 1; buy++) {
+            for (int cap = 1; cap <= 2; cap++) {
+                int profit = 0;
+                if (buy == 0) {
+                    // we can buy stock
+                    int pick = (-1)* arr[idx] + ahead[!buy][cap];
+                    int notPick = 0 + ahead[buy][cap];
+                    profit = max(pick, notPick);
+                }
+                if (buy == 1) {
+                    // sell stock
+                    int pick = arr[idx] + ahead[!buy][cap-1];
+                    int notPick = 0 + ahead[buy][cap];
+                    profit = max(pick, notPick);
+                }
+                curr[buy][cap] = profit;
+            }
+        }
+        ahead = curr;
+    }
+    return ahead[0][2];
+}
+
+int stockBuySell(vector<int> arr, int n){
+    // return stockBuySellMemo(arr, n);
+    // return stockBuySellTab(arr, n);
+    return stockBuySellConstant(arr, n);
+}
+```
