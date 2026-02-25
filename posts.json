@@ -42,11 +42,19 @@
     },
     {
       "slug": "dp",
-      "title": "DP: Consolidated Guide",
+      "title": "DP: Consolidated Guide: 1",
       "date": "2026-02-17",
       "domain": "DSA",
       "topic": "Dynamic Programming",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp.md"
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp-1.md"
+    },
+    {
+      "slug": "dp",
+      "title": "DP: Consolidated Guide: 2",
+      "date": "2026-02-25",
+      "domain": "DSA",
+      "topic": "Dynamic Programming",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp-2.md"
     },
     {
       "slug": "devops",
