@@ -327,3 +327,113 @@ int perfectSum(vector<int>&arr, int K){
     return perfectSumConstant(arr, K);
 }
 ```
+
+### Count partitions with given difference
+Given an array arr of n integers and an integer diff, count the number of ways to partition the array into two subsets S1 and S2 such that: 
+∣S1−S2∣ = diff and S1 ≥ S2
+Where |S1| and |S2| are sum of Subsets S1 and S2 respectively.
+
+Return the result modulo 109 + 7.
+
+Note: A partition means that the union of S1 and S2 is the original array, and no element is left out or used twice — every element of the array belongs to exactly one of the two subsets.
+
+> “Count Partitions with a difference D” is equivalent to “Count Number of subsets with sum (totSum - D)/2 ”.
+```cpp
+int MOD = (int)1e9 + 7;
+public:
+
+int solve(int idx, int target, vector<int>& arr, vector<vector<int>>& dp) {
+    if (idx == 0) {
+        if (target == 0 && arr[0] == 0) return 2;
+        if (target == 0 || target == arr[0])  return 1;
+        return 0;
+    }
+
+    if (dp[idx][target] != -1)  return dp[idx][target];
+    int notPick = solve(idx-1, target, arr, dp);
+    int pick = 0;
+    if (arr[idx] <= target)
+        pick = solve(idx-1, target-arr[idx], arr, dp);
+    return dp[idx][target] = (pick + notPick) % MOD;
+}
+
+int countPartitionsMemo(int n, int diff, vector<int>& arr) {
+    int totSum = 0;
+    for (auto i: arr) totSum += i;
+    if (totSum < diff)  return 0;
+    if ((totSum - diff) % 2)  return 0;
+    int s2 = (totSum - diff) / 2;
+    vector<vector<int>> dp(n, vector<int>(s2 + 1, -1));
+    return solve(n-1, s2, arr, dp);
+}
+
+int countPartitionsTab(int n, int diff, vector<int>& arr) {
+    int totSum = 0;
+    for (auto i: arr) totSum += i;
+    if (totSum < diff)  return 0;
+    if ((totSum - diff) % 2)  return 0;
+    int k = (totSum - diff) / 2;
+    vector<vector<int>> dp(n, vector<int>(k + 1, 0));
+
+    // 2 ways if we include, 1 way if we exclude
+    if (arr[0] == 0)  dp[0][0] = 2;
+    else dp[0][0] = 1;
+
+    // usual check if elem <= target then we can have 1 way
+    if (arr[0] != 0 && arr[0] <= k)  dp[0][arr[0]] = 1;
+
+    for (int idx = 1; idx < n; idx++) {
+        for (int target = 0; target <= k; target++) {
+            int notPick = dp[idx - 1][target];
+            int pick = 0;
+            if (arr[idx] <= target) {
+                pick = dp[idx - 1][target - arr[idx]];
+            }
+            dp[idx][target] = (pick + notPick) % MOD;
+        }
+    }
+    return dp[n-1][k];
+}
+
+int countPartitionsConstant(int n, int diff, vector<int>& arr) {
+    int totSum = 0;
+    for (auto i: arr) totSum += i;
+    if (totSum < diff)  return 0;
+    if ((totSum - diff) % 2)  return 0;
+    int k = (totSum - diff) / 2;
+    vector<int> prev(k + 1, 0), curr(k + 1, 0);
+
+    // 2 ways if we include, 1 way if we exclude
+    if (arr[0] == 0)  {
+        prev[0] = 2;
+        // curr[0] = 2; this is not required since we run target from 0 to k
+        // unlike other problems where it's from 1 to k
+    } else {
+        prev[0] = 1;
+        // curr[0] = 1; this is not required since we run target from 0 to k,
+        // unlike other problems where it's from 1 to k
+    }
+
+    // usual check if elem <= target then we can have 1 way
+    if (arr[0] != 0 && arr[0] <= k)  prev[arr[0]] = 1;
+
+    for (int idx = 1; idx < n; idx++) {
+        for (int target = 0; target <= k; target++) {
+            int notPick = prev[target];
+            int pick = 0;
+            if (arr[idx] <= target) {
+                pick = prev[target - arr[idx]];
+            }
+            curr[target] = (pick + notPick) % MOD;
+        }
+        prev = curr;
+    }
+    return prev[k];
+}
+
+int countPartitions(int n, int diff, vector<int>& arr) {
+    // return countPartitionsMemo(n, diff, arr);
+    // return countPartitionsTab(n, diff, arr);
+    return countPartitionsConstant(n, diff, arr);
+}
+```
