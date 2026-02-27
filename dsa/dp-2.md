@@ -437,3 +437,495 @@ int countPartitions(int n, int diff, vector<int>& arr) {
     return countPartitionsConstant(n, diff, arr);
 }
 ```
+
+### 0 and 1 Knapsack
+
+Given two integer arrays, val and wt, each of size N, which represent the values and weights of N items respectively, and an integer W representing the maximum capacity of a knapsack, determine the maximum value achievable by selecting a subset of the items such that the total weight of the selected items does not exceed the knapsack capacity W.
+
+Each item can either be picked in its entirety or not picked at all (0-1 property). The goal is to maximize the sum of the values of the selected items while keeping the total weight within the knapsack's capacity.
+
+```cpp
+int solve(int idx, int W, vector<int>&wt, vector<int>&val, vector<vector<int>> &dp) {
+    if (W == 0) return 0;
+    if (idx == 0) {
+        if (wt[0] <= W) return val[0];
+        else return 0;
+    }
+
+    if (dp[idx][W] != -1)   return dp[idx][W];
+
+    int notPick = 0 + solve(idx - 1, W, wt, val, dp);
+    int pick = 0;
+    if (wt[idx] <= W)
+        pick = val[idx] + solve(idx - 1, W - wt[idx], wt, val, dp);
+    
+    return dp[idx][W] = max(pick, notPick);
+}
+
+int knapsack01Memo(vector<int>& wt, vector<int>& val, int n, int W) {
+    vector<vector<int>> dp(n, vector<int>(W + 1, -1));
+    return solve(n-1, W, wt, val, dp);
+}
+
+int knapsack01Tab(vector<int>& wt, vector<int>& val, int n, int W) {
+    vector<vector<int>> dp(n, vector<int>(W + 1, 0));
+
+    for (int i = wt[0]; i <= W; i++) dp[0][i] = val[0];
+
+    for (int idx = 1; idx < n; idx++) {
+        for (int w = 0; w <= W; w++) {
+            int notPick = 0 + dp[idx - 1][w];
+            int pick = 0;
+            if (wt[idx] <= w)
+                pick = val[idx] + dp[idx - 1][w - wt[idx]];
+            dp[idx][w] = max(pick, notPick);   
+        }
+    }
+
+    return dp[n-1][W];
+}
+
+int knapsack01Const(vector<int>& wt, vector<int>& val, int n, int W) {
+    vector<int> prev(W + 1, 0), curr(W + 1, 0);
+
+    for (int i = wt[0]; i <= W; i++) prev[i] = val[0];
+
+    for (int idx = 1; idx < n; idx++) {
+        for (int w = 0; w <= W; w++) {
+            int notPick = 0 + prev[w];
+            int pick = 0;
+            if (wt[idx] <= w)
+                pick = val[idx] + prev[w - wt[idx]];
+            curr[w] = max(pick, notPick);   
+        }
+        prev = curr;
+    }
+
+    return prev[W];
+}
+
+int knapsack01(vector<int>& wt, vector<int>& val, int n, int W) {
+    // return knapsack01Memo(wt, val, n, W);
+    // return knapsack01Tab(wt, val, n, W);
+    return knapsack01Const(wt, val, n, W);
+}
+```
+
+### Minimum coins
+Given an integer array of coins representing coins of different denominations and an integer amount representing a total amount of money. Return the fewest number of coins that are needed to make up that amount. If that amount of money cannot be made up by any combination of the coins, return -1. There are infinite numbers of coins of each type
+
+```cpp
+int solve(int idx, vector<int>& coins, int amount, vector<vector<int>> &dp) {
+    if (amount == 0)	return 0;
+    if (idx == 0) {
+        if (amount % coins[0] == 0) return amount/coins[0];
+        else return 1e9;
+    }
+    if (dp[idx][amount] != -1)  return dp[idx][amount];
+
+    int notPick = 0 + solve(idx-1, coins, amount, dp);
+
+    int pick = 1e9;
+    if (coins[idx] <= amount)
+        // we are not decrementing idx in below step as we can choose infinite no. of coins
+        pick = 1 + solve(idx, coins, amount-coins[idx], dp);
+
+    return dp[idx][amount] = min(pick, notPick);
+}
+
+int MinimumCoinsMemo(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<vector<int>> dp(n, vector<int> (amount + 1, -1));
+    int res = solve(n-1, coins, amount, dp);
+    return res >= 1e9 ? -1 : res;
+}
+
+int MinimumCoinsTab(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<vector<int>> dp(n, vector<int> (amount+1, 0));
+    for (int i=0; i <= amount; i++) {
+        dp[0][i] = i % coins[0] == 0 ? i/coins[0] : 1e9;
+    }
+    for (int idx = 1; idx < n; idx++) {
+        for (int amt = 0; amt <= amount; amt++) {
+            int notPick = 0 + dp[idx-1][amt];
+
+            int pick = 1e9;
+            if (coins[idx] <= amt)
+                pick = 1 + dp[idx][amt-coins[idx]];
+            dp[idx][amt] = min(pick, notPick);
+        }
+    }
+    return dp[n-1][amount] >= 1e9 ? -1 : dp[n-1][amount];
+}
+
+int MinimumCoinsConstant(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<int> prev(amount+1, 0), curr(amount+1, 0);
+    for (int i=0; i<=amount; i++) {
+        prev[i] = i % coins[0] == 0 ? i/coins[0] : 1e9;
+    }
+    for (int idx = 1; idx < n; idx++) {
+        for (int amt = 0; amt <= amount; amt++) {
+            int notPick = 0 + prev[amt];
+
+            int pick = 1e9;
+            if (coins[idx] <= amt)
+                pick = 1 + curr[amt-coins[idx]];
+            curr[amt] = min(pick, notPick);
+        }
+        prev = curr;
+    }
+    return prev[amount] >= 1e9 ? -1 : prev[amount];
+}
+
+int MinimumCoins(vector<int>& coins, int amount) {
+    // return MinimumCoinsMemo(coins, amount);
+    // return MinimumCoinsTab(coins, amount);
+    return MinimumCoinsConstant(coins, amount);
+}
+```
+
+### Target Sum
+Given an array nums of n integers and an integer target, build an expression using the integers from nums where each integer can be prefixed with either a '+' or '-' sign.
+
+The goal is to achieve the target sum by evaluating all possible combinations of these signs.
+
+Determine the number of ways to achieve the target sum and return your answer with modulo 109+7.
+
+```cpp
+    int MOD = (int)1e9 + 7;
+
+    public:
+    int solve(int idx, int target, vector<int>& arr, vector<vector<int>>& dp) {
+        if (idx == 0) {
+            if (target == 0 && arr[0] == 0) return 2;
+            if (target == 0 || target == arr[0]) return 1;
+            return 0;
+        }
+        if (dp[idx][target] != -1) return dp[idx][target];
+        int notPick = solve(idx - 1, target, arr, dp);
+        int pick = 0;
+        if (arr[idx] <= target)
+            pick = solve(idx - 1, target - arr[idx], arr, dp);
+        return dp[idx][target] = (pick + notPick) % MOD;
+    }
+
+    int countPartitionsMemo(int n, int diff, vector<int>& arr) {
+        int totSum = 0;
+        for (auto i : arr) totSum += i;
+        if (totSum < diff) return 0;
+        if ((totSum - diff) % 2) return 0;
+        int s2 = (totSum - diff) / 2;
+        vector<vector<int>> dp(n, vector<int>(s2 + 1, -1));
+        return solve(n - 1, s2, arr, dp);
+    }
+
+    int countPartitionsTab(int n, int diff, vector<int>& arr) {
+        int totSum = 0;
+        for (auto i : arr) totSum += i;
+        if (totSum < diff) return 0;
+        if ((totSum - diff) % 2) return 0;
+        int k = (totSum - diff) / 2;
+        vector<vector<int>> dp(n, vector<int>(k + 1, 0));
+
+        // 2 ways if we include, 1 way if we exclude
+        if (arr[0] == 0)
+            dp[0][0] = 2;
+        else
+            dp[0][0] = 1;
+
+        // usual check if elem <= target then we can have 1 way
+        if (arr[0] != 0 && arr[0] <= k) dp[0][arr[0]] = 1;
+
+        for (int idx = 1; idx < n; idx++) {
+            for (int target = 0; target <= k; target++) {
+                int notPick = dp[idx - 1][target];
+                int pick = 0;
+                if (arr[idx] <= target) {
+                    pick = dp[idx - 1][target - arr[idx]];
+                }
+                dp[idx][target] = (pick + notPick) % MOD;
+            }
+        }
+        return dp[n - 1][k];
+    }
+
+    int countPartitionsConstant(int n, int diff, vector<int>& arr) {
+        int totSum = 0;
+        for (auto i : arr) totSum += i;
+        if (totSum < diff) return 0;
+        if ((totSum - diff) % 2) return 0;
+        int k = (totSum - diff) / 2;
+        vector<int> prev(k + 1, 0), curr(k + 1, 0);
+
+        // 2 ways if we include, 1 way if we exclude
+        if (arr[0] == 0) {
+            prev[0] = 2;
+            // curr[0] = 2; this is not required since we run target from 0 to k
+            // unlike other problems where it's from 1 to k
+        } else {
+            prev[0] = 1;
+            // curr[0] = 1; this is not required since we run target from 0 to
+            // k, unlike other problems where it's from 1 to k
+        }
+
+        // usual check if elem <= target then we can have 1 way
+        if (arr[0] != 0 && arr[0] <= k) prev[arr[0]] = 1;
+
+        for (int idx = 1; idx < n; idx++) {
+            for (int target = 0; target <= k; target++) {
+                int notPick = prev[target];
+                int pick = 0;
+                if (arr[idx] <= target) {
+                    pick = prev[target - arr[idx]];
+                }
+                curr[target] = (pick + notPick) % MOD;
+            }
+            prev = curr;
+        }
+        return prev[k];
+    }
+
+    int targetSum(int n, int target, vector<int>& nums) {
+        // return countPartitionsMemo(n, target, nums);
+        // return countPartitionsTab(n, target, nums);
+        return countPartitionsConstant(n, target, nums);
+    }
+```
+
+### Coin Change ii
+Give an array coins of n integers representing coin denominations. Your task is to find the number of distinct combinations that sum up to a specified amount of money. If it's impossible to achieve the exact amount with any combination of coins, return 0.
+
+Single coin can be used any number of times.
+
+Return your answer with modulo 109+7.
+
+```cpp
+    int MOD = 1e9 + 7;
+    int solve(int idx, vector<int>&coins, int N, int amount, vector<vector<int>> &dp) {
+        if (idx == 0) {
+            if (amount % coins[0] == 0)
+                return 1;
+            else
+                return 0;
+        }
+        if (dp[idx][amount] != -1)  return dp[idx][amount];
+
+        int notPick = solve(idx - 1, coins, N, amount, dp) % MOD;
+        int pick = 0;
+        if (coins[idx] <= amount)
+            pick = solve(idx, coins, N, amount-coins[idx], dp) % MOD;
+
+        return dp[idx][amount] = (pick + notPick) % MOD;
+    }
+
+    int countMemo(vector<int>&coins, int N, int amount) {
+        vector<vector<int>> dp(N, vector<int>(amount + 1, -1));
+        return solve(N-1, coins, N, amount, dp);
+    }
+
+    int countTab(vector<int>&coins, int N, int amount) {
+        vector<vector<int>> dp(N, vector<int>(amount + 1, 0));
+
+        for (int i=0; i <= amount; i++) {
+            dp[0][i] = i % coins[0] == 0;
+        }
+
+        for (int idx = 1; idx < N; idx++) {
+            for (int amt = 0; amt <= amount; amt++) {
+                int notPick =  dp[idx - 1][amt] % MOD;
+                int pick = 0;
+                if (coins[idx] <= amt)
+                    pick = dp[idx][amt-coins[idx]] % MOD;
+
+                dp[idx][amt] = (pick + notPick) % MOD;
+            }
+        }
+
+        return dp[N-1][amount];
+    }
+
+    int countConstant(vector<int>&coins, int N, int amount) {
+        vector<int> prev(amount + 1, 0), curr(amount + 1, 0);
+
+        for (int i=0; i <= amount; i++) {
+            prev[i] = i % coins[0] == 0;
+        }
+
+        for (int idx = 1; idx < N; idx++) {
+            for (int amt = 0; amt <= amount; amt++) {
+                int notPick =  prev[amt] % MOD;
+                int pick = 0;
+                if (coins[idx] <= amt)
+                    pick = curr[amt-coins[idx]] % MOD;
+
+                curr[amt] = (pick + notPick) % MOD;
+            }
+            prev = curr;
+        }
+
+        return prev[amount];
+    }
+
+    int count(vector<int>&coins, int N, int amount) {
+        // return countMemo(coins, N, amount);
+        // return countTab(coins, N, amount);
+        return countConstant(coins, N, amount);
+    }
+```
+
+### Unbounded Knapsack
+
+Given two integer arrays, val and wt, each of size N, representing the values and weights of N items respectively, and an integer W, representing the maximum capacity of a knapsack, determine the maximum value achievable by selecting a subset of the items such that the total weight of the selected items does not exceed the knapsack capacity W. The goal is to maximize the sum of the values of the selected items while keeping the total weight within the knapsack's capacity.
+
+An infinite supply of each item can be assumed.
+
+```cpp
+    int solve(int idx, vector<int>& wt, vector<int>& val, int n, int W, vector<vector<int>> &dp) {
+        if (idx == 0) {
+            if (wt[0] <= W)
+                return val[0] * (W / wt[0]);
+            else
+                return INT_MIN;
+        }
+
+        if (dp[idx][W] != -1) return dp[idx][W];
+
+        int notPick = solve(idx-1, wt, val, n, W, dp);
+        
+        int pick = 0;
+        if (wt[idx] <= W)
+            pick = val[idx] + solve(idx, wt, val, n, W-wt[idx], dp);
+        
+        return dp[idx][W] = max(pick, notPick);
+    }
+
+    int unboundedKnapsackMemo(vector<int>& wt, vector<int>& val, int n, int W) {
+        vector<vector<int>> dp(n, vector<int> (W+1, -1));
+        return solve(n-1, wt, val, n, W, dp);
+    }
+
+    int unboundedKnapsackTab(vector<int>& wt, vector<int>& val, int n, int W) {
+        vector<vector<int>> dp(n, vector<int> (W+1, 0));
+
+        for (int w = 0; w <= W; w++) {
+            dp[0][w] = wt[0] <= w ? val[0] * (w / wt[0]) : INT_MIN;
+        }
+        
+        for (int idx=1; idx<n; idx++) {
+            for (int w = 1; w <= W; w++) {
+                int notPick = dp[idx-1][w];
+                int pick = 0;
+                if (wt[idx] <= w)
+                    pick = val[idx] + dp[idx][w-wt[idx]];
+                dp[idx][w] = max(pick, notPick);
+            }
+        }
+
+        return dp[n-1][W];
+    }
+
+    int unboundedKnapsackConstant(vector<int>& wt, vector<int>& val, int n, int W) {
+        vector<int> prev(W+1, 0), curr(W+1, 0);
+
+        for (int w = 0; w <= W; w++) {
+            prev[w] = wt[0] <= w ? val[0] * (w / wt[0]) : INT_MIN;
+        }
+        
+        for (int idx=1; idx<n; idx++) {
+            for (int w = 1; w <= W; w++) {
+                int notPick = prev[w];
+                int pick = 0;
+                if (wt[idx] <= w)
+                pick = val[idx] + curr[w-wt[idx]];
+                curr[w] = max(pick, notPick);
+            }
+            prev = curr;
+        }
+
+        return prev[W];
+    }
+
+    int unboundedKnapsack(vector<int>& wt, vector<int>& val, int n, int W) {
+        // return unboundedKnapsackMemo(wt, val, n, W);
+        // return unboundedKnapsackTab(wt, val, n, W);
+        return unboundedKnapsackConstant(wt, val, n, W);
+    }
+```
+
+### Rod cutting problem
+
+Given a rod of length N inches and an array price[] where price[i] denotes the value of a piece of rod of length i inches (1-based indexing). Determine the maximum value obtainable by cutting up the rod and selling the pieces. Make any number of cuts, or none at all, and sell the resulting pieces.
+
+```cpp
+int solve(int idx, vector<int> price, int n, vector<vector<int>> &dp) {
+    if (idx == 0) {
+        return price[0]*n;
+    }
+    if (dp[idx][n] != -1) return dp[idx][n];
+    int notPick = 0 + solve(idx - 1, price, n, dp);
+    int pick = INT_MIN;
+    int rodLength = idx + 1;
+    if (rodLength <= n) {
+        pick = price[idx] + solve(idx, price, n-rodLength, dp);
+    }
+    return dp[idx][n] = max(pick, notPick);
+}
+
+int rodCuttingMemo(vector<int> price, int n) {
+    vector<vector<int>> dp(n, vector<int>(n+1, -1));
+    return solve(n-1, price, n, dp);
+}
+
+int rodCuttingTab(vector<int> price, int n) {
+    vector<vector<int>> dp(n, vector<int>(n + 1, 0));
+
+    for (int i=0; i<=n; i++) {
+        dp[0][i] = price[0]*i;
+    }
+    
+    for (int idx=1; idx<n; idx++) {
+        for (int len = 1; len <= n; len++) {
+            int notPick = 0 + dp[idx - 1][len];
+            int pick = INT_MIN;
+            int rodLength = idx + 1;
+            if (rodLength <= len) {
+                pick = price[idx] + dp[idx][len-rodLength];
+            }
+            dp[idx][len] = max(pick, notPick);
+        }
+    }
+
+    return dp[n-1][n];
+}
+
+int rodCuttingConstant(vector<int> price, int n) {
+    vector<int> prev(n + 1, 0), curr(n + 1, 0);
+
+    for (int i=0; i<=n; i++) {
+        prev[i] = price[0]*i;
+    }
+    
+    for (int idx=1; idx<n; idx++) {
+        for (int len = 1; len <= n; len++) {
+            int notPick = 0 + prev[len];
+            int pick = INT_MIN;
+            int rodLength = idx + 1;
+            if (rodLength <= len) {
+                pick = price[idx] + curr[len-rodLength];
+            }
+            curr[len] = max(pick, notPick);
+        }
+        prev = curr;
+    }
+
+    return prev[n];
+}
+
+int rodCutting(vector<int> price, int n) {
+    // return rodCuttingMemo(price, n);
+    // return rodCuttingTab(price, n);
+    return rodCuttingConstant(price, n);
+}
+```
