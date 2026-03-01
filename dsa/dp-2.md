@@ -1164,3 +1164,218 @@ vector<int> largestDivisibleSubset(vector<int>& nums) {
     return subset;
 }
 ```
+
+### Longest String Chain
+You are given an array of words where each word consists of lowercase English letters.
+
+wordA is a predecessor of wordB if and only if we can insert exactly one letter anywhere in wordA without changing the order of the other characters to make it equal to wordB.
+
+> For example, "abc" is a predecessor of "abac", while "cba" is not a predecessor of "bcad".
+> A word chain is a sequence of words [word1, word2, ..., wordk] with k >= 1, where word1 is a predecessor of word2, word2 is a predecessor of word3, and so on. A single word is trivially a word chain with k == 1.
+
+Return the length of the longest possible word chain with words chosen from the given list of words.
+
+>Input: words = ["a", "ab", "abc", "abcd", "abcde"]
+>Output: 5
+>Explanation: The longest chain is ["a", "ab", "abc", "abcd", "abcde"].
+>Each word in the chain is formed by adding exactly one character to the previous word.
+
+```cpp
+class Solution {
+private:
+    // Sort words by increasing length
+    // We must process shorter words first,
+    // because a word can only extend from a shorter word.
+    static bool compare(string &s, string &t) {
+        return s.size() < t.size();
+    }
+
+public:
+
+    // Check if 't' is a predecessor of 's'
+    // Meaning: we can insert exactly one character into 't' to get 's'
+    bool isPossible(string &s, string &t) {
+
+        // Length must differ by exactly 1
+        if (s.size() != t.size() + 1)
+            return false;
+
+        int i = 0, j = 0;
+
+        // Two pointer check
+        while (i < s.size()) {
+
+            if (j < t.size() && s[i] == t[j]) {
+                i++;
+                j++;
+            } 
+            else {
+                // Skip one extra character in s
+                i++;
+            }
+        }
+
+        // Valid only if we matched all characters of t
+        return (j == t.size());
+    }
+
+    int longestStringChain(vector<string>& words) {
+
+        int n = words.size();
+        if (n == 0) return 0;
+
+        // Step 1: Sort by length (like sorting in divisible subset)
+        sort(words.begin(), words.end(), compare);
+
+        // dp[idx] = longest chain ending at index idx
+        vector<int> dp(n, 1);
+
+        int maxLength = 1;
+
+        // Build DP (exact same structure as LIS)
+        for (int idx = 0; idx < n; idx++) {
+
+            for (int prev = 0; prev < idx; prev++) {
+
+                // If words[prev] can form words[idx]
+                if (isPossible(words[idx], words[prev]) &&
+                    dp[prev] + 1 > dp[idx]) {
+
+                    dp[idx] = dp[prev] + 1;
+                }
+            }
+
+            // Track global maximum chain
+            maxLength = max(maxLength, dp[idx]);
+        }
+
+        return maxLength;
+    }
+};
+```
+
+### Longest Bitonic Subsequence
+Given an array arr of n integers, the task is to find the length of the longest bitonic sequence. A sequence is considered bitonic if it first increases, then decreases. The sequence does not have to be contiguous.
+```cpp
+class Solution {
+public:
+    int LongestBitonicSequence(vector<int>& nums) {
+
+        int n = nums.size();
+        if (n == 0) return 0;
+
+        // -------------------------------
+        // Step 1: Compute LIS from left
+        // lis[idx] = length of longest increasing subsequence ending at idx
+        // -------------------------------
+        vector<int> lis(n, 1);
+
+        for (int idx = 0; idx < n; idx++) {
+            for (int prev = 0; prev < idx; prev++) {
+
+                if (nums[prev] < nums[idx] &&
+                    lis[prev] + 1 > lis[idx]) {
+
+                    lis[idx] = lis[prev] + 1;
+                }
+            }
+        }
+
+        // -------------------------------
+        // Step 2: Compute LDS from right
+        // lds[idx] = length of longest decreasing subsequence starting at idx
+        // -------------------------------
+        vector<int> lds(n, 1);
+
+        for (int idx = n - 1; idx >= 0; idx--) {
+            for (int prev = n - 1; prev > idx; prev--) {
+
+                if (nums[prev] < nums[idx] &&
+                    lds[prev] + 1 > lds[idx]) {
+
+                    lds[idx] = lds[prev] + 1;
+                }
+            }
+        }
+
+        // -------------------------------
+        // Step 3: Combine LIS + LDS
+        //
+        // IMPORTANT:
+        // GFG definition of Bitonic Subsequence allows:
+        //   - Purely increasing
+        //   - Purely decreasing
+        //   - Increasing then decreasing
+        //
+        // So we DO NOT enforce:
+        //   lis[idx] > 1 && lds[idx] > 1
+        //
+        // If problem explicitly requires
+        // "strict mountain" (both parts non-empty),
+        // then that condition should be added.
+        // -------------------------------
+
+        int maxLength = 0;
+
+        for (int idx = 0; idx < n; idx++) {
+            maxLength = max(maxLength,
+                            lis[idx] + lds[idx] - 1);
+        }
+
+        return maxLength;
+    }
+};
+```
+
+### Number of Longest Increasing Subsequence
+Given an integer array nums, find the number of Longest Increasing Subsequences (LIS) in the array.
+```cpp
+int numberOfLIS(vector<int> nums) {
+    int n = nums.size();
+
+    // dp[i] = length of LIS ending at index i
+    vector<int> dp(n, 1);
+
+    // count[i] = number of LIS of length dp[i] ending at index i
+    vector<int> count(n, 1);
+
+    int maxLen = 0;  // stores overall maximum LIS length
+    int ans = 0;     // stores total number of LIS
+
+    for (int idx = 0; idx < n; idx++) {
+        // Try extending all previous subsequences
+        for (int prev = 0; prev < idx; prev++) {
+            // We can extend only if increasing
+            if (nums[idx] > nums[prev]) {
+                // Case 1: Found strictly longer subsequence
+                if (dp[prev] + 1 > dp[idx]) {
+                    dp[idx] = dp[prev] + 1;
+
+                    // Reset count because we found better length
+                    // Number of ways becomes equal to ways at prev
+                    count[idx] = count[prev];
+                }
+
+                // Case 2: Found another subsequence
+                // giving same maximum length
+                else if (dp[prev] + 1 == dp[idx]) {
+                    // Add number of ways from prev
+                    count[idx] += count[prev];
+                }
+            }
+        }
+
+        // Track global LIS length
+        maxLen = max(maxLen, dp[idx]);
+    }
+
+    // Count total number of LIS of maximum length
+    for (int i = 0; i < n; i++) {
+        if (dp[i] == maxLen) {
+            ans += count[i];
+        }
+    }
+
+    return ans;
+}
+```
