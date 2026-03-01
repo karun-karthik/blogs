@@ -929,3 +929,238 @@ int rodCutting(vector<int> price, int n) {
     return rodCuttingConstant(price, n);
 }
 ```
+
+## LIS
+
+### Longest Increasing Subsequence
+Given an integer array nums, return the length of the longest strictly increasing subsequence.
+
+A subsequence is a sequence derived from an array by deleting some or no elements without changing the order of the remaining elements. For example, [3, 6, 2, 7] is a subsequence of [0, 3, 1, 6, 2, 2, 7].
+
+The task is to find the length of the longest subsequence in which every element is greater than the previous one.
+
+```cpp
+int solve(int idx, int prevIdx, vector<int> &nums, vector<vector<int>> &dp) {
+    if (idx == nums.size() - 1) {
+        if (prevIdx == -1 || nums[prevIdx] < nums[idx])   return 1;
+        return 0;
+    }
+    // prevIdx + 1 in the below line is for index shift as mem can't have -ve idx
+    if (dp[idx][prevIdx + 1] != -1) return dp[idx][prevIdx + 1];
+
+    int notPick = solve(idx + 1, prevIdx, nums, dp);
+    int pick = 0;
+    if (prevIdx == -1 || nums[idx] > nums[prevIdx])
+        pick = 1 + solve(idx + 1, idx, nums, dp);
+
+    return dp[idx][prevIdx + 1] = max(pick, notPick);
+}
+
+int LISMemo(vector<int>& nums) {
+    int n = nums.size();
+    vector<vector<int>> dp(n, vector<int>(n + 1, -1));
+    return solve(0, -1, nums, dp);
+}
+
+int LISTab(vector<int>& nums) {
+    int n = nums.size();
+    vector<vector<int>> dp(n + 1, vector<int>(n + 1, 0));
+
+    for (int idx = n - 1; idx >= 0; idx--) {
+        for (int prevIdx = idx - 1; prevIdx >= -1; prevIdx--) {
+            int notPick = dp[idx + 1][prevIdx + 1];
+            int pick = 0;
+            if (prevIdx == -1 || nums[idx] > nums[prevIdx]) {
+                pick = 1 + dp[idx + 1][idx + 1];
+            }
+            dp[idx][prevIdx + 1] = max(pick, notPick);
+        }
+    }
+
+    return dp[0][0];
+}
+
+int LISConstant(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> curr(n + 1, 0), ahead(n + 1, 0);
+
+    for (int idx = n - 1; idx >= 0; idx--) {
+        for (int prevIdx = idx - 1; prevIdx >= -1; prevIdx--) {
+            int notPick = ahead[prevIdx + 1];
+            int pick = 0;
+            if (prevIdx == -1 || nums[idx] > nums[prevIdx]) {
+                pick = 1 + ahead[idx + 1];
+            }
+            curr[prevIdx + 1] = max(pick, notPick);
+        }
+        ahead = curr;
+    }
+
+    return ahead[0];
+}
+
+int LIS_BinarySearch(vector<int> &nums) {
+    int n = nums.size();
+    
+    // temp[i] will store the smallest possible tail value
+    // of an increasing subsequence of length (i + 1).
+    // IMPORTANT: temp is NOT the actual LIS.
+    vector<int> temp;
+
+    temp.push_back(nums[0]);
+
+    for (int idx = 1; idx < n; idx++) {
+
+        // If current element is greater than the last element in temp,
+        // it can extend the longest subsequence found so far.
+        if (nums[idx] > temp.back()) {
+            temp.push_back(nums[idx]);
+        } 
+        else {
+            // For STRICTLY INCREASING subsequence:
+            // Use lower_bound → first element >= nums[idx]
+            //
+            // For NON-DECREASING subsequence:
+            // Use upper_bound → first element > nums[idx]
+            //
+            // Why?
+            // - lower_bound prevents duplicates from extending length.
+            // - upper_bound allows equal values to extend length.
+            int i = lower_bound(temp.begin(), temp.end(), nums[idx]) - temp.begin();
+
+            // Replacement logic:
+            // We replace temp[i] with nums[idx] because:
+            //
+            // temp[i] represents the smallest tail of a subsequence of length i+1.
+            //
+            // If nums[idx] is smaller than temp[i],
+            // replacing it keeps the subsequence length same,
+            // but improves (lowers) the tail value.
+            //
+            // Smaller tail → more chance to extend subsequence later.
+            //
+            // This greedy replacement is the core reason
+            // the algorithm works in O(n log n).
+            temp[i] = nums[idx];
+        }
+    }
+
+    // Length of LIS
+    return temp.size();
+}
+
+int LIS(vector<int>& nums) {
+    // return LISMemo(nums);
+    // return LISTab(nums);
+    // return LISConstant(nums);
+    return LIST_BinarySearch(nums);
+}
+```
+
+### Print Longest Increasing Subsequence
+
+```cpp
+vector<int> longestIncreasingSubsequence(vector<int>& nums) {
+    int n = nums.size();
+    if (n == 0) return {};
+
+    // dp[i] = length of LIS ending exactly at index i
+    vector<int> dp(n, 1);
+
+    // parent[i] = previous index in LIS chain
+    // used later for reconstruction
+    vector<int> parent(n, -1);
+
+    int maxLength = 1;  // overall maximum LIS length
+    int lastIndex = 0;  // index where LIS ends
+
+    // Build DP table
+    for (int idx = 0; idx < n; idx++) {
+        // Try to extend subsequence from all previous elements
+        for (int prev = 0; prev < idx; prev++) {
+            // Strictly increasing condition
+            if (nums[prev] < nums[idx]) {
+                // If extending gives a longer subsequence
+                if (dp[prev] + 1 > dp[idx]) {
+                    dp[idx] = dp[prev] + 1;
+                    parent[idx] = prev;  // remember the chain
+                }
+            }
+        }
+
+        // Keep track of the global best LIS
+        if (dp[idx] > maxLength) {
+            maxLength = dp[idx];
+            lastIndex = idx;
+        }
+    }
+
+    // Reconstruct LIS using parent array
+    vector<int> lis;
+
+    while (lastIndex != -1) {
+        lis.push_back(nums[lastIndex]);
+        lastIndex = parent[lastIndex];
+    }
+
+    reverse(lis.begin(), lis.end());
+    return lis;
+}
+```
+
+### Largest Divisible Subset
+Given an array nums of positive integers, the task is to find the largest subset such that every pair (a, b) of elements in the subset satisfies a % b == 0 or b % a == 0.
+Return the subset in any order. If there are multiple solutions, return any one of them.
+
+```cpp
+vector<int> largestDivisibleSubset(vector<int>& nums) {
+    int n = nums.size();
+    if (n == 0) return {};
+
+    // Step 1: Sort the array
+    // Sorting ensures that if nums[i] % nums[j] == 0,
+    // then nums[i] >= nums[j], which guarantees valid chaining.
+    sort(nums.begin(), nums.end());
+
+    // dp[i] = size of largest divisible subset ending at index i
+    vector<int> dp(n, 1);
+
+    // parent[i] = previous index in the subset chain
+    vector<int> parent(n, -1);
+
+    int maxLength = 1;  // overall maximum subset size
+    int lastIndex = 0;  // index where largest subset ends
+
+    for (int idx = 0; idx < n; idx++) {
+        // Check all previous elements
+        for (int prev = 0; prev < idx; prev++) {
+            // If nums[i] is divisible by nums[j],
+            // then nums[i] can extend the subset ending at j.
+            if (nums[idx] % nums[prev] == 0) {
+                // Only update if this gives a longer subset
+                if (dp[prev] + 1 > dp[idx]) {
+                    dp[idx] = dp[prev] + 1;
+                    parent[idx] = prev;  // remember the chain
+                }
+            }
+        }
+
+        // Track the index of the overall largest subset
+        if (dp[idx] > maxLength) {
+            maxLength = dp[idx];
+            lastIndex = idx;
+        }
+    }
+
+    // Step 2: Reconstruct subset using parent array
+    vector<int> subset;
+
+    while (lastIndex != -1) {
+        subset.push_back(nums[lastIndex]);
+        lastIndex = parent[lastIndex];
+    }
+
+    reverse(subset.begin(), subset.end());
+    return subset;
+}
+```
