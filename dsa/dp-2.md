@@ -1379,3 +1379,280 @@ int numberOfLIS(vector<int> nums) {
     return ans;
 }
 ```
+
+## DP on Strings
+
+### Longest Common Subsequence
+Given two strings str1 and str2, find the length of their longest common subsequence.
+A subsequence is a sequence that appears in the same relative order but not necessarily contiguous and a common subsequence of two strings is a subsequence that is common to both strings.
+
+>Input: str1 = "bdefg", str2 = "bfg"
+>Output: 3
+>Explanation: The longest common subsequence is "bfg", which has a length of 3.
+
+```cpp
+class Solution {
+   public:
+    int solve(string a, int n, string b, int m, vector<vector<int>> &dp) {
+        if (n < 0 || m < 0) return 0;
+        if (dp[n][m] != -1) return dp[n][m];
+
+        if (a[n] == b[m]) {
+            return dp[n][m] = 1 + solve(a, n - 1, b, m - 1, dp);
+        }
+
+        return dp[n][m] = 0 + max(solve(a, n - 1, b, m, dp),
+                                  solve(a, n, b, m - 1, dp));
+    }
+
+    int solveByIndexShift(string a, int n, string b, int m,
+                          vector<vector<int>> &dp) {
+        if (n == 0 || m == 0) return 0;
+        if (dp[n][m] != -1) return dp[n][m];
+
+        if (a[n - 1] == b[m - 1]) {
+            return dp[n][m] = 1 + solveByIndexShift(a, n - 1, b, m - 1, dp);
+        }
+
+        return dp[n][m] = 0 + max(solveByIndexShift(a, n - 1, b, m, dp),
+                                  solveByIndexShift(a, n, b, m - 1, dp));
+    }
+
+    int lcsMemo(string str1, string str2) {
+        int n = str1.size();
+        int m = str2.size();
+        // vector<vector<int>> dp(n, vector<int>(m, -1));
+        // return solve(str1, n - 1, str2, m - 1, dp);
+        vector<vector<int>> dpShift(n + 1, vector<int>(m + 1, -1));
+        return solveByIndexShift(str1, n, str2, m, dpShift);
+    }
+
+    int lcsTab(string str1, string str2) {
+        int n = str1.size();
+        int m = str2.size();
+
+        // dp[i][j] = LCS of first i chars of a
+        //            and first j chars of b
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+        // Base case:
+        // dp[0][*] = 0  (empty string)
+        // dp[*][0] = 0
+
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (str1[i - 1] == str2[j - 1]) {
+                    // characters match → extend LCS
+                    dp[i][j] = 1 + dp[i - 1][j - 1];
+                } else {
+                    // characters don’t match → take best of skipping one
+                    dp[i][j] = 0 + max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[n][m];
+    }
+
+    int lcsConstant(string str1, string str2) {
+        int n = str1.size();
+        int m = str2.size();
+
+        // prev[j]  → LCS of: str1[0..i-2] and str2[0..j-1]
+        //
+        // curr[j]  → LCS of: str1[0..i-1] and str2[0..j-1]
+        //
+        // We only need previous row to compute current row.
+        vector<int> prev(m + 1, 0), curr(m + 1, 0);
+
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                // If characters match,
+                // extend the LCS from diagonal (previous row, previous column)
+                if (str1[i - 1] == str2[j - 1]) {
+                    // dp[i][j] = 1 + dp[i-1][j-1]
+                    curr[j] = 1 + prev[j - 1];
+                } else {
+                    // If characters don't match,
+                    // we either:
+                    // 1. Skip character from str1 → prev[j]
+                    // 2. Skip character from str2 → curr[j-1]
+                    //
+                    // Take maximum of both.
+                    curr[j] = max(prev[j], curr[j - 1]);
+                }
+            }
+
+            // After finishing row i,
+            // current row becomes previous row
+            prev = curr;
+        }
+
+        // Final answer stored in last cell
+        return prev[m];
+    }
+
+    int lcs(string str1, string str2) {
+        // return lcsMemo(str1, str2);
+        // return lcsTab(str1, str2);
+        return lcsConstant(str1, str2);
+    }
+};
+
+```
+
+### Longest Common Substring
+Given two strings str1 and str2, find the length of their longest common substring.
+A substring is a contiguous sequence of characters within a string.
+>Input: str1 = "abcde", str2 = "abfce"
+>Output: 2
+>Explanation: The longest common substring is "ab", which has a length of 2.
+```cpp
+class Solution {
+public:
+
+    /*
+        MEMOIZATION (Top-Down)
+
+        dp[i][j] represents:
+        Length of longest common substring
+        ending exactly at a[i] and b[j].
+
+        IMPORTANT:
+        Substring must be contiguous.
+        So on mismatch → value becomes 0.
+    */
+    int solve(string &a, string &b, int i, int j,
+              vector<vector<int>> &dp, int &maxLen) {
+
+        // If any index goes out of bounds → no substring
+        if (i < 0 || j < 0)
+            return 0;
+
+        if (dp[i][j] != -1)
+            return dp[i][j];
+
+        // We must explore all states because unlike LCS,
+        // answer is not necessarily at (n-1, m-1).
+        solve(a, b, i - 1, j, dp, maxLen);
+        solve(a, b, i, j - 1, dp, maxLen);
+
+        if (a[i] == b[j]) {
+            // Extend substring diagonally
+            dp[i][j] = 1 + solve(a, b, i - 1, j - 1, dp, maxLen);
+
+            // Track global maximum because substring
+            // can end anywhere in table
+            maxLen = max(maxLen, dp[i][j]);
+        }
+        else {
+            // Mismatch breaks substring continuity
+            dp[i][j] = 0;
+        }
+
+        return dp[i][j];
+    }
+
+    int longestCommonSubstringMemo(string a, string b) {
+        int n = a.size(), m = b.size();
+
+        vector<vector<int>> dp(n, vector<int>(m, -1));
+        int maxLen = 0;
+
+        solve(a, b, n - 1, m - 1, dp, maxLen);
+
+        return maxLen;
+    }
+
+    /*
+        TABULATION (Bottom-Up)
+
+        dp[i][j] =
+        length of longest common substring
+        ending at a[i-1] and b[j-1].
+
+        Table size = (n+1) x (m+1)
+        Row 0 and column 0 represent empty prefixes.
+    */
+    int longestCommonSubstringTab(string a, string b) {
+
+        int n = a.size();
+        int m = b.size();
+
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+        int maxLen = 0;
+
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+
+                if (a[i - 1] == b[j - 1]) {
+
+                    // Extend previous diagonal match
+                    dp[i][j] = 1 + dp[i - 1][j - 1];
+
+                    // Track maximum substring length found so far
+                    maxLen = max(maxLen, dp[i][j]);
+                }
+                else {
+                    // IMPORTANT DIFFERENCE FROM LCS:
+                    // Substring must be contiguous,
+                    // so mismatch resets length to 0
+                    dp[i][j] = 0;
+                }
+            }
+        }
+
+        return maxLen;
+    }
+
+    /*
+        SPACE OPTIMIZED VERSION
+
+        We only need previous row to compute current row.
+        prev[j] → dp[i-1][j]
+        curr[j] → dp[i][j]
+
+        Time  : O(n*m)
+        Space : O(m)
+    */
+    int longestCommonSubstringConstant(string a, string b) {
+
+        int n = a.size();
+        int m = b.size();
+
+        vector<int> prev(m + 1, 0), curr(m + 1, 0);
+
+        int maxLen = 0;
+
+        for (int i = 1; i <= n; i++) {
+
+            for (int j = 1; j <= m; j++) {
+
+                if (a[i - 1] == b[j - 1]) {
+
+                    // Extend diagonal
+                    curr[j] = 1 + prev[j - 1];
+
+                    maxLen = max(maxLen, curr[j]);
+                }
+                else {
+                    // Reset because continuity breaks
+                    curr[j] = 0;
+                }
+            }
+
+            // Move current row to previous
+            prev = curr;
+        }
+
+        return maxLen;
+    }
+
+    int longestCommonSubstr(string str1, string str2) {
+
+        // return longestCommonSubstringMemo(str1, str2);
+        // return longestCommonSubstringTab(str1, str2);
+        return longestCommonSubstringConstant(str1, str2);
+    }
+};
+```
