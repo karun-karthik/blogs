@@ -1656,3 +1656,975 @@ public:
     }
 };
 ```
+
+### Longest Palindromic Subsequence
+Given a string, Find the longest palindromic subsequence length in given string.
+A palindrome is a sequence that reads the same backwards as forward.
+A subsequence is a sequence that can be derived from another sequence by deleting some or no elements without changing the order of the remaining elements.
+
+>Input: s = "eeeme"
+>Output: 4
+>Explanation: The longest palindromic subsequence is "eeee", which has a length of 4.
+```cpp
+class Solution {
+   public:
+    int lcsConstant(string str1, string str2) {
+
+        int n = str1.size();
+        int m = str2.size();
+
+        // prev[j]  → LCS of:
+        //             str1[0..i-2] and str2[0..j-1]
+        //
+        // curr[j]  → LCS of:
+        //             str1[0..i-1] and str2[0..j-1]
+        //
+        // We only need previous row to compute current row.
+        vector<int> prev(m + 1, 0), curr(m + 1, 0);
+
+        for (int i = 1; i <= n; i++) {
+
+            for (int j = 1; j <= m; j++) {
+
+                // If characters match,
+                // extend the LCS from diagonal (previous row, previous column)
+                if (str1[i - 1] == str2[j - 1]) {
+
+                    // dp[i][j] = 1 + dp[i-1][j-1]
+                    curr[j] = 1 + prev[j - 1];
+                }
+                else {
+
+                    // If characters don't match,
+                    // we either:
+                    // 1. Skip character from str1 → prev[j]
+                    // 2. Skip character from str2 → curr[j-1]
+                    //
+                    // Take maximum of both.
+                    curr[j] = max(prev[j], curr[j - 1]);
+                }
+            }
+
+            // After finishing row i,
+            // current row becomes previous row
+            prev = curr;
+        }
+
+        // Final answer stored in last cell
+        return prev[m];
+    }
+
+    int longestPalinSubseq(string s) {
+        string t = s;
+        reverse(t.begin(), t.end());
+        return lcsConstant(s, t);
+    }
+};
+```
+
+### Minimum insertions to make string palindrome
+Given a string s, find the minimum number of insertions needed to make it a palindrome. A palindrome is a sequence that reads the same backward as forward. You can insert characters at any position in the string.
+```cpp
+class Solution{   
+public:
+    int lcsConstant(string str1, string str2) {
+
+        int n = str1.size();
+        int m = str2.size();
+
+        // prev[j]  → LCS of:
+        //             str1[0..i-2] and str2[0..j-1]
+        //
+        // curr[j]  → LCS of:
+        //             str1[0..i-1] and str2[0..j-1]
+        //
+        // We only need previous row to compute current row.
+        vector<int> prev(m + 1, 0), curr(m + 1, 0);
+
+        for (int i = 1; i <= n; i++) {
+
+            for (int j = 1; j <= m; j++) {
+
+                // If characters match,
+                // extend the LCS from diagonal (previous row, previous column)
+                if (str1[i - 1] == str2[j - 1]) {
+
+                    // dp[i][j] = 1 + dp[i-1][j-1]
+                    curr[j] = 1 + prev[j - 1];
+                }
+                else {
+
+                    // If characters don't match,
+                    // we either:
+                    // 1. Skip character from str1 → prev[j]
+                    // 2. Skip character from str2 → curr[j-1]
+                    //
+                    // Take maximum of both.
+                    curr[j] = max(prev[j], curr[j - 1]);
+                }
+            }
+
+            // After finishing row i,
+            // current row becomes previous row
+            prev = curr;
+        }
+
+        // Final answer stored in last cell
+        return prev[m];
+    }
+
+    int minInsertion(string s) {
+        int n = s.size();
+        string t = s;
+        reverse(t.begin(), t.end());
+        int k = lcsConstant(s, t);
+        return n-k; // n - longest palindromic subsequence
+    }
+};
+```
+
+### Minimum insertions or deletions to convert string A to B
+
+Given two strings str1 and str2, find the minimum number of insertions and deletions in string str1 required to transform str1 into str2.
+Insertion and deletion of characters can take place at any position in the string.
+
+```cpp
+class Solution{
+    int lcsConstant(string str1, string str2) {
+        int n = str1.size();
+        int m = str2.size();
+
+        // prev[j]  → LCS of:
+        //             str1[0..i-2] and str2[0..j-1]
+        //
+        // curr[j]  → LCS of:
+        //             str1[0..i-1] and str2[0..j-1]
+        //
+        // We only need previous row to compute current row.
+        vector<int> prev(m + 1, 0), curr(m + 1, 0);
+
+        for (int i = 1; i <= n; i++) {
+
+            for (int j = 1; j <= m; j++) {
+
+                // If characters match,
+                // extend the LCS from diagonal (previous row, previous column)
+                if (str1[i - 1] == str2[j - 1]) {
+
+                    // dp[i][j] = 1 + dp[i-1][j-1]
+                    curr[j] = 1 + prev[j - 1];
+                }
+                else {
+
+                    // If characters don't match,
+                    // we either:
+                    // 1. Skip character from str1 → prev[j]
+                    // 2. Skip character from str2 → curr[j-1]
+                    //
+                    // Take maximum of both.
+                    curr[j] = max(prev[j], curr[j - 1]);
+                }
+            }
+
+            // After finishing row i,
+            // current row becomes previous row
+            prev = curr;
+        }
+
+        // Final answer stored in last cell
+        return prev[m];
+    }
+
+    public:
+    int minOperations(string str1, string str2) { 
+        
+        // Step 1: Find length of Longest Common Subsequence (LCS)
+        // LCS represents the part of both strings that we DO NOT modify.
+        int k = lcsConstant(str1, str2);
+
+        int n = str1.size();
+        int m = str2.size();
+
+        /*
+            To convert str1 → str2 using only:
+                - Deletions
+                - Insertions
+
+            We keep the LCS unchanged.
+
+            ------------------------------------
+            Deletions required:
+                Remove characters from str1
+                that are NOT part of LCS.
+                = n - k
+
+            Insertions required:
+                Add characters from str2
+                that are NOT part of LCS.
+                = m - k
+
+            ------------------------------------
+            Total operations:
+                (n - k) deletions
+            + (m - k) insertions
+            = n + m - 2*k
+        */
+
+        return (n - k) + (m - k);
+    }
+};
+```
+
+### Shortest Common Supersequence
+Given two strings str1 and str2, find the shortest common supersequence.
+The shortest common supersequence is the shortest string that contains both str1 and str2 as subsequences.
+>Input: str1 = "mno", str2 = "nop"
+>Output: "mnop"
+```cpp
+class Solution {
+public:
+
+    /*
+        Shortest Common Supersequence (SCS):
+
+        A supersequence of two strings is a string that contains
+        both strings as subsequences.
+
+        Key Insight:
+        SCS length = n + m - LCS(str1, str2)
+
+        So we first compute LCS table,
+        then reconstruct SCS using that table.
+    */
+
+    string shortestCommonSupersequence(string str1, string str2) {
+
+        int n = str1.size();
+        int m = str2.size();
+
+        // Step 1: Build LCS DP table
+        // dp[i][j] = length of LCS of
+        //             str1[0..i-1] and str2[0..j-1]
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+
+                if (str1[i - 1] == str2[j - 1]) {
+                    // Characters match → extend diagonal
+                    dp[i][j] = 1 + dp[i - 1][j - 1];
+                } else {
+                    // Take best by skipping one character
+                    dp[i][j] = max(dp[i - 1][j],
+                                   dp[i][j - 1]);
+                }
+            }
+        }
+
+        // Step 2: Reconstruct SCS from DP table
+        int i = n, j = m;
+        string ans = "";
+
+        while (i > 0 && j > 0) {
+
+            // If characters match:
+            // This character is part of LCS.
+            // Add it once and move diagonally.
+            if (str1[i - 1] == str2[j - 1]) {
+                ans += str1[i - 1];
+                i--;
+                j--;
+            }
+
+            // If upper cell has larger LCS,
+            // it means current char of str1
+            // was not part of LCS.
+            // So include it in SCS.
+            else if (dp[i - 1][j] > dp[i][j - 1]) {
+                ans += str1[i - 1];
+                i--;
+            }
+
+            // Otherwise include character from str2.
+            else {
+                ans += str2[j - 1];
+                j--;
+            }
+        }
+
+        // If anything left in str1, append it
+        while (i > 0) {
+            ans += str1[i - 1];
+            i--;
+        }
+
+        // If anything left in str2, append it
+        while (j > 0) {
+            ans += str2[j - 1];
+            j--;
+        }
+
+        // We built string backwards while backtracking,
+        // so reverse to get correct order.
+        reverse(ans.begin(), ans.end());
+
+        return ans;
+    }
+};
+```
+
+### Distinct Subsequences
+Given two strings s and t, return the number of distinct subsequences of s that equal t.
+
+A subsequence of a string is a new string generated from the original string with some characters (can be none) deleted without changing the relative order of the remaining characters. For example, "ace" is a subsequence of "abcde" while "aec" is not.
+The task is to count how many different ways we can form t from s by deleting some (or no) characters from s. Return the result modulo 109+7.
+```cpp
+class Solution{
+public:
+    int MOD = 1e9 + 7;
+
+    /*
+        MEMOIZATION (Top-Down)
+
+        solve(m, n) =
+        Number of subsequences of s[0..m]
+        that equal t[0..n]
+
+        We move from right to left.
+    */
+    int solve(string s, string t, int m, int n,
+              vector<vector<int>> &dp) {
+
+        // If we matched entire target string
+        // Empty target is always 1 valid subsequence
+        if (n < 0)
+            return 1;
+
+        // If source string exhausted but target not
+        // No way to form target
+        if (m < 0)
+            return 0;
+
+        if (dp[m][n] != -1)
+            return dp[m][n];
+
+        int res = 0;
+
+        if (s[m] == t[n]) {
+
+            // Option 1: Use this matching character
+            int take = solve(s, t, m - 1, n - 1, dp);
+
+            // Option 2: Skip this character in s
+            int skip = solve(s, t, m - 1, n, dp);
+
+            res = (take + skip) % MOD;
+        }
+        else {
+            // Characters don't match → must skip s[m]
+            res = solve(s, t, m - 1, n, dp);
+        }
+
+        return dp[m][n] = res;
+    }
+
+    int distinctSubsequencesMemo(string s, string t) {
+        int m = s.size();
+        int n = t.size();
+
+        vector<vector<int>> dp(m, vector<int>(n, -1));
+
+        return solve(s, t, m - 1, n - 1, dp);
+    }
+
+    /*
+        TABULATION (Bottom-Up)
+
+        dp[i][j] =
+        number of subsequences of s[0..i-1]
+        that equal t[0..j-1]
+    */
+    int distinctSubsequencesTab(string s, string t) {
+
+        int m = s.size();
+        int n = t.size();
+
+        vector<vector<int>> dp(m + 1,
+                               vector<int>(n + 1, 0));
+
+        /*
+            Base Case:
+
+            dp[i][0] = 1
+            Why?
+
+            Empty string "" is a subsequence
+            of any prefix of s in exactly 1 way
+            (by deleting everything).
+        */
+        for (int i = 0; i <= m; i++)
+            dp[i][0] = 1;
+
+        /*
+            dp[0][j] = 0 for j > 0
+            Why?
+
+            Non-empty target cannot be formed
+            from empty source.
+        */
+
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+
+                if (s[i - 1] == t[j - 1]) {
+
+                    /*
+                        Two choices:
+
+                        1. Match current characters
+                           → dp[i-1][j-1]
+
+                        2. Skip current character in s
+                           → dp[i-1][j]
+
+                        Add both.
+                    */
+                    dp[i][j] =
+                        (dp[i - 1][j - 1] +
+                         dp[i - 1][j]) % MOD;
+                }
+                else {
+
+                    // Can't match → skip s[i-1]
+                    dp[i][j] = dp[i - 1][j];
+                }
+            }
+        }
+
+        return dp[m][n];
+    }
+
+    /*
+        SPACE OPTIMIZED VERSION
+
+        We only need previous row.
+
+        prev[j] = dp[i-1][j]
+        curr[j] = dp[i][j]
+    */
+    int distinctSubsequencesConstant(string s, string t) {
+
+        int m = s.size();
+        int n = t.size();
+
+        vector<int> prev(n + 1, 0),
+                    curr(n + 1, 0);
+
+        // Empty target always has 1 way
+        prev[0] = 1;
+
+        for (int i = 1; i <= m; i++) {
+
+            // Empty target still has 1 way
+            curr[0] = 1;
+
+            for (int j = 1; j <= n; j++) {
+
+                if (s[i - 1] == t[j - 1]) {
+
+                    curr[j] =
+                        (prev[j - 1] + prev[j]) % MOD;
+                }
+                else {
+
+                    curr[j] = prev[j];
+                }
+            }
+
+            prev = curr;
+        }
+
+        return prev[n];
+    }
+
+    int distinctSubsequences(string s, string t){
+        // return distinctSubsequencesMemo(s, t);
+        // return distinctSubsequencesTab(s, t);
+        return distinctSubsequencesConstant(s, t);
+    }
+};
+```
+
+### Edit Distance
+Given two strings start and target, you need to determine the minimum number of operations required to convert the string start into the string target. The operations you can use are:
+* Insert a character: Add any single character at any position in the string.
+* Delete a character: Remove any single character from the string.
+* Replace a character: Change any single character in the string to another character.
+
+The goal is to transform start into target using the fewest number of these operations.
+```
+Input: start = "planet", target = "plan"
+Output: 2
+
+Explanation: 
+To transform "planet" into "plan", the following operations are required:
+1. Delete the character 'e': "planet" -> "plan"
+2. Delete the character 't': "plan" -> "plan"
+Thus, a total of 2 operations are needed.
+```
+```cpp
+class Solution {
+  
+  /*
+    -----------------------------------------
+    MEMO (Original index style: i,j go backward)
+    -----------------------------------------
+
+    solve(i, j) =
+    minimum operations to convert
+    s[0..i] → t[0..j]
+  */
+  int solve(int i, string s, int j, string t,
+            vector<vector<int>> &dp) {
+
+    // If target exhausted → delete all remaining source chars
+    if (j < 0)  return i + 1;
+
+    // If source exhausted → insert all remaining target chars
+    if (i < 0)  return j + 1;
+
+    if (dp[i][j] != -1)
+        return dp[i][j];
+
+    // If characters match → no operation needed
+    if (s[i] == t[j])
+        return dp[i][j] =
+               solve(i - 1, s, j - 1, t, dp);
+
+    // Otherwise try all 3 operations:
+
+    // 1. Insert (insert t[j] into s)
+    int ins = 1 + solve(i, s, j - 1, t, dp);
+
+    // 2. Delete (delete s[i])
+    int del = 1 + solve(i - 1, s, j, t, dp);
+
+    // 3. Replace (replace s[i] with t[j])
+    int replace =
+        1 + solve(i - 1, s, j - 1, t, dp);
+
+    return dp[i][j] =
+           min(ins, min(del, replace));
+  }
+
+  /*
+    -----------------------------------------
+    MEMO (Index-shifted version)
+    Cleaner definition:
+
+    dp[i][j] =
+    convert first i chars of s
+    to first j chars of t
+    -----------------------------------------
+  */
+  int solveIndexShift(int i, string s, int j,
+                      string t,
+                      vector<vector<int>> &dp) {
+
+    // If target empty → delete all i chars
+    if (j == 0)  return i;
+
+    // If source empty → insert all j chars
+    if (i == 0)  return j;
+
+    if (dp[i][j] != -1)
+        return dp[i][j];
+
+    // If characters match → move diagonally
+    if (s[i - 1] == t[j - 1])
+        return dp[i][j] =
+               solveIndexShift(i - 1, s,
+                               j - 1, t, dp);
+
+    // Try all operations
+    int ins =
+        solveIndexShift(i, s, j - 1, t, dp);
+
+    int del =
+        solveIndexShift(i - 1, s, j, t, dp);
+
+    int replace =
+        solveIndexShift(i - 1, s,
+                        j - 1, t, dp);
+
+    return dp[i][j] =
+           1 + min(ins, min(del, replace));
+  }
+
+  int editDistanceMemo(string start,
+                       string target) {
+
+    int n = start.size();
+    int m = target.size();
+
+    vector<vector<int>> dp(n + 1,
+                           vector<int>(m + 1, -1));
+
+    return solveIndexShift(n, start,
+                           m, target, dp);
+  }
+
+  /*
+    -----------------------------------------
+    TABULATION (Bottom-Up)
+    -----------------------------------------
+
+    dp[i][j] =
+    convert first i chars of start
+    to first j chars of target
+  */
+  int editDistanceTab(string start,
+                      string target) {
+
+    int n = start.size();
+    int m = target.size();
+
+    vector<vector<int>> dp(n + 1,
+                           vector<int>(m + 1, 0));
+
+    // Base cases
+    for (int i = 0; i <= n; i++)
+        dp[i][0] = i;   // delete i chars
+
+    for (int j = 0; j <= m; j++)
+        dp[0][j] = j;   // insert j chars
+
+    for (int i = 1; i <= n; i++) {
+      for (int j = 1; j <= m; j++) {
+
+        if (start[i - 1] ==
+            target[j - 1]) {
+
+          // No operation needed
+          dp[i][j] =
+              dp[i - 1][j - 1];
+        }
+        else {
+
+          // 3 operations
+          int ins =
+              dp[i][j - 1];
+
+          int del =
+              dp[i - 1][j];
+
+          int replace =
+              dp[i - 1][j - 1];
+
+          dp[i][j] =
+              1 + min(ins,
+                      min(del, replace));
+        }
+      }
+    }
+
+    return dp[n][m];
+  }
+
+  /*
+    -----------------------------------------
+    SPACE OPTIMIZED VERSION
+    -----------------------------------------
+
+    Only previous row needed.
+    prev[j] → dp[i-1][j]
+    curr[j] → dp[i][j]
+  */
+  int editDistanceConstant(string start,
+                           string target) {
+
+    int n = start.size();
+    int m = target.size();
+
+    vector<int> prev(m + 1, 0),
+                curr(m + 1, 0);
+
+    // Base case for row 0
+    for (int j = 0; j <= m; j++)
+        prev[j] = j;
+
+    for (int i = 1; i <= n; i++) {
+
+      // First column
+      curr[0] = i;
+
+      for (int j = 1; j <= m; j++) {
+
+        if (start[i - 1] ==
+            target[j - 1]) {
+
+          curr[j] =
+              prev[j - 1];
+        }
+        else {
+
+          int ins =
+              curr[j - 1];
+
+          int del =
+              prev[j];
+
+          int replace =
+              prev[j - 1];
+
+          curr[j] =
+              1 + min(ins,
+                      min(del, replace));
+        }
+      }
+
+      prev = curr;
+    }
+
+    return prev[m];
+  }
+
+public:
+  int editDistance(string start,
+                   string target) {
+
+    // return editDistanceMemo(start, target);
+    // return editDistanceTab(start, target);
+    return editDistanceConstant(start, target);
+  }
+};
+```
+
+### Wildcard Matching
+Given a string str and a pattern pat, implement a pattern matching function that supports the following special characters:
+* '?' Matches any single character.
+* '*' Matches any sequence of characters (including the empty sequence).
+```
+Input: str = "xaylmz", pat = "x?y*z"
+Output: true
+
+Explanation: 
+The pattern "x?y*z" matches the string "xaylmz":
+- '?' matches 'a'
+- '*' matches "lm"
+- 'z' matches 'z'
+```
+
+```cpp
+class Solution {
+public:
+
+    /*-------------------------------------------------------------
+        1️⃣  Memoization (0-based indexing from end)
+        solve(i, j) -> does pat[0..i] match str[0..j] ?
+    -------------------------------------------------------------*/
+    bool solve(int i, string pat, int j, string str, vector<vector<int>>& dp) {
+
+        // Base Case 1: both exhausted → match
+        if (i < 0 && j < 0) return true;
+
+        // Base Case 2: pattern exhausted but string remains → no match
+        if (i < 0 && j >= 0) return false;
+
+        // Base Case 3: string exhausted but pattern remains
+        // Pattern must be all '*' to match empty string
+        if (j < 0 && i >= 0) {
+            for (int ii = 0; ii <= i; ii++) {
+                if (pat[ii] != '*') return false;
+            }
+            return true;
+        }
+
+        // Return memoized result
+        if (dp[i][j] != -1) return dp[i][j];
+
+        // If characters match OR pattern has '?'
+        if (pat[i] == str[j] || pat[i] == '?') {
+            return dp[i][j] = solve(i-1, pat, j-1, str, dp);
+        }
+
+        // If pattern has '*'
+        if (pat[i] == '*') {
+            /*
+                '*' has 2 choices:
+                1. Match zero characters → move pattern
+                2. Match one character → move string
+            */
+            return dp[i][j] =
+                solve(i-1, pat, j, str, dp) ||
+                solve(i, pat, j-1, str, dp);
+        }
+
+        // Otherwise no match
+        return dp[i][j] = false;
+    }
+
+
+    /*-------------------------------------------------------------
+        2️⃣  Memoization (Shifted Indexing)
+        solveShiftIdx(i, j) -> match first i chars of pat
+                                with first j chars of str
+        (1-based indexing style)
+    -------------------------------------------------------------*/
+    bool solveShiftIdx(int i, string pat, int j, string str, vector<vector<int>>& dp) {
+
+        // Both empty
+        if (i == 0 && j == 0) return true;
+
+        // Pattern empty but string not
+        if (i == 0 && j > 0) return false;
+
+        // String empty but pattern not
+        if (j == 0 && i > 0) {
+            // All characters in pattern must be '*'
+            for (int ii = 1; ii <= i; ii++) {
+                if (pat[ii-1] != '*') return false;
+            }
+            return true;
+        }
+
+        // Memoized
+        if (dp[i][j] != -1) return dp[i][j];
+
+        // Match or '?'
+        if (pat[i-1] == str[j-1] || pat[i-1] == '?') {
+            return dp[i][j] =
+                solveShiftIdx(i-1, pat, j-1, str, dp);
+        }
+
+        // '*'
+        if (pat[i-1] == '*') {
+            return dp[i][j] =
+                solveShiftIdx(i-1, pat, j, str, dp) ||  // take 0
+                solveShiftIdx(i, pat, j-1, str, dp);   // take 1+
+        }
+
+        return dp[i][j] = false;
+    }
+
+
+    /*-------------------------------------------------------------
+        3️⃣  Memo Wrapper
+        Time  : O(N*M)
+        Space : O(N*M)
+    -------------------------------------------------------------*/
+    bool wildCardMemo(string str, string pat) {
+        int n = pat.size();
+        int m = str.size();
+
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, -1));
+        return solveShiftIdx(n, pat, m, str, dp);
+    }
+
+
+    /*-------------------------------------------------------------
+        4️⃣  Tabulation (Bottom-Up DP)
+        dp[i][j] = does pat[0..i-1] match str[0..j-1]
+        Time  : O(N*M)
+        Space : O(N*M)
+    -------------------------------------------------------------*/
+    bool wildCardTab(string str, string pat) {
+        int n = pat.size();
+        int m = str.size();
+
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+        // Empty pattern & empty string
+        dp[0][0] = 1;
+
+        // Empty pattern cannot match non-empty string
+        for (int j = 1; j <= m; j++)
+            dp[0][j] = 0;
+
+        // Pattern vs empty string
+        for (int i = 1; i <= n; i++) {
+            bool flag = true;
+            for (int ii = 1; ii <= i; ii++) {
+                if (pat[ii-1] != '*') {
+                    flag = false;
+                    break;
+                }
+            }
+            dp[i][0] = flag;
+        }
+
+        // Fill DP table
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+
+                // Direct match or '?'
+                if (pat[i-1] == str[j-1] || pat[i-1] == '?')
+                    dp[i][j] = dp[i-1][j-1];
+
+                // '*'
+                else if (pat[i-1] == '*')
+                    dp[i][j] = dp[i-1][j] || dp[i][j-1];
+
+                else
+                    dp[i][j] = false;
+            }
+        }
+
+        return dp[n][m];
+    }
+
+
+    /*-------------------------------------------------------------
+        5️⃣  Space Optimized (Constant Space)
+        Only previous row needed
+        Time  : O(N*M)
+        Space : O(M)
+    -------------------------------------------------------------*/
+    bool wildCardConstant(string str, string pat) {
+
+        int n = pat.size();
+        int m = str.size();
+
+        vector<int> prev(m + 1, 0), curr(m + 1, 0);
+
+        // Base: empty pattern & empty string
+        prev[0] = 1;
+
+        for (int i = 1; i <= n; i++) {
+
+            // Pattern vs empty string
+            bool flag = true;
+            for (int ii = 1; ii <= i; ii++) {
+                if (pat[ii-1] != '*') {
+                    flag = false;
+                    break;
+                }
+            }
+            curr[0] = flag;
+
+            for (int j = 1; j <= m; j++) {
+
+                if (pat[i-1] == str[j-1] || pat[i-1] == '?')
+                    curr[j] = prev[j-1];
+
+                else if (pat[i-1] == '*')
+                    curr[j] = prev[j] || curr[j-1];
+
+                else
+                    curr[j] = false;
+            }
+
+            // Move current row to previous
+            prev = curr;
+        }
+
+        return prev[m];
+    }
+
+    bool wildCard(string str, string pat) {
+        // return wildCardMemo(str, pat);
+        // return wildCardTab(str, pat);
+        return wildCardConstant(str, pat);
+    }
+};
+```
