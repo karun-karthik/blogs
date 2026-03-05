@@ -57,6 +57,14 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp-2.md"
     },
     {
+      "slug": "linked-list",
+      "title": "Linked Lists: A Comprehensive Guide",
+      "date": "2026-02-28",
+      "domain": "DSA",
+      "topic": "Linked Lists",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/linked-list.md"
+    },
+    {
       "slug": "devops",
       "title": "Docker 101",
       "date": "2026-02-22",
