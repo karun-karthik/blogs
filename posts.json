@@ -2,7 +2,7 @@
   "posts": [
     {
       "slug": "sorting",
-      "title": "Sorting Algorithms Explained",
+      "title": "Master Sorting Algorithms: From Basics to Advanced",
       "date": "2026-02-01",
       "domain": "DSA",
       "topic": "Sorting",
@@ -10,7 +10,7 @@
     },
     {
       "slug": "arrays",
-      "title": "Arrays: A Comprehensive Guide",
+      "title": "Arrays: 0 to 100",
       "date": "2026-02-07",
       "domain": "DSA",
       "topic": "Arrays",
@@ -18,7 +18,7 @@
     },
     {
       "slug": "hashing",
-      "title": "Hashing",
+      "title": "Hashing Demystified",
       "date": "2026-02-11",
       "domain": "DSA",
       "topic": "Hashing",
@@ -26,7 +26,7 @@
     },
     {
       "slug": "binary-search",
-      "title": "Binary Search & Variants",
+      "title": "Master Binary Search",
       "date": "2026-02-12",
       "domain": "DSA",
       "topic": "Binary Search",
@@ -34,7 +34,7 @@
     },
     {
       "slug": "recursion",
-      "title": "Recursion: A Deep Dive",
+      "title": "Easy Recursion",
       "date": "2026-02-15",
       "domain": "DSA",
       "topic": "Recursion",
@@ -42,7 +42,7 @@
     },
     {
       "slug": "dp-1",
-      "title": "DP: Consolidated Guide: 1",
+      "title": "Dynamic Programming Secrets, Part 1",
       "date": "2026-02-17",
       "domain": "DSA",
       "topic": "Dynamic Programming",
@@ -50,7 +50,7 @@
     },
     {
       "slug": "dp-2",
-      "title": "DP: Consolidated Guide: 2",
+      "title": "Dynamic Programming Secrets, Part 2",
       "date": "2026-02-25",
       "domain": "DSA",
       "topic": "Dynamic Programming",
@@ -58,7 +58,7 @@
     },
     {
       "slug": "linked-list",
-      "title": "Linked Lists: A Comprehensive Guide",
+      "title": "Linked Lists: Navigate Like a Pro",
       "date": "2026-02-28",
       "domain": "DSA",
       "topic": "Linked Lists",
@@ -66,7 +66,7 @@
     },
     {
       "slug": "devops",
-      "title": "Docker 101",
+      "title": "Docker 101: Ship Containers with Confidence",
       "date": "2026-02-22",
       "domain": "DevOps",
       "topic": "Docker",
