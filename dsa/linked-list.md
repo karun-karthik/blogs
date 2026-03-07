@@ -814,3 +814,41 @@ ListNode* reverseList(ListNode* head) {
     return prev;
 }
 ```
+
+## Medium
+
+### Add one to a number represented by Linked List
+```cpp
+ListNode* reverseList(ListNode* head) {
+    ListNode* newHead = NULL;
+
+    while (head != NULL) {
+        ListNode* next = head->next;
+        head->next = newHead;
+        newHead = head;
+        head = next;
+    }
+
+    return newHead;
+}
+
+ListNode *addOne(ListNode *head) {
+    ListNode* reversed = reverseList(head);
+    ListNode* curr = reversed;
+    int carry = 1;
+    while (curr != NULL) {
+        int res = (curr->val) + carry;
+        carry = res/10;
+        curr->val = (res % 10);
+        curr = curr->next;
+    }
+    curr = reversed;
+    while (curr->next != NULL) {
+        curr = curr->next;
+    }
+    if (carry) {
+        curr->next = new ListNode(1);
+    }
+    return reverseList(reversed);
+}
+```
