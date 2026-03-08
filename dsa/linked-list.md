@@ -819,36 +819,258 @@ ListNode* reverseList(ListNode* head) {
 
 ### Add one to a number represented by Linked List
 ```cpp
+// Reverse a singly linked list
 ListNode* reverseList(ListNode* head) {
-    ListNode* newHead = NULL;
 
-    while (head != NULL) {
-        ListNode* next = head->next;
-        head->next = newHead;
-        newHead = head;
-        head = next;
+    ListNode* prev = nullptr;
+
+    while (head != nullptr) {
+        ListNode* nextNode = head->next;
+        head->next = prev;
+        prev = head;
+        head = nextNode;
     }
 
-    return newHead;
+    return prev;
 }
 
-ListNode *addOne(ListNode *head) {
-    ListNode* reversed = reverseList(head);
-    ListNode* curr = reversed;
+
+// Adds 1 to a number represented by a linked list
+ListNode* addOne(ListNode* head) {
+
+    // Step 1: Reverse the list so we start addition from the least significant digit
+    ListNode* reversedHead = reverseList(head);
+
+    ListNode* curr = reversedHead;
     int carry = 1;
-    while (curr != NULL) {
-        int res = (curr->val) + carry;
-        carry = res/10;
-        curr->val = (res % 10);
+
+    // Step 2: Add carry to digits
+    while (curr != nullptr && carry) {
+
+        int sum = curr->val + carry;
+
+        curr->val = sum % 10;
+        carry = sum / 10;
+
+        // If carry is finished, we can stop early
+        if (carry == 0)
+            break;
+
+        // If we're at the last node and carry still exists, add a new node
+        if (curr->next == nullptr) {
+            curr->next = new ListNode(carry);
+            carry = 0;
+            break;
+        }
+
         curr = curr->next;
     }
-    curr = reversed;
-    while (curr->next != NULL) {
-        curr = curr->next;
-    }
+
+    // Step 3: Reverse the list again to restore original order
+    return reverseList(reversedHead);
+}
+```
+```cpp
+// Helper function that adds carry and returns the carry to the previous node
+int addOneHelper(ListNode* node) {
+
+    // Base case: beyond last node
+    if (node == nullptr)
+        return 1;   // initial +1
+
+    // Recursively process next node
+    int carry = addOneHelper(node->next);
+
+    int sum = node->val + carry;
+
+    node->val = sum % 10;
+
+    return sum / 10;   // propagate carry
+}
+
+
+// Main function
+ListNode* addOne(ListNode* head) {
+
+    int carry = addOneHelper(head);
+
+    // If carry remains, create new head
     if (carry) {
-        curr->next = new ListNode(1);
+        ListNode* newHead = new ListNode(carry);
+        newHead->next = head;
+        return newHead;
     }
-    return reverseList(reversed);
+
+    return head;
+}
+```
+
+### Find Middle of Linked List
+```cpp
+// Finds and returns the middle node of a linked list
+ListNode* middleOfLinkedList(ListNode* head) {
+
+    // 'slow' moves one step at a time
+    ListNode* slow = head;
+
+    // 'fast' moves two steps at a time
+    ListNode* fast = head;
+
+    // When fast reaches the end, slow will be at the middle
+    while (fast != nullptr && fast->next != nullptr) {
+
+        slow = slow->next;          // move 1 step
+        fast = fast->next->next;    // move 2 steps
+    }
+
+    // slow now points to the middle node
+    return slow;
+}
+```
+
+### Delete the middle node in Linked List
+```cpp
+// Deletes the middle node of a linked list
+ListNode* deleteMiddle(ListNode* head) {
+
+    // If the list has only one node, deleting the middle results in an empty list
+    if (head == nullptr || head->next == nullptr)
+        return nullptr;
+
+    // 'slow' will reach the middle node
+    ListNode* slow = head;
+
+    // 'fast' moves twice as fast to help locate the middle
+    ListNode* fast = head;
+
+    // 'prev' keeps track of the node before 'slow'
+    ListNode* prev = nullptr;
+
+    // Find the middle node using fast-slow pointer technique
+    while (fast != nullptr && fast->next != nullptr) {
+
+        prev = slow;
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    // Remove the middle node
+    prev->next = slow->next;
+    delete slow;
+
+    return head;
+}
+```
+
+### Check if Linked List is a Palindrome
+```cpp
+// Reverse a singly linked list and return the new head
+ListNode* reverseList(ListNode* head) {
+
+    ListNode* prev = nullptr;
+
+    // Traverse the list and reverse pointers
+    while (head != nullptr) {
+
+        // Save the next node before modifying the link
+        ListNode* nextNode = head->next;
+
+        // Reverse the link direction
+        head->next = prev;
+
+        // Move pointers forward
+        prev = head;
+        head = nextNode;
+    }
+
+    // 'prev' becomes the new head of the reversed list
+    return prev;
+}
+
+
+// Check if a linked list is a palindrome
+bool isPalindrome(ListNode* head) {
+
+    // Lists with 0 or 1 node are always palindrome
+    if (head == nullptr || head->next == nullptr)
+        return true;
+
+    ListNode* slow = head;
+    ListNode* fast = head;
+
+    /*
+        Step 1: Find the middle of the linked list using fast–slow pointers.
+
+        slow moves one step
+        fast moves two steps
+
+        When the loop stops:
+
+        EVEN length example:
+        1 → 2 → 3 → 4
+        slow = 3
+        fast = nullptr
+
+        ODD length example:
+        1 → 2 → 3 → 2 → 1
+        slow = 3
+        fast = last node (not nullptr)
+
+        Key observation:
+        - fast == nullptr  → even length list
+        - fast != nullptr  → odd length list
+    */
+    while (fast != nullptr && fast->next != nullptr) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    /*
+        Step 2: Skip the middle node for odd-length lists.
+
+        When the list length is odd, slow stops exactly at the middle node.
+        Example:
+        1 → 2 → 3 → 2 → 1
+                ↑
+               slow
+
+        The middle node (3) should NOT be compared because it does not affect
+        palindrome symmetry. So we move slow one step ahead.
+
+        We check:
+            if (fast != nullptr)
+
+        because after the loop:
+        - fast == nullptr  → even length
+        - fast != nullptr  → odd length
+    */
+    if (fast != nullptr) {
+        slow = slow->next;
+    }
+
+    // Step 3: Reverse the second half of the list
+    ListNode* secondHalfHead = reverseList(slow);
+
+    // Step 4: Compare the first half and reversed second half
+    ListNode* firstHalfPtr = head;
+    ListNode* secondHalfPtr = secondHalfHead;
+
+    while (secondHalfPtr != nullptr) {
+
+        if (firstHalfPtr->val != secondHalfPtr->val) {
+
+            // Restore original list before returning
+            reverseList(secondHalfHead);
+            return false;
+        }
+
+        firstHalfPtr = firstHalfPtr->next;
+        secondHalfPtr = secondHalfPtr->next;
+    }
+
+    // Step 5: Restore the original list structure
+    reverseList(secondHalfHead);
+
+    return true;
 }
 ```
