@@ -1674,3 +1674,86 @@ ListNode* sortList(ListNode* head) {
     return merge(left, right);
 }
 ```
+
+### Clone a Linked List with Random and Next Pointer
+```cpp
+// Step 1: Insert copied nodes between original nodes
+// Example:
+// 1 → 2 → 3
+// becomes
+// 1 → 1' → 2 → 2' → 3 → 3'
+void insertInbetween(ListNode* head) {
+    ListNode* temp = head;
+
+    while (temp != NULL) {
+        // Create a copy of the current node
+        ListNode* copy = new ListNode(temp->val);
+
+        // Store the original next node
+        ListNode* nextNode = temp->next;
+
+        // Insert the copy right after the original node
+        copy->next = nextNode;
+        temp->next = copy;
+
+        // Move to the next original node
+        temp = nextNode;
+    }
+}
+
+// Step 2: Assign random pointers for copied nodes
+// Since copy nodes are placed right after original nodes,
+// temp->random->next gives the copied random node
+void connectRandom(ListNode* head) {
+    ListNode* temp = head;
+
+    while (temp != NULL) {
+        ListNode* copyNode = temp->next;
+
+        if (temp->random) {
+            copyNode->random = temp->random->next;
+        } else {
+            copyNode->random = NULL;
+        }
+
+        // Move to the next original node
+        temp = temp->next->next;
+    }
+}
+
+// Step 3: Separate the copied list from the original list
+ListNode* getCopyList(ListNode* head) {
+    ListNode* temp = head;
+
+    // Dummy node to build the copied list
+    ListNode* dummy = new ListNode(-1);
+    ListNode* res = dummy;
+
+    while (temp != NULL) {
+        // Extract the copied node
+        res->next = temp->next;
+        res = res->next;
+
+        // Restore the original list
+        temp->next = temp->next->next;
+
+        temp = temp->next;
+    }
+
+    return dummy->next;
+}
+
+// Main function to copy the linked list with random pointers
+ListNode* copyRandomList(ListNode* head) {
+    if (head == NULL) return NULL;
+
+    // Step 1: Insert copy nodes between originals
+    insertInbetween(head);
+
+    // Step 2: Connect random pointers of copied nodes
+    connectRandom(head);
+
+    // Step 3: Separate copied list
+    return getCopyList(head);
+}
+```
