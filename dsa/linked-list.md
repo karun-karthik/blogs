@@ -1757,3 +1757,86 @@ ListNode* copyRandomList(ListNode* head) {
     return getCopyList(head);
 }
 ```
+
+## Doubly Linked List
+### Delete all occurrences of a key in DLL
+```cpp
+ListNode* deleteAllOccurrences(ListNode* head, int target) {
+    // Pointer to traverse the list
+    ListNode* curr = head;
+
+    while (curr != NULL) {
+        // If current node contains the target value
+        if (curr->val == target) {
+            // If the node to delete is the head node
+            if (curr == head) {
+                head = curr->next;
+            }
+
+            // Store pointers to neighboring nodes
+            ListNode* next = curr->next;
+            ListNode* prev = curr->prev;
+
+            // Update the next node's prev pointer
+            if (next != NULL) {
+                next->prev = prev;
+            }
+
+            // Update the previous node's next pointer
+            if (prev != NULL) {
+                prev->next = next;
+            }
+
+            // Delete the current node
+            delete curr;
+
+            // Move to the next node
+            curr = next;
+
+        } else {
+            // Move forward if current node doesn't match target
+            curr = curr->next;
+        }
+    }
+
+    // Return the updated head of the list
+    return head;
+}
+```
+
+### Remove duplicates from a sorted DLL
+```cpp
+ListNode * removeDuplicates(ListNode *head) {
+
+    ListNode* curr = head;
+
+    // Traverse the list
+    while (curr != NULL && curr->next != NULL) {
+
+        // If duplicate found
+        if (curr->val == curr->next->val) {
+
+            // Node to delete
+            ListNode* duplicate = curr->next;
+
+            // Skip the duplicate node
+            curr->next = duplicate->next;
+
+            // Fix prev pointer of next node if it exists
+            if (duplicate->next != NULL) {
+                duplicate->next->prev = curr;
+            }
+
+            // Delete duplicate node
+            delete duplicate;
+
+        } else {
+
+            // Move to next unique node
+            curr = curr->next;
+        }
+    }
+
+    return head;
+}
+```
