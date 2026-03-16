@@ -67,10 +67,18 @@
     {
       "slug": "trees",
       "title": "Trees: 101",
-      "date": "2026-03-16",
+      "date": "2026-03-14",
       "domain": "DSA",
       "topic": "Trees",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/trees.md"
+    },
+    {
+      "slug": "bst",
+      "title": "Binary Search Trees: 101",
+      "date": "2026-03-16",
+      "domain": "DSA",
+      "topic": "Binary Search Trees",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/bst.md"
     },
     {
       "slug": "devops",
