@@ -298,6 +298,81 @@ vector<vector<int>> treeTraversal(TreeNode* root) {
 }
 ```
 
+### Morris Inorder Traversal
+Morris Traversal performs inorder traversal using O(1) extra space by temporarily modifying the tree structure (threading the tree). It avoids recursion and avoids using an explicit stack.
+
+```cpp
+vector<int> getInorder(TreeNode* root) {
+
+    vector<int> inorder;
+    TreeNode* curr = root;
+
+    while (curr != nullptr) {
+
+        // Case 1: No left subtree
+        if (curr->left == nullptr) {
+            inorder.push_back(curr->data);
+            curr = curr->right;
+        } else {
+            // Find inorder predecessor (rightmost node in left subtree)
+            TreeNode* pred = curr->left;
+            while (pred->right != nullptr && pred->right != curr)
+                pred = pred->right;
+
+            // Case 2: Create thread & continue processing left by moving curr
+            if (pred->right == nullptr) {
+                pred->right = curr;      //  temporary link
+                curr = curr->left;
+            }
+            // Case 3: Thread already exists
+            else {
+                pred->right = nullptr;   // remove thread
+                inorder.push_back(curr->data);
+                curr = curr->right;
+            }
+        }
+    }
+    return inorder;
+}
+```
+
+### Morris Preorder Traversal
+```cpp
+vector<int> preorder(TreeNode* root) {
+    vector<int> res;
+    TreeNode* curr = root;
+
+    while (curr != nullptr) {
+
+        // Case 1: No left subtree
+        if (curr->left == nullptr) {
+            res.push_back(curr->data);
+            curr = curr->right;
+        } else {
+
+            // Find inorder predecessor
+            TreeNode* pred = curr->left;
+            while (pred->right != nullptr && pred->right != curr)
+                pred = pred->right;
+
+            // First time visiting this node
+            if (pred->right == nullptr) {
+
+                res.push_back(curr->data);    // preorder visit
+                pred->right = curr;    // create thread
+                curr = curr->left;
+            }
+            // Thread already exists
+            else {
+                pred->right = nullptr;    // remove thread
+                curr = curr->right;
+            }
+        }
+    }
+    return res;
+}
+```
+
 ## Medium
 ### Maximum Dept of a Binary Tree
 ```cpp
