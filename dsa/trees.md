@@ -1476,3 +1476,200 @@ int countNodes(TreeNode* root) {
     return 1 + countNodes(root->left) + countNodes(root->right);
 }
 ```
+
+## Tree Builders
+### Check if a unique BT can be constructed or not
+```cpp
+bool uniqueBinaryTree(int a, int b) {
+    /*
+        Traversal encoding:
+        1 -> Preorder
+        2 -> Inorder
+        3 -> Postorder
+
+        A binary tree can be uniquely constructed only if
+        one traversal is INORDER and the other is either
+        PREORDER or POSTORDER.
+
+        Valid combinations:
+            Preorder + Inorder
+            Inorder + Postorder
+
+        Invalid combinations:
+            Preorder + Postorder
+            Preorder + Preorder
+            Inorder + Inorder
+            Postorder + Postorder
+    */
+
+    // Check if exactly one traversal is inorder
+    if ((a == 2 || b == 2) && a != b) return true;
+
+    return false;
+}
+```
+
+### Build a BT from preorder and inorder
+```cpp
+TreeNode* build(vector<int>& preorder, int& preIndex,
+                int inStart, int inEnd,
+                unordered_map<int,int>& inorderMap) {
+
+    // Base case: no nodes to construct
+    if (inStart > inEnd)
+        return nullptr;
+
+    // Current root comes from preorder traversal because preorder visits root first.
+    int rootVal = preorder[preIndex++];
+    TreeNode* root = new TreeNode(rootVal);
+
+    // Find root position in inorder traversal to divide left and right subtrees.
+    int rootPos = inorderMap[rootVal];
+
+    // Build left subtree using elements before root in inorder traversal
+    root->left = build(preorder, preIndex, inStart, rootPos - 1, inorderMap);
+
+    // Build right subtree using elements after root in inorder traversal
+    root->right = build(preorder, preIndex, rootPos + 1, inEnd, inorderMap);
+
+    return root;
+}
+
+TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {
+    // Map [value → index] in inorder for O(1) lookup
+    unordered_map<int,int> inorderMap;
+
+    for (int i = 0; i < inorder.size(); i++)
+        inorderMap[inorder[i]] = i;
+
+    int preIndex = 0;
+
+    return build(preorder, preIndex, 0, inorder.size() - 1, inorderMap);
+}
+```
+
+### Build a BT from inorder and postorder
+```cpp
+TreeNode* build(vector<int>& postorder, int& postIndex,
+                int inStart, int inEnd,
+                unordered_map<int,int>& inorderMap) {
+
+    // Base case: no nodes to construct
+    if (inStart > inEnd)
+        return nullptr;
+
+    // Current root comes from postorder traversal because postorder visits root last.
+    int rootVal = postorder[postIndex--];
+    TreeNode* root = new TreeNode(rootVal);
+
+    // Find root position in inorder traversal to divide left and right subtrees.
+    int rootPos = inorderMap[rootVal];
+
+    /*
+        Important:
+        Since we are consuming postorder from the end,
+        we must construct the RIGHT subtree first.
+    */
+
+    // Build right subtree using elements after root in inorder traversal
+    root->right = build(postorder, postIndex, rootPos + 1, inEnd, inorderMap);
+
+    // Build left subtree using elements before root in inorder traversal
+    root->left = build(postorder, postIndex, inStart, rootPos - 1, inorderMap);
+
+    return root;
+}
+
+TreeNode* buildTree(vector<int>& inorder, vector<int>& postorder) {
+
+    // Map [value → index] in inorder for O(1) lookup
+    unordered_map<int,int> inorderMap;
+
+    for (int i = 0; i < inorder.size(); i++)
+        inorderMap[inorder[i]] = i;
+
+    // Start from the last index of postorder (root)
+    int postIndex = postorder.size() - 1;
+
+    return build(postorder, postIndex, 0, inorder.size() - 1, inorderMap);
+}
+```
+
+### Serialize and Deserialize a BT
+```cpp
+// Encodes a tree to a single string.
+string serialize(TreeNode* root) {
+
+    if (!root) return "";
+
+    string res;
+    queue<TreeNode*> q;
+    q.push(root);
+
+    while (!q.empty()) {
+
+        TreeNode* node = q.front();
+        q.pop();
+
+        if (node) {
+            res += to_string(node->data) + ",";
+            q.push(node->left);
+            q.push(node->right);
+        } 
+        else {
+            res += "null,";
+        }
+    }
+
+    return res;
+}
+
+
+// Decodes the string back to a tree.
+TreeNode* deserialize(string data) {
+
+    if (data.empty()) return nullptr;
+
+    vector<string> nodes;
+    string temp;
+
+    // Split string by commas
+    for (char c : data) {
+        if (c == ',') {
+            nodes.push_back(temp);
+            temp.clear();
+        } 
+        else {
+            temp += c;
+        }
+    }
+
+    TreeNode* root = new TreeNode(stoi(nodes[0]));
+    queue<TreeNode*> q;
+    q.push(root);
+
+    int i = 1;
+
+    while (!q.empty()) {
+
+        TreeNode* node = q.front();
+        q.pop();
+
+        // Left child
+        if (nodes[i] != "null") {
+            node->left = new TreeNode(stoi(nodes[i]));
+            q.push(node->left);
+        }
+        i++;
+
+        // Right child
+        if (nodes[i] != "null") {
+            node->right = new TreeNode(stoi(nodes[i]));
+            q.push(node->right);
+        }
+        i++;
+    }
+
+    return root;
+}
+```
