@@ -654,3 +654,825 @@ bool isSymmetric(TreeNode* root) {
     return true;
 }
 ```
+
+## FAQs
+
+### Zig-Zag Level order traversal
+```cpp
+vector<vector<int>> zigzagLevelOrder(TreeNode* root) {
+
+    // Result container storing all levels
+    vector<vector<int>> res;
+
+    // Edge case: empty tree
+    if (root == nullptr)
+        return res;
+
+    // Queue for BFS traversal
+    queue<TreeNode*> q;
+    q.push(root);
+
+    // Direction flag
+    // true  -> left to right
+    // false -> right to left
+    bool leftToRight = true;
+
+    while (!q.empty()) {
+
+        // Number of nodes in current level
+        int levelSize = q.size();
+
+        // Preallocate vector for current level
+        vector<int> currentLevel(levelSize);
+
+        for (int i = 0; i < levelSize; ++i) {
+
+            TreeNode* node = q.front();
+            q.pop();
+
+            // Decide index based on traversal direction
+            int idx = leftToRight ? i : levelSize - i - 1;
+
+            // Place node value at correct position
+            currentLevel[idx] = node->data;
+
+            // Add children to queue for next level
+            if (node->left)
+                q.push(node->left);
+
+            if (node->right)
+                q.push(node->right);
+        }
+
+        // Toggle direction for next level
+        leftToRight = !leftToRight;
+
+        // Add current level to result
+        res.push_back(currentLevel);
+    }
+
+    return res;
+}
+```
+
+### Boundary Traversal
+```cpp
+bool isLeaf(TreeNode* node) {
+    return (node->left == nullptr && node->right == nullptr);
+}
+
+// Add left boundary excluding leaf nodes
+void addLeftBoundary(TreeNode* root, vector<int>& res) {
+
+    TreeNode* curr = root->left;
+
+    while (curr) {
+
+        if (!isLeaf(curr))
+            res.push_back(curr->data);
+
+        // Prefer left child, otherwise go right
+        if (curr->left)
+            curr = curr->left;
+        else
+            curr = curr->right;
+    }
+}
+
+// Add all leaf nodes using DFS
+void addLeaves(TreeNode* root, vector<int>& res) {
+
+    if (root == nullptr)
+        return;
+
+    if (isLeaf(root)) {
+        res.push_back(root->data);
+        return;
+    }
+
+    addLeaves(root->left, res);
+    addLeaves(root->right, res);
+}
+
+// Add right boundary in reverse order
+void addRightBoundary(TreeNode* root, vector<int>& res) {
+
+    TreeNode* curr = root->right;
+    vector<int> temp;
+
+    while (curr) {
+
+        if (!isLeaf(curr))
+            temp.push_back(curr->data);
+
+        // Prefer right child, otherwise go left
+        if (curr->right)
+            curr = curr->right;
+        else
+            curr = curr->left;
+    }
+
+    // Add nodes in reverse
+    for (int i = temp.size() - 1; i >= 0; i--)
+        res.push_back(temp[i]);
+}
+
+vector<int> boundary(TreeNode* root) {
+
+    vector<int> res;
+
+    if (root == nullptr)
+        return res;
+
+    // Root is always part of boundary
+    if (!isLeaf(root))
+        res.push_back(root->data);
+
+    // Add left boundary
+    addLeftBoundary(root, res);
+
+    // Add leaf nodes
+    addLeaves(root, res);
+
+    // Add right boundary
+    addRightBoundary(root, res);
+
+    return res;
+}
+```
+
+### Vertical Order Traversal
+```cpp
+vector<vector<int>> verticalTraversal(TreeNode* root) {
+    /*
+        Data structure used to organize nodes by vertical position.
+        map<column, map<row, multiset<values>>>
+
+        Why this structure?
+        1. Outer map (column):
+           Keeps columns automatically sorted from left → right.
+        2. Inner map (row):
+           Keeps nodes ordered from top → bottom.
+        3. multiset:
+           If multiple nodes share the same (row, column),
+           their values must be sorted. multiset maintains this order.
+    */
+    map<int, map<int, multiset<int>>> nodes;
+
+
+    /*
+        BFS queue storing:
+        - current node pointer
+        - (row, column) coordinates of that node
+        We use BFS so that nodes are naturally processed
+        level by level (top → bottom).
+    */
+    queue<pair<TreeNode*, pair<int,int>>> q;
+
+    /* Root node starts at coordinate (row = 0, column = 0) */
+    q.push({root, {0,0}});
+
+    /* Standard BFS traversal of the binary tree */
+    while (!q.empty()) {
+
+        /*
+            Structured binding:
+            Extract node and its (row, column) coordinates
+        */
+        auto [node, pos] = q.front();
+        q.pop();
+
+        int row = pos.first;
+        int col = pos.second;
+
+
+        /*
+            Insert the node value into the structure.
+
+            nodes[col][row] groups nodes that share the same
+            vertical column and depth level.
+
+            multiset ensures sorted order when multiple nodes
+            appear in the same position.
+        */
+        nodes[col][row].insert(node->data);
+
+
+        /*
+            Assign coordinates to child nodes.
+
+            Left child:
+                row increases (going down)
+                column decreases (moving left)
+
+            Right child:
+                row increases
+                column increases (moving right)
+        */
+        if (node->left) q.push({node->left, {row + 1, col - 1}});
+        if (node->right) q.push({node->right, {row + 1, col + 1}});
+    }
+
+
+    /*
+        Build the final result.
+
+        Because 'nodes' is a map:
+        - columns are already sorted from leftmost → rightmost
+    */
+    vector<vector<int>> res;
+
+
+    for (auto &[col, rows] : nodes) {
+        /*
+            This vector will store all nodes belonging
+            to the current vertical column.
+        */
+        vector<int> v;
+
+        /*
+            Iterate rows from top → bottom
+        */
+        for (auto &[row, vals] : rows) {
+            /*
+                Insert all values stored in the multiset.
+                Values are already sorted if multiple nodes
+                share the same (row, column).
+            */
+            v.insert(v.end(), vals.begin(), vals.end());
+        }
+
+        res.push_back(v);
+    }
+
+    return res;
+}
+```
+
+### Top View of a Binary Tree
+```cpp
+vector<int> topView(TreeNode* root) {
+    /*
+        Map to store the first node encountered at each horizontal distance.
+
+        Key   → horizontal distance (column)
+        Value → pointer to the node visible from the top
+
+        map is used instead of unordered_map because
+        it keeps keys sorted from leftmost → rightmost.
+    */
+    map<int, TreeNode*> mp;
+
+    /*
+        Queue for BFS traversal.
+
+        Each entry stores:
+        - horizontal distance from root
+        - pointer to the current node
+
+        Horizontal distance rules:
+            root → 0
+            left child → hd - 1
+            right child → hd + 1
+    */
+    queue<pair<int, TreeNode*>> q;
+
+    q.push({0, root});
+
+    /*
+        BFS traversal ensures we process nodes level by level.
+
+        This is important because the top view requires the
+        FIRST node encountered at each horizontal distance.
+    */
+    while (!q.empty()) {
+        auto node = q.front();
+        q.pop();
+
+        int hd = node.first;  // horizontal distance
+        TreeNode* curr = node.second;
+
+        /*
+            If this horizontal distance has not been seen before,
+            store this node as the visible node for that column.
+
+            We do NOT overwrite it later because the first node
+            encountered in BFS is the topmost node.
+        */
+        if (mp.find(hd) == mp.end()) mp[hd] = curr;
+
+        /*
+            Add left child with updated horizontal distance
+        */
+        if (curr->left) q.push({hd - 1, curr->left});
+
+        /*
+            Add right child with updated horizontal distance
+        */
+        if (curr->right) q.push({hd + 1, curr->right});
+    }
+
+    /*
+        Extract nodes from the map.
+
+        Since map keeps keys sorted,
+        we automatically get the order:
+        leftmost column → rightmost column.
+    */
+    vector<int> aux;
+
+    for (auto i : mp) aux.push_back(i.second->data);
+
+    return aux;
+}
+```
+
+### Bottom View of a Binary Tree
+```cpp
+vector<int> bottomView(TreeNode *root) {
+    /*
+        Map storing the latest node encountered
+        at each horizontal distance (column).
+
+        key   → column index
+        value → node value visible from bottom
+    */
+    map<int, int> mp;
+
+    /*
+        Queue used for BFS traversal.
+
+        Each entry stores:
+        - horizontal distance from root
+        - pointer to the current node
+    */
+    queue<pair<int, TreeNode *>> q;
+
+    /*
+        Root starts at horizontal distance 0
+    */
+    q.push({0, root});
+
+    /*
+        Perform BFS traversal
+    */
+    while (!q.empty()) {
+        auto [hd, node] = q.front();
+        q.pop();
+
+        /*
+            For bottom view we always overwrite.
+
+            Since BFS processes nodes level by level,
+            deeper nodes naturally replace earlier ones.
+        */
+        mp[hd] = node->data;
+
+        /*
+            Left child moves one column left
+        */
+        if (node->left) q.push({hd - 1, node->left});
+
+        /*
+            Right child moves one column right
+        */
+        if (node->right) q.push({hd + 1, node->right});
+    }
+
+    /*
+        Extract nodes from leftmost column
+        to rightmost column.
+    */
+    vector<int> res;
+
+    for (auto &[col, value] : mp) res.push_back(value);
+
+    return res;
+}
+```
+
+### Right View of a Binary Tree
+```cpp
+vector<int> rightSideView(TreeNode* root) {
+
+    vector<int> res;
+    if (root == nullptr) return res;
+
+    queue<TreeNode*> q;
+    q.push(root);
+
+    // Level order traversal
+    while (!q.empty()) {
+
+        int levelSize = q.size();
+
+        for (int i = 0; i < levelSize; i++) {
+
+            TreeNode* node = q.front();
+            q.pop();
+
+            // If this is the last node of the level
+            if (i == levelSize - 1)
+                res.push_back(node->data);
+
+            // Push children for next level
+            if (node->left)  q.push(node->left);
+            if (node->right) q.push(node->right);
+        }
+    }
+
+    return res;
+}
+```
+
+### Left View of a Binary Tree
+```cpp
+vector<int> leftSideView(TreeNode* root) {
+
+    vector<int> res;
+    if (root == nullptr) return res;
+
+    queue<TreeNode*> q;
+    q.push(root);
+
+    while (!q.empty()) {
+
+        int levelSize = q.size();
+
+        for (int i = 0; i < levelSize; i++) {
+
+            TreeNode* node = q.front();
+            q.pop();
+
+            // If this is the first node of the level
+            if (i == 0)
+                res.push_back(node->data);
+
+            if (node->left)  q.push(node->left);
+            if (node->right) q.push(node->right);
+        }
+    }
+
+    return res;
+}
+```
+
+### Print root to leaf path in BT
+```cpp
+void dfs(TreeNode* node, vector<int>& path, vector<vector<int>>& res) {
+    if (node == nullptr) return;
+
+    // Add current node to path
+    path.push_back(node->data);
+
+    // If leaf node, store the path
+    if (node->left == nullptr && node->right == nullptr) {
+        res.push_back(path);
+    } else {
+        // Continue exploring left and right subtrees
+        dfs(node->left, path, res);
+        dfs(node->right, path, res);
+    }
+
+    // Backtrack: remove current node before returning
+    path.pop_back();
+}
+
+vector<vector<int>> allRootToLeaf(TreeNode* root) {
+    vector<vector<int>> res;
+    vector<int> path;
+
+    dfs(root, path, res);
+
+    return res;
+}
+```
+
+### Lowest Common Ancestor
+```cpp
+TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+    /*
+        Base Case:
+
+        1. If we reach a null node → no ancestor found.
+        2. If the current node is either p or q → return it.
+
+        Returning the node signals to the parent recursion
+        that one of the target nodes has been found.
+    */
+    if (root == NULL || root == p || root == q)
+        return root;
+
+
+    /* Recursively search for p and q in the left subtree */
+    TreeNode* left = lowestCommonAncestor(root->left, p, q);
+
+
+    /* Recursively search for p and q in the right subtree */
+    TreeNode* right = lowestCommonAncestor(root->right, p, q);
+
+
+    /* Now interpret the results from left and right. */
+
+    // If p and q are both found in different subtrees,
+    // current node is their Lowest Common Ancestor
+    if (left != nullptr && right != nullptr)
+        return root;
+
+    /*
+        If one side returned null, it means both nodes
+        are located in the other subtree.
+    */
+
+    if (left == nullptr)
+        return right;
+
+    return left;
+}
+```
+
+### Maximum width of a Binary Tree
+```cpp
+long long int widthOfBinaryTree(TreeNode* root) {
+    if (!root) return 0;
+    long long ans = 0;
+    /*
+        Queue stores:
+        - node pointer
+        - index representing its position in a complete binary tree
+    */
+    queue<pair<TreeNode*, long long>> q;
+    q.push({root, 0});
+
+    while (!q.empty()) {
+        int levelSize = q.size();
+
+        // first index of current level
+        long long start = q.front().second;
+        long long first, last;
+
+        for (int i = 0; i < levelSize; i++) {
+            auto [node, idx] = q.front();
+            q.pop();
+
+            /* Normalize index to prevent overflow by subtracting the starting index */
+            idx -= start;
+
+            if (i == 0) first = idx;
+            if (i == levelSize - 1) last = idx;
+            if (node->left) q.push({node->left, 2 * idx});
+            if (node->right) q.push({node->right, 2 * idx + 1});
+        }
+        ans = max(ans, last - first + 1);
+    }
+    return ans;
+}
+```
+
+### Print all nodes at distance K in Binary Tree
+```cpp
+vector<int> distanceK(TreeNode* root, TreeNode* target, int k){
+
+    // Map to store parent pointers for each node
+    unordered_map<TreeNode*, TreeNode*> parent;
+
+    // BFS to build parent mapping
+    queue<TreeNode*> q;
+    q.push(root);
+
+    while (!q.empty()) {
+
+        TreeNode* node = q.front();
+        q.pop();
+
+        if (node->left) {
+            parent[node->left] = node;
+            q.push(node->left);
+        }
+
+        if (node->right) {
+            parent[node->right] = node;
+            q.push(node->right);
+        }
+    }
+
+    /*
+        BFS starting from the target node
+        to explore nodes at increasing distances
+    */
+    unordered_map<TreeNode*, bool> visited;
+    queue<TreeNode*> bfs;
+
+    bfs.push(target);
+    visited[target] = true;
+
+    int dist = 0;
+
+    while (!bfs.empty()) {
+
+        int size = bfs.size();
+
+        // If we've reached distance k, stop expanding
+        if (dist == k) break;
+
+        dist++;
+
+        for (int i = 0; i < size; i++) {
+
+            TreeNode* node = bfs.front();
+            bfs.pop();
+
+            // Explore left child
+            if (node->left && !visited[node->left]) {
+                visited[node->left] = true;
+                bfs.push(node->left);
+            }
+
+            // Explore right child
+            if (node->right && !visited[node->right]) {
+                visited[node->right] = true;
+                bfs.push(node->right);
+            }
+
+            // Explore parent
+            if (parent[node] && !visited[parent[node]]) {
+                visited[parent[node]] = true;
+                bfs.push(parent[node]);
+            }
+        }
+    }
+
+    /*
+        Remaining nodes in queue are exactly k distance away
+    */
+    vector<int> res;
+
+    while (!bfs.empty()) {
+        res.push_back(bfs.front()->data);
+        bfs.pop();
+    }
+
+    return res;
+}
+```
+
+### Minimum time taken to burn a Binary Tree from a given Node
+```cpp
+int timeToBurnTree(TreeNode* root, int start){
+
+    // Map to store parent of every node
+    unordered_map<TreeNode*, TreeNode*> parent;
+
+    // Queue for BFS traversal to build parent mapping
+    queue<TreeNode*> q;
+
+    q.push(root);
+
+    TreeNode* startNode = nullptr;
+
+    /*
+        Traverse the tree to:
+        1. Build parent pointers
+        2. Locate the node where fire starts
+    */
+    while (!q.empty()) {
+        TreeNode* node = q.front();
+        q.pop();
+
+        if (node->data == start)
+            startNode = node;
+
+        if (node->left) {
+            parent[node->left] = node;
+            q.push(node->left);
+        }
+
+        if (node->right) {
+            parent[node->right] = node;
+            q.push(node->right);
+        }
+    }
+
+    /* BFS to simulate fire spreading*/
+    unordered_map<TreeNode*, bool> visited;
+
+    queue<TreeNode*> burn;
+
+    burn.push(startNode);
+    visited[startNode] = true;
+
+    int time = 0;
+
+    while (!burn.empty()) {
+        int size = burn.size();
+        bool spread = false;  // check if fire spreads this second
+
+        for (int i = 0; i < size; i++) {
+
+            TreeNode* node = burn.front();
+            burn.pop();
+
+            // Burn left child
+            if (node->left && !visited[node->left]) {
+                spread = true;
+                visited[node->left] = true;
+                burn.push(node->left);
+            }
+
+            // Burn right child
+            if (node->right && !visited[node->right]) {
+                spread = true;
+                visited[node->right] = true;
+                burn.push(node->right);
+            }
+
+            // Burn parent
+            if (parent[node] && !visited[parent[node]]) {
+                spread = true;
+                visited[parent[node]] = true;
+                burn.push(parent[node]);
+            }
+        }
+
+        /* Increase time only if fire spreads to at least one new node */
+        if (spread) time++;
+    }
+    return time;
+}
+```
+
+### Count Number of Trees in a Binary Tree
+```cpp
+int leftHeight(TreeNode* node) {
+    int h = 0;
+    // Traverse the leftmost path to compute height
+    while (node) {
+        h++;
+        node = node->left;
+    }
+    return h;
+}
+
+int rightHeight(TreeNode* node) {
+    int h = 0;
+    // Traverse the rightmost path to compute height
+    while (node) {
+        h++;
+        node = node->right;
+    }
+    return h;
+}
+
+int countNodes(TreeNode* root) {
+    // Base case: empty tree has 0 nodes
+    if (root == nullptr) return 0;
+
+    // Compute height of leftmost path
+    int lh = leftHeight(root);
+
+    // Compute height of rightmost path
+    int rh = rightHeight(root);
+
+    /*
+        If both heights are equal, the tree is a PERFECT binary tree.
+        A perfect binary tree with height h has:
+            Nodes = 2^h - 1
+        Instead of using pow(2, h), we use bit shifting: (1 << h)
+
+        Explanation of (1 << h):
+
+            1 << h  means shifting binary 1 left by h positions.
+
+        Example:
+            h = 3
+            1       = 0001
+            1 << 3  = 1000  (binary)
+            1000₂ = 8 (decimal)
+
+        So:
+            (1 << 3) - 1
+            = 8 - 1
+            = 7
+
+        Which is exactly the number of nodes in a perfect binary tree
+        of height 3.
+
+        Tree example:
+
+                1
+                / \
+                2   3
+                / \ / \
+            4  5 6  7
+
+        Total nodes = 7
+    */
+    if (lh == rh) return (1 << lh) - 1;
+
+    /*
+        If the subtree is NOT perfect,
+        recursively count nodes in left and right subtrees.
+    */
+    return 1 + countNodes(root->left) + countNodes(root->right);
+}
+```
