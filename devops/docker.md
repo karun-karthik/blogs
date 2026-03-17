@@ -156,213 +156,125 @@ EXPOSE 80                   # document that app listens on port 80
 CMD ["node", "server.js"]   # run the app when container starts
 ```
 
-### Image Commands
+## Commands
+## Commands
+
+### 🏗️ Image Commands
+
+| Command | Description |
+|---|---|
+| `docker build .` | Build image from Dockerfile in current directory |
+| `docker build -t <name> .` | Build and tag with a name |
+| `docker build -t <name>:<tag> .` | Build and tag with a specific version |
+| `docker build -t <name> <path>` | Build from Dockerfile in a different directory |
+| `docker images` | List all locally stored images |
+| `docker image inspect <name>` | Inspect image metadata (layers, config, env) |
+| `docker rmi <image-id>` | Remove a specific image |
+| `docker rmi -f <image-id>` | Force-remove image (even if in use) |
+| `docker rmi <img-1> <img-2>` | Remove multiple images |
+| `docker image prune` | Remove all dangling (untagged) images |
+| `docker image prune -a` | Remove ALL unused local images |
+
+---
+
+### 📦 Container Lifecycle
+
+| Command | Description |
+|---|---|
+| `docker run <image>` | Create and start a container |
+| `docker run -p 3000:80 <image>` | Map host port 3000 → container port 80 |
+| `docker run -d <image>` | Run in detached (background) mode |
+| `docker run -it <image>` | Run in interactive terminal mode |
+| `docker run --name <name> <image>` | Assign a custom name to the container |
+| `docker run --rm <image>` | Auto-remove container when it stops |
+| `docker run -d -p 3000:80 --name myapp --rm <image>` | Combine flags (most common pattern) |
+| `docker ps` | List running containers |
+| `docker ps -a` | List all containers (running + stopped) |
+| `docker stop <id/name>` | Gracefully stop a running container |
+| `docker start <id/name>` | Start a stopped container |
+| `docker start -a <id/name>` | Start and attach (see output) |
+| `docker start -ai <id/name>` | Start in interactive + attached mode |
+| `docker rm <id/name>` | Remove a stopped container |
+| `docker rm -f <id/name>` | Force-remove a running container |
+| `docker rm <c-1> <c-2>` | Remove multiple containers |
+| `docker container prune` | Remove all stopped containers |
+
+---
+
+### 🔗 Attach & Detach
+
+| Command | Description |
+|---|---|
+| `docker attach <id/name>` | Attach to a running detached container |
+| `docker attach --sig-proxy=false <id/name>` | Attach without forwarding signals (safer) |
+| `Ctrl + P, Ctrl + Q` | Detach from container without stopping it |
+
+---
+
+### ⚙️ Exec — Run Commands Inside a Container
+
+| Command | Description |
+|---|---|
+| `docker exec <id/name> <cmd>` | Run a one-off command in a running container |
+| `docker exec -it <id/name> bash` | Open an interactive bash shell |
+| `docker exec -it -u root <id/name> bash` | Open shell as root user |
+| `docker exec -it -e VAR=value <id/name> bash` | Set env variable for the session |
+| `docker exec -it -w /app <id/name> bash` | Open shell in a specific working directory |
+
+---
+
+### 🔍 Inspect & Logs
+
+| Command | Description |
+|---|---|
+| `docker logs <id/name>` | View container logs |
+| `docker logs -f <id/name>` | Follow logs in real time |
+| `docker container inspect <id/name>` | Full container metadata (network, mounts, etc.) |
+| `docker image inspect <name>` | Full image metadata (layers, env, entrypoint) |
+| `docker inspect --format='{{.NetworkSettings.IPAddress}}' <id>` | Extract a specific field |
+
+---
+
+### 📂 Copying Files
+
+| Command | Description |
+|---|---|
+| `docker cp <id>:<container-path> <host-path>` | Copy file/dir **from** container to host |
+| `docker cp <host-path> <id>:<container-path>` | Copy file/dir **from** host into container |
 
 ```bash
-# Build an image from the Dockerfile in the current directory
-docker build .
-
-# Build and tag the image with a name
-docker build -t <name> .
-
-# Build and tag with a specific version tag
-docker build -t <name>:<tag> .
-
-# Build from a Dockerfile in a different directory
-docker build -t <name> <path-to-dockerfile-dir>
-
-# List all locally available images
-docker images
-
-# Remove a specific image by ID or name
-docker rmi <image-id>
-
-# Remove all dangling (untagged) images
-docker image prune
-
-# Remove ALL locally stored images
-docker image prune -a
-
-# Inspect detailed metadata of an image (layers, config, etc.)
-docker image inspect <image-name>
-
-# Pull an image from Docker Hub
-docker pull <image-name>
-
-# Pull a specific version
-docker pull <image-name>:<tag>
-
-# Push a local image to Docker Hub
-docker push <image-name>:<tag>
+docker cp myapp:/app/logs/error.log ./error.log   # container → host
+docker cp ./config.json myapp:/app/config.json    # host → container
 ```
 
-### Container Commands
+---
+
+### 🌐 Sharing Images (DockerHub)
+
+| Command | Description |
+|---|---|
+| `docker tag <image> <user>/<repo>:<tag>` | Tag image with DockerHub repo name |
+| `docker login` | Login to DockerHub |
+| `docker logout` | Logout from DockerHub |
+| `docker push <user>/<repo>:<tag>` | Push image to DockerHub |
+| `docker pull <user>/<repo>:<tag>` | Pull image from DockerHub |
 
 ```bash
-# Create and start a container from an image
-docker run <image-name>
-
-# Run with port mapping (host-port:container-port)
-docker run -p 3000:80 <image-name>
-
-# Run in detached (background) mode
-docker run -d <image-name>
-
-# Run in interactive terminal mode (e.g. for node REPL)
-docker run -it <image-name>
-
-# Run with a custom container name
-docker run --name <container-name> <image-name>
-
-# Automatically remove container when it stops
-docker run --rm <image-name>
-
-# Combine flags: detached, port-mapped, named, auto-remove
-docker run -d -p 3000:80 --name myapp --rm <image-name>
-
-# List all running containers
-docker ps
-
-# List all containers (running + stopped)
-docker ps -a
-
-# Stop a running container (graceful shutdown)
-docker stop <container-id or name>
-
-# Start a previously stopped container (non-interactive)
-docker start <container-id or name>
-
-# Start and attach to a stopped container (see output)
-docker start -a <container-id or name>
-
-# Start in interactive + attached mode
-docker start -ai <container-id or name>
-
-# Remove a stopped container
-docker rm <container-id or name>
-
-# Remove multiple containers at once
-docker rm <container-1> <container-2>
-
-# Remove all stopped containers at once
-docker container prune
-
-# View logs of a container
-docker logs <container-id or name>
-
-# Follow logs in real time
-docker logs -f <container-id or name>
+docker tag myapp myuser/myapp:latest
+docker push myuser/myapp:latest
 ```
 
-### Attach & Detach
+---
 
-```bash
-# Attach to a running (detached) container to see its output
-docker attach <container-id or name>
+### 🗑️ Cleanup Cheatsheet
 
-# Detach from an attached container without stopping it
-# (keyboard shortcut while attached)
-Ctrl + P, Ctrl + Q
-
-# Attach with stdin support (useful for interactive containers)
-docker attach --sig-proxy=false <container-id or name>
-```
-
-### Exec — Run Commands in a Running Container
-
-```bash
-# Run a one-off command inside a running container
-docker exec <container-id or name> <command>
-
-# Open an interactive bash shell inside a running container
-docker exec -it <container-id or name> bash
-
-# Run a command as a specific user
-docker exec -it -u root <container-id or name> bash
-
-# Set an environment variable for the exec session
-docker exec -it -e MY_VAR=value <container-id or name> bash
-
-# Run a command in a specific working directory
-docker exec -it -w /app <container-id or name> bash
-```
-
-### Inspect
-
-```bash
-# Inspect full metadata of a container (network, mounts, config, etc.)
-docker container inspect <container-id or name>
-
-# Inspect an image (layers, env vars, entrypoint, etc.)
-docker image inspect <image-name>
-
-# Inspect and extract a specific field using format
-docker inspect --format='{{.NetworkSettings.IPAddress}}' <container-id>
-```
-
-### Copy Files To / From a Container
-
-```bash
-# Copy a file FROM a container to the host
-docker cp <container-id or name>:<path-in-container> <path-on-host>
-# e.g. docker cp myapp:/app/logs/error.log ./error.log
-
-# Copy a file FROM the host INTO a container
-docker cp <path-on-host> <container-id or name>:<path-in-container>
-# e.g. docker cp ./config.json myapp:/app/config.json
-
-# Copy an entire directory
-docker cp <container-id>:/app/dist ./dist
-```
-
-### Sharing Images (DockerHub & Tags)
-
-```bash
-# Tag an existing image with a new name / DockerHub repo name
-docker tag <local-image-name> <dockerhub-username>/<repo-name>:<tag>
-# e.g. docker tag myapp vardharajmannar/myapp:latest
-
-# Login to DockerHub
-docker login
-
-# Push image to DockerHub
-docker push <dockerhub-username>/<repo-name>:<tag>
-
-# Pull image from DockerHub
-docker pull <dockerhub-username>/<repo-name>:<tag>
-
-# Logout from DockerHub
-docker logout
-```
-
-### Deleting Images & Containers
-
-```bash
-# Remove a specific stopped container
-docker rm <container-id or name>
-
-# Force-remove a running container (use with caution)
-docker rm -f <container-id or name>
-
-# Remove all stopped containers
-docker container prune
-
-# Remove a specific image
-docker rmi <image-id or name>
-
-# Remove multiple images
-docker rmi <image-1> <image-2>
-
-# Force-remove an image (even if a container is using it)
-docker rmi -f <image-id>
-
-# Remove all dangling (untagged) images
-docker image prune
-
-# Remove ALL unused images (not just dangling)
-docker image prune -a
-
-# Nuclear option: remove all stopped containers + unused images + build cache
-docker system prune
-docker system prune -a   # also removes images not used by any container
-```
+| Command | Removes |
+|---|---|
+| `docker rm <id/name>` | A stopped container |
+| `docker rm -f <id/name>` | A running container (force) |
+| `docker container prune` | All stopped containers |
+| `docker rmi <image-id>` | A specific image |
+| `docker image prune` | Dangling (untagged) images |
+| `docker image prune -a` | All unused images |
+| `docker system prune` | Stopped containers + dangling images + build cache |
+| `docker system prune -a` | Everything above + all unused images |
