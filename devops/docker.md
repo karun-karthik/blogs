@@ -156,9 +156,9 @@ EXPOSE 80                   # document that app listens on port 80
 CMD ["node", "server.js"]   # run the app when container starts
 ```
 
-# Commands
+# Basic Commands
 
-### Image Commands
+### Images
 
 | Command | Description |
 |---|---|
@@ -265,7 +265,7 @@ docker push myuser/myapp:latest
 
 ---
 
-### Cleanup Cheatsheet
+### Cleanup
 
 | Command | Removes |
 |---|---|
@@ -277,3 +277,150 @@ docker push myuser/myapp:latest
 | `docker image prune -a` | All unused images |
 | `docker system prune` | Stopped containers + dangling images + build cache |
 | `docker system prune -a` | Everything above + all unused images |
+
+# Data and Volumes
+
+### The Problem
+
+| Problem | Cause | Solution |
+|---|---|---|
+| Data written in a container **doesn't persist** | Container layer is destroyed on removal | **Volumes** |
+| Host file changes **not reflected** in container | Image is read-only; code is copied at build time | **Bind Mounts** |
+
+---
+
+### Data Categories
+
+| Type | Who writes it | Storage | Persisted? |
+|---|---|---|---|
+| **App Code + Env** | Developer | Baked into Image | ✅ (read-only) |
+| **Temporary App Data** | App at runtime | Memory / temp files | ❌ |
+| **Permanent App Data** | App at runtime | Volumes | ✅ Must persist |
+
+---
+
+### Storage Types — Overview
+
+```
+┌──────────────────────────────────────────────────────┐
+│                  docker run -v ...                   │
+├─────────────────────┬────────────────────────────────┤
+│   Volumes           │        Bind Mounts             │
+│  (Managed by Docker)│       (Managed by YOU)         │
+├──────────┬──────────┤                                │
+│ Anonymous│  Named   │  You control the host path     │
+│ (auto    │ (persist │  Best for live code sync       │
+│ removed) │ removal) │  during development            │
+└──────────┴──────────┴────────────────────────────────┘
+```
+
+---
+
+### Anonymous Volumes
+
+- Created with `-v /path/in/container` (no name given)
+- Docker manages the location on the host — you don't know where
+- **Auto-removed** when container stops if `--rm` was used
+- Can also be declared in a `Dockerfile`: `VOLUME ["/path"]`
+- Useful for **protecting specific container paths** from being overwritten by a Bind Mount
+
+```bash
+docker run --rm -v /app/node_modules <image>
+```
+
+---
+
+### Named Volumes
+
+- Created with `-v some-name:/path/in/container`
+- **Cannot** be defined in a Dockerfile — only via `docker run`
+- **NOT** removed when a container is removed
+- Data survives container removal and can be re-mounted to a new container
+- Best for: **databases, logs, any data that must persist**
+
+```bash
+docker run -v mydata:/app/data <image>
+```
+
+---
+
+### Bind Mounts
+
+- Created with `-v /absolute/host/path:/path/in/container`
+- **You control** exactly where the folder lives on the host
+- **Cannot** be defined in a Dockerfile — only via `docker run`
+- Changes on the host are **immediately reflected** in the container (no rebuild needed)
+- Best for: **live-syncing source code during development**
+- ⚠️ Not suitable for production — requires a specific host filesystem path
+
+```bash
+# macOS / Linux
+docker run -v $(pwd):/app <image>
+
+# Windows CMD
+docker run -v %cd%:/app <image>
+
+# Windows PowerShell
+docker run -v ${pwd}:/app <image>
+```
+
+---
+
+### Mounting Mechanics
+
+> **If the volume/mount target path in the container is empty:**
+> → Container files are **COPIED INTO** the volume.
+
+> **If the volume/mount is NOT empty:**
+> → Volume content **takes ownership** of the folder. Existing container files are **hidden** (not deleted).
+
+### 🛡️ Protection Rule — Specific Path Beats General Path
+
+When a Bind Mount covers a broad path (e.g. `/app`) AND an Anonymous Volume covers a nested path (e.g. `/app/node_modules`), the **more specific path wins** — the `node_modules` folder is preserved from the container image, while the rest of `/app` is overwritten by the host mount.
+
+```bash
+# Pattern: Bind Mount whole project, protect node_modules inside container
+docker run \
+  -v $(pwd):/app \          # Bind Mount → live sync host code into /app
+  -v /app/node_modules \    # Anonymous Volume → protect /app/node_modules
+  <image>
+```
+
+---
+
+### Read-Only Volumes & Mounts
+
+Add `:ro` to make a volume/mount **read-only** from the container's perspective (container can read but not write):
+
+```bash
+# Read-only Named Volume
+docker run -v mydata:/app/data:ro <image>
+
+# Read-only Bind Mount (container can't write to host files)
+docker run -v $(pwd):/app:ro <image>
+```
+
+---
+
+### Comparison Table
+
+| Feature | Named Volume | Bind Mount | Anonymous Volume |
+|---|---|---|---|
+| **Syntax** | `-v name:/path` | `-v /host/path:/path` | `-v /path` |
+| **Persistent** | ✅ Survives removal | ✅ Survives removal | ❌ Removed with container |
+| **Location** | Managed by Docker | Managed by You | Managed by Docker |
+| **Shareable** | ✅ Across containers | ✅ Across containers | ❌ Unique to one |
+| **Defined in Dockerfile** | ❌ | ❌ | ✅ (`VOLUME ["/path"]`) |
+| **Typical Use** | Persist DB / logs | Live sync source code | Protect internal paths |
+
+---
+
+### Volume Commands
+
+| Command | Description |
+|---|---|
+| `docker volume create <name>` | Create a new Named Volume |
+| `docker volume ls` | List all Named Volumes |
+| `docker volume inspect <name>` | Detailed info about a volume (path, driver, etc.) |
+| `docker volume rm <name>` | Delete a specific Named Volume |
+| `docker volume prune` | Remove all **unused** volumes |
