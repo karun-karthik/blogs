@@ -156,10 +156,9 @@ EXPOSE 80                   # document that app listens on port 80
 CMD ["node", "server.js"]   # run the app when container starts
 ```
 
-## Commands
-## Commands
+# Commands
 
-### 🏗️ Image Commands
+### Image Commands
 
 | Command | Description |
 |---|---|
@@ -177,7 +176,7 @@ CMD ["node", "server.js"]   # run the app when container starts
 
 ---
 
-### 📦 Container Lifecycle
+### Container Lifecycle
 
 | Command | Description |
 |---|---|
@@ -201,7 +200,7 @@ CMD ["node", "server.js"]   # run the app when container starts
 
 ---
 
-### 🔗 Attach & Detach
+### Attach & Detach
 
 | Command | Description |
 |---|---|
@@ -211,7 +210,7 @@ CMD ["node", "server.js"]   # run the app when container starts
 
 ---
 
-### ⚙️ Exec — Run Commands Inside a Container
+### Exec — Run Commands Inside a Container
 
 | Command | Description |
 |---|---|
@@ -223,7 +222,7 @@ CMD ["node", "server.js"]   # run the app when container starts
 
 ---
 
-### 🔍 Inspect & Logs
+### Inspect & Logs
 
 | Command | Description |
 |---|---|
@@ -235,7 +234,7 @@ CMD ["node", "server.js"]   # run the app when container starts
 
 ---
 
-### 📂 Copying Files
+### Copying Files
 
 | Command | Description |
 |---|---|
@@ -249,7 +248,7 @@ docker cp ./config.json myapp:/app/config.json    # host → container
 
 ---
 
-### 🌐 Sharing Images (DockerHub)
+### Sharing Images (DockerHub)
 
 | Command | Description |
 |---|---|
@@ -266,7 +265,7 @@ docker push myuser/myapp:latest
 
 ---
 
-### 🗑️ Cleanup Cheatsheet
+### Cleanup Cheatsheet
 
 | Command | Removes |
 |---|---|
