@@ -721,3 +721,191 @@ docker run -d \
   --name mongodb \
   mongo:6
 ```
+
+---
+
+# Networks & Container Communication
+
+### Why Multi-Container Apps?
+
+In real applications, you often need **more than one container** running simultaneously. There are two main reasons:
+
+1. **Single-responsibility principle** — it's best practice to have each container focus on **one main task** (e.g. one container for the web server, another for the database)
+2. **Practical difficulty** — it's very hard to configure a container that reliably does more than one "main thing"
+
+So multi-container setups are the norm. But when containers are split up, they often need to **talk to each other** — or to the outside world.
+
+There are **three communication scenarios** in Docker:
+
+| Scenario | Target | How |
+|---|---|---|
+| Container → Internet (WWW) | External APIs / websites | Works out of the box |
+| Container → Host Machine | Local DB / services on your laptop | Use `host.docker.internal` |
+| Container → Container | Another Docker container | Use a Docker Network |
+
+---
+
+### 1. 🌐 Communicating with the World Wide Web (WWW)
+
+Containers can send HTTP requests to external servers **without any configuration**. It just works.
+
+```js
+// Inside your container — this works perfectly
+fetch('https://some-api.com/my-data').then(...)
+```
+
+> ✅ No extra setup needed. The container has internet access by default.
+
+---
+
+### 2. 🖥️ Communicating with the Host Machine
+
+You might need your container to reach a service running **on your laptop** — for example, a local development database.
+
+**The problem:** Inside a container, `localhost` refers to the **container itself**, NOT your actual host machine.
+
+```js
+// ❌ This FAILS inside a container
+fetch('localhost:3000/demo').then(...)
+```
+
+**The fix:** Use the special hostname `host.docker.internal` — Docker automatically translates this to the IP address of your host machine.
+
+```js
+// ✅ This works inside a container
+fetch('host.docker.internal:3000/demo').then(...)
+```
+
+> 🔍 **How it works:** Docker does **not** change your source code. It detects outgoing requests and resolves the IP for `host.docker.internal` at runtime.
+
+> 💡 **When is this useful?** Mainly during **development** — when you have a database or another service running locally on your machine, not in a container.
+
+---
+
+### 3. 📦 Communicating with Other Containers
+
+When you need containers to talk to each other (e.g., a web app container talking to a database container), you have two options:
+
+| Option | How | Problem |
+|---|---|---|
+| Option 1 | Manually find the other container's IP | IP can change — not reliable |
+| Option 2 | Use a **Docker Network** | ✅ Best approach — Docker resolves IPs automatically |
+
+#### How Docker Networks Work
+
+When two or more containers are on the **same Docker network**, they can reach each other simply by using the **container name** as the hostname. Docker handles IP resolution automatically.
+
+```
+┌─────────────────────────────────────────┐
+│             Docker Network              │
+│                                         │
+│  ┌───────────┐       ┌───────────────┐  │
+│  │  cont1    │ ←───→ │    cont2      │  │
+│  │ (web app) │       │  (database)   │  │
+│  └───────────┘       └───────────────┘  │
+│                                         │
+│  Containers can reach each other by     │
+│  name: fetch('cont2/my-data')           │
+└─────────────────────────────────────────┘
+```
+
+#### Setting Up a Docker Network
+
+**Step 1 — Create the network:**
+```bash
+docker network create my-network
+```
+
+**Step 2 — Attach containers to that network:**
+```bash
+docker run --network my-network --name cont1 my-image
+docker run --network my-network --name cont2 my-other-image
+```
+
+**Step 3 — Use the container name as the address in your code:**
+```js
+// Inside cont1 — talking to cont2 by name
+fetch('cont2/my-data').then(...)
+```
+
+> 🔍 **How it works:** Docker detects the outgoing request and resolves `cont2` to its IP address automatically. It does **not** change your source code — it resolves at the network level.
+
+---
+
+### Summary — All Three Communication Types
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                Your Container (App)                     │
+└────────────┬──────────────────┬──────────────┬──────────┘
+             │                  │              │
+             ▼                  ▼              ▼
+   ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
+   │  Internet / WWW  │ │ Host Machine │ │ Other Containers │
+   │                  │ │              │ │                  │
+   │ Works out of box │ │ Use:         │ │ Use Docker       │
+   │ No config needed │ │ host.docker  │ │ Networks +       │
+   │                  │ │ .internal    │ │ container names  │
+   └──────────────────┘ └──────────────┘ └──────────────────┘
+```
+
+---
+
+### Network Commands
+
+| Command | Description |
+|---|---|
+| `docker network create <name>` | Create a new Docker network |
+| `docker network ls` | List all Docker networks |
+| `docker network inspect <name>` | Inspect a network (see connected containers, IPs, etc.) |
+| `docker network rm <name>` | Remove a network |
+| `docker network prune` | Remove all unused networks |
+| `docker run --network <name> ...` | Attach a container to a specific network |
+| `docker network connect <network> <container>` | Connect a running container to a network |
+| `docker network disconnect <network> <container>` | Disconnect a container from a network |
+
+---
+
+### Default Networks
+
+Docker automatically creates some networks:
+
+| Network | Driver | Description |
+|---|---|---|
+| `bridge` | bridge | Default network for containers — isolated from host |
+| `host` | host | Container shares the host's network stack directly |
+| `none` | null | No networking — fully isolated container |
+
+> 💡 When you run a container without `--network`, it joins the default `bridge` network. But containers on the **default** bridge cannot reach each other by name — you need a **custom network** for that.
+
+---
+
+### Real-World Example — Node App + MongoDB
+
+```bash
+# Step 1: Create a shared network
+docker network create app-network
+
+# Step 2: Start MongoDB on the network
+docker run -d \
+  --name mongodb \
+  --network app-network \
+  -v mongo-data:/data/db \
+  mongo:6
+
+# Step 3: Start the Node.js app on the same network
+docker run -d \
+  --name nodeapp \
+  --network app-network \
+  -p 3000:3000 \
+  my-node-app
+```
+
+Inside the Node.js app, connect to MongoDB using the container name:
+
+```js
+// Use 'mongodb' (the container name) as the host
+mongoose.connect('mongodb://mongodb:27017/mydb')
+```
+
+> ✅ Docker resolves `mongodb` to the correct container IP automatically — no hardcoded IPs needed.
