@@ -81,6 +81,14 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/bst.md"
     },
     {
+      "slug": "heap",
+      "title": "Heaps: 101",
+      "date": "2026-03-19",
+      "domain": "DSA",
+      "topic": "Heaps",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/heap.md"
+    },
+    {
       "slug": "devops",
       "title": "Docker 101: Ship Containers with Confidence",
       "date": "2026-02-22",
