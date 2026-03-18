@@ -1,4 +1,4 @@
-# Fundamentals
+## Fundamentals
 
 * Heap is a specialized tree-based data structure that satisfies the heap property.
 * It is commonly used to implement priority queues and for efficient sorting (Heapsort).
@@ -391,17 +391,20 @@ public:
 ```
 
 ### Matrix of Clarity
-| | Min-Heap | Max-Heap |
-| --- | --- | --- |
-| **Heap Property** | Parent ≤ Children | Parent ≥ Children |
-| **Root holds** | Smallest element | Largest element |
-| **Condition** | `nums[p] <= nums[i]` | `nums[p] >= nums[i]` |
-| **Left check** | `nums[l] < nums[smallest]` | `nums[l] > nums[largest]` |
-| **Right check** | `nums[r] < nums[smallest]` | `nums[r] > nums[largest]` |
-| **`heapifyUp`** | If node is **smaller** than its parent → swap upward. Called after **insert** (new node bubbles up until min property is restored). | If node is **larger** than its parent → swap upward. Called after **insert** (new node bubbles up until max property is restored). |
-| **`heapifyDown`** | If node is **larger** than its smallest child → swap downward. Called after **extract-min** (last element placed at root sinks down until min property is restored). | If node is **smaller** than its largest child → swap downward. Called after **extract-max** (last element placed at root sinks down until max property is restored). |
-| **Call Up when** | Value **decreased** — node may be smaller than parent | Value **increased** — node may be larger than parent |
-| **Call Down when** | Value **increased** — node may be larger than a child | Value **decreased** — node may be smaller than a child |
+
+| | Min-Heap | Max-Heap | Index Range |
+| --- | --- | --- | --- |
+| **Heap Property** | Parent ≤ Children | Parent ≥ Children | — |
+| **Root holds** | Smallest element | Largest element | — |
+| **`heapifyUp`** | `arr[i] < arr[parent]` → bubble up. Called after **insert**. | `arr[i] > arr[parent]` → bubble up. Called after **insert**. | `n-1` → up to `0` |
+| **`heapifyDown`** | `arr[child] < arr[i]` → sink down (pick smallest child). Called after **extract-min**. | `arr[child] > arr[i]` → sink down (pick largest child). Called after **extract-max**. | `0` → down to `n-1` |
+| **Call Up when** | Value **decreased** — may be smaller than parent | Value **increased** — may be larger than parent | `i` → `0` |
+| **Call Down when** | Value **increased** — may be larger than a child | Value **decreased** — may be smaller than a child | `i` → `n-1` |
+| **Build Heap** | `heapifyDown` on each non-leaf — restore min property | `heapifyDown` on each non-leaf — restore max property | `n/2-1` → `0` (non-leaves only) |
+| **Check if Heap** | `arr[child] < arr[parent]` → violation | `arr[child] > arr[parent]` → violation | `n/2-1` → `0` (non-leaves only) |
+
+> **Why leaf nodes are skipped in Build / Check:** Leaf nodes (`n/2` to `n-1`) have **no children** — they can never violate the heap property, so there's nothing to fix. Only non-leaf nodes (`0` to `n/2 - 1`) need to be processed.
+
 
 ### Check if array represents Min-Heap
 ```cpp
@@ -457,5 +460,240 @@ bool isMaxHeap(vector<int>& nums) {
 
     // All parent-child relationships satisfy Max Heap property
     return true;
+}
+```
+
+### Convert the min-heap to max-heap
+```cpp
+// Max Heapify Down
+void heapifyDown(vector<int>& arr, int idx) {
+    int n = arr.size();
+    int largestInd = idx;
+
+    int left = 2*idx + 1, right = 2*idx+2;
+
+    if (left < n && arr[left] > arr[largestInd]) {
+        largestInd = left;
+    }
+
+    if (right < n && arr[right] > arr[largestInd]) {
+        largestInd = right;
+    }
+
+    if (largestInd != idx) {
+        swap(arr[largestInd], arr[idx]);
+        heapifyDown(arr, largestInd);
+    }
+}
+
+// Build Max Heap from an array
+void buildMaxHeap(vector<int>& nums) {
+    int n = nums.size();
+    // Start from last non-leaf node and heapify down
+    // this is because leaf nodes have no children and already satisfy the property
+    for (int i = n / 2 - 1; i >= 0; i--) {
+        heapifyDown(nums, i);
+    }
+}
+```
+
+### Heap Sort
+
+**Idea:** Build a Max-Heap from the array, then repeatedly extract the max (swap root with last element, shrink heap size, heapifyDown). After n extractions the array is sorted in ascending order.
+
+**Time:** O(n log n) — O(n) to build + O(log n) per extraction × n  
+**Space:** O(1) — sorts in-place
+
+```cpp
+// `last` marks the current heap boundary so heapify ignores already sorted elements.
+void heapifyDown(vector<int> &arr, int last, int idx) {
+    int largestInd = idx; 
+    int left = 2*idx + 1, right = 2*idx + 2;
+    
+    if(left <= last && arr[left] > arr[largestInd]) 
+        largestInd = left;
+
+    if(right <= last && arr[right] > arr[largestInd]) 
+        largestInd = right;
+
+    if(largestInd != idx) {
+        swap(arr[largestInd] , arr[idx]);
+        heapifyDown(arr, last, largestInd);
+    }
+    return; 
+}
+
+void buildMaxHeap(vector<int> &nums) {
+    int n = nums.size();
+    for(int i = n/2 - 1; i >= 0; i--) {
+        heapifyDown(nums, n-1, i);
+    }
+}
+
+void heapSort(vector<int>&nums) {
+    buildMaxHeap(nums);
+    int last = nums.size()-1;
+    while (last > 0) {
+        swap(nums[0], nums[last]);
+        last--;
+        if (last > 0) {
+            heapifyDown(nums, last, 0);
+        }
+    }
+}
+```
+
+### Kth Largest Element in an array
+```cpp
+int kthLargestElement(vector<int>& nums, int k) {
+    // Min heap to keep track of k largest elements
+    priority_queue<int, vector<int>, greater<int>> minHeap;
+    for (int num : nums) {
+        minHeap.push(num);
+        // Maintain heap size as k
+        if (minHeap.size() > k)
+            minHeap.pop();
+    }
+    // Top of heap is kth largest element
+    return minHeap.top();
+}
+```
+
+```cpp
+class Solution {
+public:
+
+    // Partition the array so that:
+    // elements <= pivot are on the left
+    // elements > pivot are on the right
+    // Returns the final index of the pivot
+    int partition(vector<int>& nums, int left, int right) {
+
+        int pivotValue = nums[right];   // pivot placed at end
+        int idx = left;          // position to place smaller elements
+
+        for (int i = left; i < right; i++) {
+
+            if (nums[i] <= pivotValue) {
+                // swap elements smaller than pivot to left
+                swap(nums[idx], nums[i]);
+                idx++;
+            }
+        }
+
+        // Place pivot in its correct sorted position
+        swap(nums[idx], nums[right]);
+        return idx;
+    }
+
+
+    int quickSelect(vector<int>& nums, int left, int right, int targetIndex) {
+
+        // If only one element remains
+        if (left == right)  return nums[left];
+
+        // Pick a random pivot to avoid worst case
+        int randomPivot = left + rand() % (right - left + 1);
+
+        // Move pivot to end so partition logic works
+        swap(nums[randomPivot], nums[right]);
+
+        int pivotIndex = partition(nums, left, right);
+
+        // If pivot lands exactly at target index → answer found
+        if (pivotIndex == targetIndex)
+            return nums[pivotIndex];
+
+        // Target is on the right side
+        if (pivotIndex < targetIndex)
+            return quickSelect(nums, pivotIndex + 1, right, targetIndex);
+
+        // Target is on the left side
+        return quickSelect(nums, left, pivotIndex - 1, targetIndex);
+    }
+
+
+    int kthLargestElement(vector<int>& nums, int k) {
+
+        int n = nums.size();
+
+        // kth largest = (n-k)th smallest
+        int targetIndex = n - k;
+
+        return quickSelect(nums, 0, n - 1, targetIndex);
+    }
+};
+```
+
+### Kth Largest Element in a Stream of Numbers
+```cpp
+class KthLargest {
+    public:
+    
+    int k;
+    priority_queue<int, vector<int>, greater<int>> minHeap;
+
+    KthLargest(int k, vector<int>& nums) {
+        this->k = k;
+
+        for (int num : nums) {
+            add(num);
+        }
+    }
+
+    int add(int val) {
+
+        minHeap.push(val);
+
+        // Maintain heap size k
+        if (minHeap.size() > k)
+            minHeap.pop();
+
+        return minHeap.top(); // kth largest
+    }
+};
+```
+
+### Quick Select
+```cpp
+int partition(vector<int>& nums, int left, int right) {
+    int pivotValue = nums[right];   // pivot placed at end
+    int idx = left;          // position to place smaller elements
+    for (int i = left; i < right; i++) {
+        if (nums[i] <= pivotValue) {
+            // swap elements smaller than pivot to left
+            swap(nums[idx], nums[i]);
+            idx++;
+        }
+    }
+
+    // Place pivot in its correct sorted position
+    swap(nums[idx], nums[right]);
+    return idx;
+}
+
+// targetIndex is the Kth index we are looking for (defaultly Kth smallest)
+int quickSelect(vector<int>& nums, int left, int right, int targetIndex) {
+
+    // If only one element remains
+    if (left == right)  return nums[left];
+
+    // Pick a random pivot to avoid worst case
+    int randomPivot = left + rand() % (right - left + 1);
+    // Move pivot to end so partition logic works
+    swap(nums[randomPivot], nums[right]);
+
+    int pivotIndex = partition(nums, left, right);
+
+    // If pivot lands exactly at target index → answer found
+    if (pivotIndex == targetIndex)
+        return nums[pivotIndex];
+
+    // Target is on the right side
+    if (pivotIndex < targetIndex)
+        return quickSelect(nums, pivotIndex + 1, right, targetIndex);
+
+    // Target is on the left side
+    return quickSelect(nums, left, pivotIndex - 1, targetIndex);
 }
 ```
