@@ -4,7 +4,7 @@
 
 * Docker is a container technology: A tool for creating and managing containers
 * Container is a standardized unit of software.
-  - a package of code**and** dependencies to run that code. (ex. Py code + the Py runtime)
+  - a package of code **and** dependencies to run that code. (ex. Py code + the Py runtime)
   - the same container yields the exact same application and execution behaviour, irrespective of executor or the system of execution.
 
 ### Why Containers?
@@ -424,3 +424,300 @@ docker run -v $(pwd):/app:ro <image>
 | `docker volume inspect <name>` | Detailed info about a volume (path, driver, etc.) |
 | `docker volume rm <name>` | Delete a specific Named Volume |
 | `docker volume prune` | Remove all **unused** volumes |
+
+---
+
+# .dockerignore
+
+The `.dockerignore` file tells Docker which files and folders to **exclude from the build context** when running `docker build`. This keeps images smaller and prevents sensitive files from being accidentally included.
+
+- Lives in the **same directory as the Dockerfile**
+- Uses the same glob syntax as `.gitignore`
+- Docker reads it before sending the build context to the daemon
+
+### Why it matters
+
+Without `.dockerignore`, every file in the project directory is sent to the Docker daemon — including `node_modules`, `.env`, `.git`, logs, etc. This can:
+- Massively slow down builds
+- Bloat image size
+- Expose secrets or credentials
+
+### Common patterns
+
+```
+# Dependencies (let the container install them)
+node_modules
+vendor
+
+# Build artifacts
+dist
+build
+*.o
+*.out
+
+# Git history
+.git
+.gitignore
+
+# Secrets / local config
+.env
+*.pem
+*.key
+secrets/
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# Logs and temp files
+*.log
+tmp/
+.DS_Store
+```
+
+### Example: Node.js `.dockerignore`
+
+```
+node_modules
+npm-debug.log
+.git
+.env
+dist
+.DS_Store
+```
+
+> **Rule of thumb:** Start from `.gitignore` and add anything else that shouldn't go into the image (like secrets or build outputs the container doesn't need).
+
+---
+
+# ARG and ENV — Build-time vs Runtime Variables
+
+| Feature | `ARG` | `ENV` |
+|---|---|---|
+| **Set at** | Build time only | Runtime (persists in image) |
+| **Available in** | Dockerfile only | Dockerfile + running container |
+| **Passed via** | `docker build --build-arg` | `docker run -e` / `--env-file` |
+| **Visible in image** | ❌ Not stored in final image | ✅ Stored in image metadata |
+| **Use case** | Build configuration (e.g. Node version) | App config (e.g. PORT, DB_URL) |
+
+---
+
+### ENV — Runtime Environment Variables
+
+Set in Dockerfile, available in the container at runtime:
+
+```Dockerfile
+FROM node
+WORKDIR /app
+
+# Set default values
+ENV PORT=80
+ENV NODE_ENV=production
+
+COPY . .
+RUN npm install
+EXPOSE $PORT          # can use ENV vars in Dockerfile too
+CMD ["node", "server.js"]
+```
+
+Override at runtime with `docker run`:
+
+```bash
+# Pass a single env variable
+docker run -e PORT=3000 <image>
+
+# Pass multiple env variables
+docker run -e PORT=3000 -e NODE_ENV=development <image>
+
+# Load from a file (recommended for secrets)
+docker run --env-file ./.env <image>
+```
+
+`.env` file format:
+```
+PORT=3000
+NODE_ENV=development
+DB_URL=mongodb://localhost:27017/mydb
+```
+
+---
+
+### ARG — Build-time Arguments
+
+`ARG` values are only available **during the build**, not in the running container:
+
+```Dockerfile
+FROM node
+
+# Declare ARG with an optional default
+ARG NODE_ENV=production
+ARG APP_VERSION=1.0.0
+
+# Use ARG during build
+RUN echo "Building version $APP_VERSION in $NODE_ENV mode"
+
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node", "server.js"]
+```
+
+Pass values at build time:
+
+```bash
+# Pass a single build arg
+docker build --build-arg NODE_ENV=development .
+
+# Pass multiple build args
+docker build --build-arg NODE_ENV=staging --build-arg APP_VERSION=2.1.0 -t myapp .
+```
+
+### Combining ARG + ENV
+
+A common pattern is using `ARG` to set an `ENV` (making the value available at both build AND runtime):
+
+```Dockerfile
+ARG NODE_ENV=production
+ENV NODE_ENV=$NODE_ENV     # ARG feeds into ENV
+```
+
+```bash
+docker build --build-arg NODE_ENV=development -t myapp .
+# NODE_ENV is now "development" both at build time AND in the running container
+```
+
+> ⚠️ **Security Warning:** `ENV` values are stored in the image and visible via `docker image inspect`. Never use `ENV` for secrets like API keys or passwords — use `--env-file` at runtime or Docker Secrets instead.
+
+---
+
+# Dockerfile Examples
+
+### 1. Node.js Web App
+
+```Dockerfile
+FROM node:18-alpine              # use slim Alpine-based image
+
+WORKDIR /app
+
+COPY package*.json ./            # copy manifests first (layer cache optimization)
+RUN npm ci --only=production     # install only production deps
+
+COPY . .                         # copy rest of source
+
+ARG PORT=80
+ENV PORT=$PORT
+
+EXPOSE $PORT
+CMD ["node", "server.js"]
+```
+
+```bash
+docker build -t myapp .
+docker run -p 3000:80 --rm myapp
+```
+
+---
+
+### 2. Python Flask App
+
+```Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt   # no-cache keeps image small
+
+COPY . .
+
+ENV FLASK_ENV=production
+ENV PORT=5000
+
+EXPOSE 5000
+CMD ["python", "app.py"]
+```
+
+```bash
+docker build -t flask-app .
+docker run -p 5000:5000 -e FLASK_ENV=development flask-app
+```
+
+---
+
+### 3. Multi-Stage Build (Node.js — Build then Serve)
+
+Multi-stage builds produce a tiny final image by discarding the build tools:
+
+```Dockerfile
+# --- Stage 1: Build ---
+FROM node:18 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build             # output goes to /app/dist
+
+# --- Stage 2: Serve ---
+FROM nginx:alpine             # only the lightweight nginx image
+COPY --from=builder /app/dist /usr/share/nginx/html   # copy only the build output
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+```bash
+docker build -t my-frontend .
+docker run -p 8080:80 my-frontend
+```
+
+> The final image only contains nginx + the compiled static files — no Node.js, no source code, no `node_modules`.
+
+---
+
+### 4. Development Setup — Live Sync with Bind Mount + Volume
+
+```Dockerfile
+FROM node:18
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install              # installed into container's node_modules
+
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]   # dev server with hot reload
+```
+
+```bash
+# Bind Mount host code → /app (live sync)
+# Anonymous Volume → protect /app/node_modules from being overwritten
+docker run -p 3000:3000 \
+  -v $(pwd):/app \
+  -v /app/node_modules \
+  --rm myapp-dev
+```
+
+---
+
+### 5. App with Named Volume (Persistent Data)
+
+```Dockerfile
+FROM mongo:6
+
+ENV MONGO_INITDB_ROOT_USERNAME=admin
+ENV MONGO_INITDB_ROOT_PASSWORD=secret
+
+EXPOSE 27017
+```
+
+```bash
+# Create a named volume so data survives container removal
+docker volume create mongo-data
+
+docker run -d \
+  -p 27017:27017 \
+  -v mongo-data:/data/db \
+  --name mongodb \
+  mongo:6
+```
