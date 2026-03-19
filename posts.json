@@ -89,6 +89,14 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/heap.md"
     },
     {
+      "slug": "bit-manipulation",
+      "title": "Bit Manipulation: 101",
+      "date": "2026-03-20",
+      "domain": "DSA",
+      "topic": "Bit Manipulation",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/bit-manipulation.md"
+    },
+    {
       "slug": "devops",
       "title": "Docker 101: Ship Containers with Confidence",
       "date": "2026-02-22",
