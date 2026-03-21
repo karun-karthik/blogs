@@ -310,3 +310,115 @@ string minWindow(string s, string t) {
     return startIndex == -1 ? "" : s.substr(startIndex, minLength);
 }
 ```
+
+### Count number of substrings containing all 3 characters
+```cpp
+int numberOfSubstrings(string s) {
+
+    vector<int> lastSeen(3, -1);  
+    // lastSeen[i] = last index where ('a' + i) appeared
+
+    int totalCount = 0;
+
+    for (int i = 0; i < s.size(); i++) {
+
+        // update last seen index
+        lastSeen[s[i] - 'a'] = i;
+
+        // DRY (s = "abcabc"):
+        // i=0 → 'a' → lastSeen = [0,-1,-1]
+        // i=1 → 'b' → lastSeen = [0,1,-1]
+        // i=2 → 'c' → lastSeen = [0,1,2] ✅
+
+        if (lastSeen[0] != -1 && lastSeen[1] != -1 && lastSeen[2] != -1) {
+
+            int earliest = min({lastSeen[0], lastSeen[1], lastSeen[2]});
+
+            // DRY:
+            // i=2 → earliest=0 → +1  → total=1
+            // i=3 → lastSeen=[3,1,2] → earliest=1 → +2 → total=3
+            // i=4 → lastSeen=[3,4,2] → earliest=2 → +3 → total=6
+            // i=5 → lastSeen=[3,4,5] → earliest=3 → +4 → total=10
+
+            totalCount += (earliest + 1);
+        }
+    }
+
+    // DRY final answer for "abcabc" = 10
+    return totalCount;
+}
+```
+
+### Number of subarrays with sum = goal on a binary array
+```cpp
+int solve(vector<int>& nums, int goal) {
+    // counts subarrays with sum ≤ goal
+    if (goal < 0) return 0;  // edge case
+
+    int windowStart = 0;
+    int currentSum = 0;
+    int totalCount = 0;
+
+    for (int windowEnd = 0; windowEnd < nums.size(); windowEnd++) {
+
+        currentSum += nums[windowEnd];
+
+        // shrink window until sum ≤ goal
+        while (currentSum > goal) {
+            currentSum -= nums[windowStart];
+            windowStart++;
+        }
+
+        // all subarrays ending at windowEnd with start in [windowStart → windowEnd]
+        // are valid → count = window size
+        totalCount += (windowEnd - windowStart + 1);
+
+        // DRY:
+        // nums = [1,0,1], goal=2
+        // window expands → count valid subarrays ending at each index
+    }
+
+    return totalCount;
+}
+
+int numSubarraysWithSum(vector<int>& nums, int goal) {
+    // exactly(goal) = atMost(goal) - atMost(goal-1)
+    return solve(nums, goal) - solve(nums, goal - 1);
+}
+```
+
+### Number of subarrays with exactly k odd numbers
+```cpp
+int solve(vector<int>& nums, int k) {
+    // counts subarrays with at most k odd numbers
+    if (k < 0) return 0;
+
+    int windowStart = 0;
+    int oddCount = 0;
+    int totalCount = 0;
+
+    for (int windowEnd = 0; windowEnd < nums.size(); windowEnd++) {
+
+        if (nums[windowEnd] % 2 != 0)
+            oddCount++;
+
+        // shrink window if more than k odd numbers
+        while (oddCount > k) {
+            if (nums[windowStart] % 2 != 0)
+                oddCount--;
+            windowStart++;
+        }
+
+        // all subarrays ending at windowEnd with start in [windowStart → windowEnd]
+        // have ≤ k odd numbers → count = window size
+        totalCount += (windowEnd - windowStart + 1);
+    }
+
+    return totalCount;
+}
+
+int numberOfOddSubarrays(vector<int>& nums, int k) {
+    // exactly(k) = atMost(k) - atMost(k-1)
+    return solve(nums, k) - solve(nums, k - 1);
+}
+```
