@@ -604,9 +604,7 @@ vector<vector<char>> fill(vector<vector<char>> mat) {
 ### Number of distinct islands
 >You are given a 2D matrix grid of size N × M, where each cell contains either 0 or 1. Find the number of distinct islands where a group of connected 1s (horizontally or vertically) forms an island. Two islands are considered to be same if and only if one island is equal to another (not rotated or reflected).
 ```cpp
-void dfs(int row, int col, vector<vector<int>>& grid,
-    vector<vector<int>>& vis, vector<pair<int,int>>& shape,
-    int baseRow, int baseCol) {
+void dfs(int row, int col, vector<vector<int>>& grid, vector<vector<int>>& vis, vector<pair<int,int>>& shape, int baseRow, int baseCol) {
 
     int n = grid.size();
     int m = grid[0].size();
@@ -664,4 +662,73 @@ int countDistinctIslands(vector<vector<int>> &grid){
 
     return st.size();
 }
+```
+
+# Cycle Based Problems
+
+### Cycle in Undirected Graph
+```cpp
+class Solution{
+public:
+
+    // ---------- BFS Cycle Detection ----------
+    bool detectCycle(int startNode, vector<int> adj[], vector<int> &vis) {
+
+        queue<pair<int,int>> q;
+        q.push({startNode, -1});   // {node, parent}
+        vis[startNode] = 1;
+
+        while (!q.empty()) {
+
+            auto [node, parent] = q.front();
+            q.pop();
+
+            // explore neighbors
+            for (int neighbor : adj[node]) {
+
+                // if not visited → continue BFS
+                if (!vis[neighbor]) {
+                    vis[neighbor] = 1;
+                    q.push({neighbor, node});
+                }
+                // if visited and not parent → cycle found
+                else if (neighbor != parent) {
+                    return true;
+                }
+            }
+        }
+
+        return false;  // no cycle in this component
+    }
+
+    // ---------- DFS Cycle Detection ----------
+    bool detectCycleDfs(int node, int parent, vector<int> adj[], vector<int> &vis) {
+        vis[node] = 1;  // mark current node
+        for (int neighbor : adj[node]) {
+            // go deeper if not visited
+            if (!vis[neighbor]) {
+                if (detectCycleDfs(neighbor, node, adj, vis)) return true;
+            }
+            // visited neighbor that is NOT parent → cycle
+            else if (neighbor != parent) return true;
+        }
+        return false;
+    }
+
+    bool isCycle(int V, vector<int> adj[]) {
+
+        vector<int> vis(V, 0);
+        // handle disconnected graph
+        for (int i = 0; i < V; i++) {
+
+            if (!vis[i]) {
+                // use either BFS or DFS
+                // if (detectCycle(i, adj, vis)) return true;
+                if (detectCycleDfs(i, -1, adj, vis)) return true;
+            }
+        }
+
+        return false;  // no cycle in any component
+    }
+};
 ```
