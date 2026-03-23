@@ -911,3 +911,106 @@ public:
     }
 };
 ```
+
+### Detect cycle in a DAG
+```cpp
+class Solution{
+public:
+
+    // ---------- Kahn’s Algorithm (BFS) ----------
+    vector<int> toposort(int V, vector<int> adj[]) {
+
+        vector<int> topo;              // stores topological order
+        vector<int> indegree(V, 0);    // indegree of each node
+
+        // Step 1: Calculate indegree
+        for (int i = 0; i < V; i++) {
+            for (int neighbor : adj[i]) {
+                indegree[neighbor]++;
+            }
+        }
+
+        queue<int> q;
+
+        // Step 2: Add nodes with indegree 0 (no dependencies)
+        for (int i = 0; i < V; i++) {
+            if (indegree[i] == 0)
+                q.push(i);
+        }
+
+        // Step 3: Process nodes
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            topo.push_back(node);  // remove node from graph
+
+            // reduce indegree of neighbors
+            for (int neighbor : adj[node]) {
+                indegree[neighbor]--;
+
+                // if dependency resolved → push
+                if (indegree[neighbor] == 0)
+                    q.push(neighbor);
+            }
+        }
+
+        return topo;
+    }
+
+
+    // ---------- Cycle Detection using BFS (Kahn’s) ----------
+    bool isCyclicBfs(int V, vector<int> adj[]) {
+
+        // If topo size < V → cycle exists
+        return toposort(V, adj).size() < V;
+    }
+
+
+    // ---------- DFS Cycle Detection (Directed Graph) ----------
+    bool dfs(int node, vector<int> adj[],
+             vector<bool> &vis, vector<bool> &path) {
+
+        vis[node] = true;
+        path[node] = true;   // mark node in current recursion path
+
+        for (int neighbor : adj[node]) {
+
+            // if already in current path → cycle
+            if (path[neighbor])
+                return true;
+
+            // if not visited → explore
+            if (!vis[neighbor]) {
+                if (dfs(neighbor, adj, vis, path))
+                    return true;
+            }
+        }
+
+        path[node] = false;  // backtrack (remove from path)
+        return false;
+    }
+
+
+    // ---------- Main ----------
+    bool isCyclic(int V, vector<int> adj[]) {
+
+        // -------- OPTION 1: BFS (Kahn’s) --------
+        // return isCyclicBfs(V, adj);
+
+        // -------- OPTION 2: DFS --------
+        vector<bool> vis(V, false);
+        vector<bool> path(V, false);
+
+        for (int i = 0; i < V; i++) {
+            if (!vis[i]) {
+                if (dfs(i, adj, vis, path))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+};
+```
