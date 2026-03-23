@@ -667,6 +667,7 @@ int countDistinctIslands(vector<vector<int>> &grid){
 # Cycle Based Problems
 
 ### Cycle in Undirected Graph
+>Graph can be divided into 2 groups such that no two adjacent nodes are in the same group
 ```cpp
 class Solution{
 public:
@@ -729,6 +730,184 @@ public:
         }
 
         return false;  // no cycle in any component
+    }
+};
+```
+
+### Bipartite Graph
+```cpp
+class Solution{
+public:
+
+    // ---------- BFS Bipartite Check ----------
+    bool detectBipartite(int startNode, vector<int> adj[], vector<int> &color) {
+
+        queue<int> q;
+        q.push(startNode);
+
+        color[startNode] = 0;  // assign first color (0 or 1)
+
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            for (int neighbor : adj[node]) {
+
+                // if not colored yet → assign opposite color
+                if (color[neighbor] == -1) {
+                    color[neighbor] = !color[node];
+                    q.push(neighbor);
+                }
+                // if same color as current → not bipartite
+                else if (color[neighbor] == color[node]) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+
+    // ---------- DFS Bipartite Check ----------
+    bool detectBipartiteDfs(int node, int currColor,
+                           vector<int> adj[], vector<int> &color) {
+
+        color[node] = currColor;  // assign color
+
+        for (int neighbor : adj[node]) {
+
+            // if not colored → color with opposite color
+            if (color[neighbor] == -1) {
+
+                if (!detectBipartiteDfs(neighbor, !currColor, adj, color))
+                    return false;
+            }
+            // if same color → conflict → not bipartite
+            else if (color[neighbor] == currColor) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    // ---------- Main ----------
+    bool isBipartite(int V, vector<int> adj[]) {
+
+        vector<int> color(V, -1);  // -1 = uncolored, 0/1 = two colors
+
+        // handle disconnected graph
+        for (int i = 0; i < V; i++) {
+
+            if (color[i] == -1) {
+
+                // use either BFS or DFS
+                // if (!detectBipartite(i, adj, color)) return false;
+
+                if (!detectBipartiteDfs(i, 0, adj, color))
+                    return false;
+            }
+        }
+
+        return true;  // no conflicts → bipartite
+    }
+};
+```
+
+### Topological Sort or Kahn's algorithm
+> Topological sorting of a directed acyclic graph (DAG) is nothing but the linear ordering of vertices such that if there is an edge between node u and v(u -> v), node u appears before v in that ordering
+```cpp
+class Solution{
+public:
+
+    // ---------- Kahn’s Algorithm (BFS Topological Sort) ----------
+    vector<int> kahnsAlgo(int V, vector<int> adj[]) {
+
+        vector<int> topo;                 // stores topological order
+        vector<int> indegree(V, 0);       // indegree of each node
+
+        // Step 1: Compute indegree of all nodes
+        for (int i = 0; i < V; i++) {
+            for (int neighbor : adj[i]) {
+                indegree[neighbor]++;
+            }
+        }
+
+        queue<int> q;
+
+        // Step 2: Push nodes with indegree = 0
+        // (these have no dependencies)
+        for (int i = 0; i < V; i++) {
+            if (indegree[i] == 0)
+                q.push(i);
+        }
+
+        // Step 3: Process nodes
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            topo.push_back(node);  // add to result
+
+            // reduce indegree of neighbors
+            for (int neighbor : adj[node]) {
+                indegree[neighbor]--;
+
+                // if no dependencies left → push
+                if (indegree[neighbor] == 0)
+                    q.push(neighbor);
+            }
+        }
+
+        return topo;
+    }
+
+
+    // ---------- DFS Topological Sort ----------
+    void dfs(int node, vector<int> adj[],
+             vector<int> &vis, stack<int> &st) {
+
+        vis[node] = 1;
+
+        // visit all neighbors first
+        for (int neighbor : adj[node]) {
+            if (!vis[neighbor]) {
+                dfs(neighbor, adj, vis, st);
+            }
+        }
+
+        // push AFTER visiting children (post-order)
+        st.push(node);
+    }
+
+
+    vector<int> topoSort(int V, vector<int> adj[]){
+
+        // ----------- OPTION 1: Kahn’s Algorithm (BFS) -----------
+        // return kahnsAlgo(V, adj);
+
+        // ----------- OPTION 2: DFS -----------
+        vector<int> vis(V, 0);
+        stack<int> st;
+        vector<int> res;
+
+        for (int i = 0; i < V; i++) {
+            if (!vis[i]) {
+                dfs(i, adj, vis, st);
+            }
+        }
+
+        // stack gives reverse topological order
+        while (!st.empty()) {
+            res.push_back(st.top());
+            st.pop();
+        }
+
+        return res;
     }
 };
 ```
