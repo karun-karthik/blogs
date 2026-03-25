@@ -1014,3 +1014,133 @@ public:
     }
 };
 ```
+
+# Hard Problems
+### Find eventual safe state
+>A node is a safe node if every possible path starting from that node leads to a terminal node. Return an array containing all the safe nodes of the graph in ascending order.
+> **Why reverse the graph and run topological sort?**
+> Kahn’s algorithm (topological sort) starts from nodes with **indegree = 0**. In the original graph, terminal nodes have **outdegree = 0** but may have incoming edges, so they are not indegree 0 and the algorithm would never begin with them.
+> By **reversing all edges**, those terminal nodes become **indegree = 0** in the reversed graph. This lets Kahn’s algorithm peel off the terminals first, marking them safe, and then propagate safety backwards to their predecessors. Nodes that remain in cycles never reach indegree 0 and are correctly identified as unsafe.
+```cpp
+class Solution{
+public:
+    // ---------- DFS Approach ----------
+    // Detect cycles and mark safe nodes
+    bool dfs(int node, vector<int> adj[], vector<int> &vis, vector<int> &path,  vector<int> &check) {
+
+        vis[node] = 1;     // mark node as visited
+        path[node] = 1;    // mark node in current recursion path
+        check[node] = 0;   // assume unsafe initially
+
+        for (int neighbor : adj[node]) {
+
+            // if not visited → explore
+            if (!vis[neighbor]) {
+                if (dfs(neighbor, adj, vis, path, check))
+                    return true;
+            }
+            // if in current path → cycle detected
+            else if (path[neighbor]) {
+                return true;
+            }
+        }
+
+        // no cycle found → node is safe
+        path[node] = 0;    // remove from recursion path
+        check[node] = 1;   // mark safe
+
+        return false;
+    }
+
+    vector<int> eventualSafeNodesDfs(int V, vector<int> adj[]) {
+
+        vector<int> vis(V, 0);
+        vector<int> path(V, 0);
+        vector<int> check(V, 0);  // 1 = safe, 0 = unsafe
+
+        // run DFS for all components
+        for (int i = 0; i < V; i++) {
+            if (!vis[i]) {
+                dfs(i, adj, vis, path, check);
+            }
+        }
+
+        // collect safe nodes
+        vector<int> ans;
+        for (int i = 0; i < V; i++) {
+            if (check[i] == 1)
+                ans.push_back(i);
+        }
+
+        return ans;
+    }
+
+    // ---------- Kahn’s Algorithm (BFS on Reverse Graph) ----------
+    vector<int> toposort(int V, vector<int> adj[]) {
+
+        vector<int> indegree(V, 0);
+
+        // compute indegree
+        for (int i = 0; i < V; i++) {
+            for (int neighbor : adj[i]) {
+                indegree[neighbor]++;
+            }
+        }
+
+        queue<int> q;
+
+        // nodes with indegree 0 → safe nodes (no outgoing edges in original graph)
+        for (int i = 0; i < V; i++) {
+            if (indegree[i] == 0)
+                q.push(i);
+        }
+
+        vector<int> topo;
+
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            topo.push_back(node);
+
+            for (int neighbor : adj[node]) {
+                indegree[neighbor]--;
+
+                if (indegree[neighbor] == 0)
+                    q.push(neighbor);
+            }
+        }
+
+        return topo;
+    }
+
+    vector<int> eventualSafeNodesBfs(int V, vector<int> adj[]) {
+
+        // Step 1: Reverse the graph
+        vector<int> revAdj[V];
+
+        for (int i = 0; i < V; i++) {
+            for (int neighbor : adj[i]) {
+                revAdj[neighbor].push_back(i);
+            }
+        }
+
+        // Step 2: Run Kahn’s on reversed graph
+        vector<int> res = toposort(V, revAdj);
+
+        // Step 3: sort result (required by problem)
+        sort(res.begin(), res.end());
+
+        return res;
+    }
+
+    vector<int> eventualSafeNodes(int V, vector<int> adj[]){
+        // Option 1: DFS
+        // return eventualSafeNodesDfs(V, adj);
+
+        // Option 2: BFS (preferred)
+        return eventualSafeNodesBfs(V, adj);
+    }
+};
+```
