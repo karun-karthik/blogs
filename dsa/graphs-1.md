@@ -1144,3 +1144,297 @@ public:
     }
 };
 ```
+
+### Course Schedule - i
+>There are a total of N tasks, labeled from 0 to N-1. Given an array arr where arr[i] = [a, b] indicates that you must take course b first if you want to take course a. Find if it is possible to finish all tasks.
+```cpp
+class Solution{
+public:
+    // ---------- Kahn’s Algorithm (Topological Sort) ----------
+    vector<int> toposort(int N, vector<int> adj[]) {
+
+        vector<int> topo;              // stores course order
+        vector<int> indegree(N, 0);    // number of prerequisites
+
+        // Step 1: Compute indegree
+        for (int i = 0; i < N; i++) {
+            for (int neighbor : adj[i]) {
+                indegree[neighbor]++;
+            }
+        }
+
+        queue<int> q;
+
+        // Step 2: Add courses with no prerequisites
+        for (int i = 0; i < N; i++) {
+            if (indegree[i] == 0)
+                q.push(i);
+        }
+
+        // Step 3: Process courses
+        while (!q.empty()) {
+
+            int course = q.front();
+            q.pop();
+
+            topo.push_back(course);  // course can be completed
+
+            // reduce dependency of next courses
+            for (int next : adj[course]) {
+                indegree[next]--;
+
+                // if no prerequisites left → ready to take
+                if (indegree[next] == 0)
+                    q.push(next);
+            }
+        }
+
+        return topo;
+    }
+
+    bool canFinish(int N, vector<vector<int>> arr) {
+
+        vector<int> adj[N];
+
+        // Step 0: Build graph
+        // arr[i] = {a, b} → must do b before a → edge: b → a
+        for (auto it : arr) {
+            adj[it[1]].push_back(it[0]);
+        }
+
+        // Step 4: Get topological order
+        vector<int> topo = toposort(N, adj);
+
+        // Step 5: If all courses processed → no cycle → possible
+        // If not → cycle exists → impossible
+        return topo.size() == N;
+    }
+};
+```
+
+### Course Schedule - ii
+```cpp
+vector<int> findOrder(int N, vector<vector<int>> arr) {
+
+    vector<int> adj[N];
+    vector<int> indegree(N, 0);
+
+    // Step 1: Build graph
+    // arr[i] = {a, b} → b must be done before a → edge: b → a
+    for (auto it : arr) {
+        int course = it[0];
+        int prereq = it[1];
+
+        adj[prereq].push_back(course);
+        indegree[course]++;
+    }
+
+    queue<int> q;
+
+    // Step 2: Push all courses with no prerequisites
+    for (int i = 0; i < N; i++) {
+        if (indegree[i] == 0)
+            q.push(i);
+    }
+
+    vector<int> order;
+
+    // Step 3: Kahn’s BFS
+    while (!q.empty()) {
+
+        int node = q.front();
+        q.pop();
+
+        order.push_back(node);  // take this course
+
+        // reduce dependency of next courses
+        for (int neighbor : adj[node]) {
+            indegree[neighbor]--;
+
+            if (indegree[neighbor] == 0)
+                q.push(neighbor);
+        }
+    }
+
+    // Step 4: Check if valid order exists
+    if (order.size() == N)
+        return order;
+
+    return {};  // cycle exists → impossible
+}
+```
+
+### Alien Dictionary
+```cpp
+class Solution {
+    vector<int> toposort(int V, vector<int> adj[]) {
+
+        vector<int> indegree(V, 0);
+        // compute indegree of each character
+        for (int i = 0; i < V; i++) {
+            for (int neighbor : adj[i]) {
+                indegree[neighbor]++;
+            }
+        }
+        queue<int> q;
+        // push characters with no dependencies
+        for (int i = 0; i < V; i++) {
+            if (indegree[i] == 0)
+                q.push(i);
+        }
+
+        vector<int> topo;
+        // BFS processing
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            topo.push_back(node);
+
+            for (int neighbor : adj[node]) {
+                indegree[neighbor]--;
+
+                if (indegree[neighbor] == 0)
+                    q.push(neighbor);
+            }
+        }
+
+        return topo;
+    }
+
+public:
+    string findOrder(string dict[], int N, int K) {
+
+        vector<int> adj[K];
+
+        // Step 1: Build graph using adjacent words
+        for (int i = 0; i < N - 1; i++) {
+
+            string s1 = dict[i];
+            string s2 = dict[i + 1];
+
+            int len = min(s1.size(), s2.size());
+
+            // find first differing character
+            for (int j = 0; j < len; j++) {
+
+                if (s1[j] != s2[j]) {
+
+                    // s1[j] must come before s2[j]
+                    adj[s1[j] - 'a'].push_back(s2[j] - 'a');
+
+                    break;  // only first mismatch matters
+                }
+            }
+        }
+
+        // Step 2: Topological sort
+        vector<int> topo = toposort(K, adj);
+
+        // Step 3: Check for cycle (invalid dictionary)
+        if (topo.size() < K)
+            return "";
+
+        // Step 4: Convert to string
+        string ans = "";
+        for (int i = 0; i < topo.size(); i++) {
+            ans += char(topo[i] + 'a');
+        }
+
+        return ans;
+    }
+};
+```
+
+### Shortest Path in DAG
+>Given a weighted directed acyclic graph (DAG), find the shortest path from a source node to all other nodes.
+```cpp
+class Solution {
+public:
+    // ---------- Kahn’s Topological Sort ----------
+    vector<int> toposort(int N, vector<pair<int, int>> adj[]) {
+
+        vector<int> topo;
+        vector<int> indegree(N, 0);
+
+        // compute indegree
+        for (int i = 0; i < N; i++) {
+            for (auto [neighbor, wt] : adj[i]) {
+                indegree[neighbor]++;
+            }
+        }
+
+        queue<int> q;
+
+        // push nodes with indegree 0
+        for (int i = 0; i < N; i++) {
+            if (indegree[i] == 0)
+                q.push(i);
+        }
+
+        // BFS
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            topo.push_back(node);
+
+            for (auto [neighbor, wt] : adj[node]) {
+                indegree[neighbor]--;
+
+                if (indegree[neighbor] == 0)
+                    q.push(neighbor);
+            }
+        }
+
+        return topo;
+    }
+
+
+    vector<int> shortestPath(int N, int M, vector<vector<int>> &edges) {
+
+        // Step 1: Build graph (u → v with weight w)
+        vector<pair<int, int>> adj[N];
+
+        for (int i = 0; i < M; i++) {
+            int u = edges[i][0];
+            int v = edges[i][1];
+            int w = edges[i][2];
+
+            adj[u].push_back({v, w});
+        }
+
+        // Step 2: Topological order
+        vector<int> topo = toposort(N, adj);
+
+        // Step 3: Initialize distances
+        vector<int> dist(N, 1e9);
+        dist[0] = 0;  // source node
+
+        // Step 4: Relax edges in topo order
+        for (int u : topo) {
+
+            // process only reachable nodes
+            if (dist[u] != 1e9) {
+
+                for (auto [v, wt] : adj[u]) {
+
+                    if (dist[u] + wt < dist[v]) {
+                        dist[v] = dist[u] + wt;
+                    }
+                }
+            }
+        }
+
+        // Step 5: Mark unreachable nodes as -1
+        for (int i = 0; i < N; i++) {
+            if (dist[i] == 1e9)
+                dist[i] = -1;
+        }
+
+        return dist;
+    }
+};
+```
