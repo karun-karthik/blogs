@@ -1438,3 +1438,151 @@ public:
     }
 };
 ```
+
+### Shortest path in undirected graph with unit weights
+>Use BFS to find shortest path in an unweighted graph.
+```cpp
+class Solution {
+public:
+    vector<int> shortestPath(vector<vector<int>>& edges, int N, int M){
+
+        // Step 1: Build adjacency list (UNDIRECTED)
+        vector<int> adj[N];
+
+        for (int i = 0; i < M; i++) {
+            int u = edges[i][0];
+            int v = edges[i][1];
+
+            adj[u].push_back(v);
+            adj[v].push_back(u);  // important (undirected)
+        }
+
+        // Step 2: Distance array
+        vector<int> dist(N, 1e9);
+        dist[0] = 0;  // source = 0
+
+        queue<int> q;
+        q.push(0);
+
+        // Step 3: BFS
+        while (!q.empty()) {
+
+            int node = q.front();
+            q.pop();
+
+            for (int neighbor : adj[node]) {
+
+                // if shorter path found
+                if (dist[node] + 1 < dist[neighbor]) {
+                    dist[neighbor] = dist[node] + 1;
+                    q.push(neighbor);
+                }
+            }
+        }
+
+        // Step 4: Mark unreachable as -1
+        for (int i = 0; i < N; i++) {
+            if (dist[i] == 1e9)
+                dist[i] = -1;
+        }
+
+        return dist;
+    }
+};
+```
+
+### Word Ladder - i
+>Given two words (startWord and targetWord), and a dictionary's word list, find the length of the shortest transformation sequence from startWord to targetWord, such that:
+>1. Only one letter can be changed at a time.
+>2. Each transformed word must exist in the word list.
+>Note that startWord does not need to be in wordList.
+```cpp
+class Solution{
+public:
+    int wordLadderLength(string startWord, string targetWord, vector<string> &wordList) {
+        // Convert wordList to set for O(1) lookup
+        unordered_set<string> st(wordList.begin(), wordList.end());
+
+        // If target not present → impossible
+        if (st.find(targetWord) == st.end()) return 0;
+
+        // BFS queue → {current word, steps taken so far}
+        queue<pair<string, int>> q;
+        q.push({startWord, 1});
+
+        // Remove startWord to avoid revisiting
+        st.erase(startWord);
+
+        // DRY RUN SETUP:
+        // start = "hit"
+        // target = "cog"
+        // wordList = ["hot","dot","dog","lot","log","cog"]
+        //
+        // Initial:
+        // Queue = [(hit,1)]
+        // Set   = {hot, dot, dog, lot, log, cog}
+
+        while (!q.empty()) {
+
+            auto [word, steps] = q.front();
+            q.pop();
+
+            // If we reached target → shortest path found
+            if (word == targetWord)
+                return steps;
+
+            // Try changing every character
+            for (int i = 0; i < word.size(); i++) {
+
+                char original = word[i];  // store original char
+
+                // Replace with all possible characters
+                for (char ch = 'a'; ch <= 'z'; ch++) {
+
+                    if (ch == original) continue; // skip same char
+
+                    word[i] = ch;
+
+                    // If new word exists in set → valid transformation
+                    if (st.find(word) != st.end()) {
+
+                        // DRY RUN FLOW:
+                        // hit → hot
+                        // hot → dot, lot
+                        // dot → dog
+                        // lot → log
+                        // dog → cog
+
+                        q.push({word, steps + 1});
+
+                        // Remove from set to mark visited
+                        // Prevents revisiting same word
+                        st.erase(word);
+
+                        // Example set evolution:
+                        // {hot, dot, dog, lot, log, cog}
+                        // → {dot, dog, lot, log, cog}
+                        // → {dog, log, cog}
+                        // → {log, cog}
+                        // → {cog}
+                        // → {}
+                    }
+                }
+
+                // Restore original character
+                word[i] = original;
+            }
+
+            // BFS Level Insight:
+            // Level 1: hit
+            // Level 2: hot
+            // Level 3: dot, lot
+            // Level 4: dog, log
+            // Level 5: cog (answer)
+        }
+
+        // If target not reachable
+        return 0;
+    }
+};
+```
