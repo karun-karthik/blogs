@@ -1586,3 +1586,121 @@ public:
     }
 };
 ```
+
+### Word Ladder - ii
+>Given two words (startWord and targetWord), and a dictionary's word list, return all possible shortest transformation sequences from startWord to targetWord, such that:
+
+1. Only one letter can be changed at a time.
+2. Each transformed word must exist in the word list.
+
+Note that startWord does not need to be in wordList.
+
+```cpp
+class Solution {
+public:
+    vector<vector<string>> findSequences(string startWord, string targetWord,
+                                         vector<string> &wordList) {
+
+        // Store dictionary for O(1) lookup
+        unordered_set<string> dict(wordList.begin(), wordList.end());
+
+        vector<vector<string>> result;
+
+        // Queue stores entire transformation path
+        // Example: ["hit", "hot", "dot"]
+        queue<vector<string>> q;
+        q.push({startWord});
+
+        // Tracks words used in the CURRENT BFS level
+        // We delay removal to allow multiple paths in same level
+        vector<string> usedThisLevel;
+        usedThisLevel.push_back(startWord);
+
+        int level = 1;  // current BFS depth (path length)
+
+        /*
+        INTUITION:
+        ----------
+        We explore level-by-level (BFS) to guarantee shortest paths.
+
+        Instead of storing just words, we store full paths so that
+        when we reach the target, we already have the complete sequence.
+
+        Key trick:
+        We DO NOT remove words immediately from dictionary.
+        We remove them AFTER finishing a level → ensures all shortest paths are explored.
+        */
+
+        while (!q.empty()) {
+
+            vector<string> path = q.front();
+            q.pop();
+
+            // If we reached a new level (longer path)
+            // → remove all words used in previous level
+            if (path.size() > level) {
+                level++;
+
+                for (auto &w : usedThisLevel) {
+                    dict.erase(w);  // mark visited globally
+                }
+                usedThisLevel.clear();
+            }
+
+            // Current word = last element in path
+            string word = path.back();
+
+            // If target reached → store path
+            if (word == targetWord) {
+
+                /*
+                Why check result size?
+
+                - First time → this is shortest path
+                - Later → only accept paths of SAME length
+                */
+                if (result.empty()) {
+                    result.push_back(path);
+                }
+                else if (result[0].size() == path.size()) {
+                    result.push_back(path);
+                }
+
+                // Do NOT expand further from target
+                continue;
+            }
+
+            // Generate all 1-letter transformations
+            for (int i = 0; i < word.size(); i++) {
+
+                char original = word[i];
+
+                for (char ch = 'a'; ch <= 'z'; ch++) {
+
+                    if (ch == original) continue;
+
+                    word[i] = ch;
+
+                    // If transformed word exists in dictionary → valid move
+                    if (dict.find(word) != dict.end()) {
+
+                        // Create new path including this word
+                        vector<string> newPath = path;
+                        newPath.push_back(word);
+
+                        q.push(newPath);
+
+                        // Mark this word to be removed AFTER level completes
+                        usedThisLevel.push_back(word);
+                    }
+                }
+
+                // Restore original word before next position change
+                word[i] = original;
+            }
+        }
+
+        return result;
+    }
+};
+```
