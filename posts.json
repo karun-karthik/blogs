@@ -49,8 +49,8 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp-1.md"
     },
     {
-      "slug": "dp-102",
-      "title": "DP: 102 :)",
+      "slug": "dp-201",
+      "title": "DP: 201",
       "date": "2026-02-25",
       "domain": "DSA",
       "topic": "Dynamic Programming",
@@ -119,6 +119,14 @@
       "domain": "DSA",
       "topic": "Graphs",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/graphs-1.md"
+    },
+    {
+      "slug": "graphs-201",
+      "title": "Graphs: 201",
+      "date": "2026-03-30",
+      "domain": "DSA",
+      "topic": "Graphs",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/graphs-2.md"
     },
     {
       "slug": "docker-101",
