@@ -152,10 +152,3 @@ public:
     }
 };
 ```
-
-
-Condition	Algorithm
-All weights ≥ 0	Dijkstra ✅
-Negative weights (no cycle)	Bellman-Ford ✅
-Negative cycle detection	Bellman-Ford ✅
-DAG (any weights)	Topo + Relaxation ✅
