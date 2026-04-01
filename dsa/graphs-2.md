@@ -313,3 +313,59 @@ public:
     }
 };
 ```
+
+### Cheapest flight within K stops
+```cpp
+class Solution{
+public:
+    int CheapestFlight(int n, vector<vector<int>> &flights, int src, int dst, int K) {
+        // Step 1: Build graph
+        vector<pair<int,int>> adj[n];
+        for (auto &it : flights) {
+            adj[it[0]].push_back({it[1], it[2]});
+        }
+
+        // Queue → {stops, node, cost}
+        queue<pair<int, pair<int,int>>> q;
+        q.push({0, {src, 0}});
+
+        // Distance array (minimum cost to reach node)
+        vector<int> dist(n, 1e9);
+        dist[src] = 0;
+
+        /*
+        INTUITION:
+        ----------
+            We explore level-by-level (like BFS), where each level = number of stops.
+            Unlike Dijkstra, we don't finalize nodes early because stops constraint matters.
+        */
+
+        while (!q.empty()) {
+
+            auto [stops, p] = q.front();
+            q.pop();
+
+            int node = p.first;
+            int cost = p.second;
+
+            // If stops exceed limit → skip
+            if (stops > K) continue;
+
+            for (auto [adjNode, edgeWt] : adj[node]) {
+
+                int newCost = cost + edgeWt;
+
+                // Relax only if cheaper
+                if (newCost < dist[adjNode]) {
+
+                    dist[adjNode] = newCost;
+
+                    q.push({stops + 1, {adjNode, newCost}});
+                }
+            }
+        }
+
+        return dist[dst] == 1e9 ? -1 : dist[dst];
+    }
+};
+```
