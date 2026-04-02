@@ -369,3 +369,189 @@ public:
     }
 };
 ```
+
+### Minimum multiplications to reach end
+>Model numbers as nodes and multiplication as edges; since all edges have equal cost, use BFS to find minimum steps.
+```cpp
+#define P pair<int,int>
+class Solution{
+public:
+    int minimumMultiplications(vector<int> &arr, int start, int end) {
+
+        // If already at target
+        if (start == end) return 0;
+
+        int MOD = 100000;
+
+        /*
+        minSteps[x] = minimum steps required to reach value x
+        Range: [0, 99999] due to modulo
+        */
+        vector<int> minSteps(MOD, INT_MAX);
+
+        // Queue → {steps, current value}
+        queue<P> q;
+
+        minSteps[start] = 0;
+        q.push({0, start});
+
+        /*  INTUITION:
+        ----------
+            Think of numbers as nodes.
+            From a node 'val', you can go to:
+                (val * arr[i]) % 100000
+            This is an unweighted graph → BFS gives shortest steps.
+        */
+
+        while (!q.empty()) {
+
+            auto [steps, val] = q.front();
+            q.pop();
+
+            // Try all multiplications
+            for (int i = 0; i < arr.size(); i++) {
+
+                int next = (val * arr[i]) % MOD;
+
+                // If we reach target → return immediately
+                if (next == end)
+                    return steps + 1;
+
+                // If this path is better → update
+                if (steps + 1 < minSteps[next]) {
+
+                    minSteps[next] = steps + 1;
+
+                    q.push({steps + 1, next});
+                }
+            }
+        }
+
+        // Target not reachable
+        return -1;
+    }
+};
+```
+
+### Number of ways to arrive at destination
+> Combine Dijkstra with DP: update ways when distances improve or match.
+```cpp
+#define P pair<long long, int>
+
+class Solution{
+public:
+    int countPaths(int n, vector<vector<int>> &roads) {
+
+        const int MOD = 1e9 + 7;
+
+        // Adjacency list: node → {neighbor, time}
+        vector<vector<pair<int,int>>> adj(n);
+        for (auto &r : roads) {
+            adj[r[0]].push_back({r[1], r[2]});
+            adj[r[1]].push_back({r[0], r[2]});
+        }
+
+        // dist[i]  = shortest time to reach node i
+        // ways[i]  = number of shortest ways to reach node i
+        vector<long long> dist(n, LLONG_MAX);
+        vector<long long> ways(n, 0);
+
+        dist[0] = 0;
+        ways[0] = 1;
+
+        // Min-heap on distance → always expand closest node
+        priority_queue<P, vector<P>, greater<P>> pq;
+        pq.push({0, 0});  // {time, node}
+
+        /*  CORE IDEA:
+        ----------
+            Standard Dijkstra + counting paths
+            - First time we improve dist[v] → inherit ways from u
+            - If we find another path with SAME shortest dist → add ways
+        */
+
+        while (!pq.empty()) {
+
+            auto [currTime, node] = pq.top();
+            pq.pop();
+
+            // Skip stale entries (typical Dijkstra optimization)
+            if (currTime > dist[node]) continue;
+
+            for (auto [nbr, time] : adj[node]) {
+
+                long long newTime = currTime + time;
+
+                // Found strictly shorter path → reset ways
+                if (newTime < dist[nbr]) {
+                    dist[nbr] = newTime;
+                    ways[nbr] = ways[node];   // inherit paths
+                    pq.push({newTime, nbr});
+                }
+
+                // Found another shortest path → accumulate ways
+                else if (newTime == dist[nbr]) {
+                    ways[nbr] = (ways[nbr] + ways[node]) % MOD;
+                }
+            }
+        }
+
+        // ways[n-1] = number of shortest paths to destination
+        return ways[n - 1] % MOD;
+    }
+};
+```
+
+### Bellman Ford Algorithm
+> Relax all edges V-1 times and check for further relaxation to detect negative cycles.
+```cpp
+class Solution {
+public:
+    vector<int> bellman_ford(int V, vector<vector<int>>& edges, int S) {
+
+        // dist[i] = shortest distance from source S to node i
+        vector<int> dist(V, 1e9);   // use 1e8 as "infinity"
+        dist[S] = 0;
+
+        /*  CORE IDEA:
+        ----------
+            Relax all edges V-1 times.
+            Why V-1?
+            → Longest possible shortest path in a graph has at most V-1 edges.
+        */
+
+        for (int i = 0; i < V - 1; i++) {
+
+            for (auto &e : edges) {
+
+                int u = e[0];
+                int v = e[1];
+                int wt = e[2];
+
+                // Relax edge only if source node is reachable
+                if (dist[u] != 1e9 && dist[u] + wt < dist[v]) {
+                    dist[v] = dist[u] + wt;
+                }
+            }
+        }
+
+        /*  NEGATIVE CYCLE CHECK:
+        ---------------------
+            If we can still relax any edge → negative cycle exists
+        */
+
+        for (auto &e : edges) {
+
+            int u = e[0];
+            int v = e[1];
+            int wt = e[2];
+
+            if (dist[u] != 1e9 && dist[u] + wt < dist[v]) {
+                return {-1};  // negative cycle detected
+            }
+        }
+
+        return dist;
+    }
+};
+```
