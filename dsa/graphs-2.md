@@ -767,3 +767,147 @@ public:
     }
 };
 ```
+
+### Bridges in graph (Tarjan's Algorithm)
+> Find bridges in a graph using Tarjan's algorithm, An edge u–v is a bridge if removing it disconnects the graph.
+```cpp
+class Solution {
+public:
+
+    void dfs(int node, int parent, vector<int> adj[],
+            vector<int> &visited, vector<int> &tin, vector<int> &low,
+            int &timer, vector<vector<int>> &bridges) {
+
+        visited[node] = 1;
+
+        tin[node] = low[node] = timer++;
+
+        /*  tin[node] → when node was first visited
+            low[node] → earliest reachable node (via back edge) */
+
+        for (int neighbor : adj[node]) {
+
+            // Ignore the edge we came from
+            if (neighbor == parent) continue;
+
+            if (!visited[neighbor]) {
+
+                // Tree edge
+                dfs(neighbor, node, adj, visited, tin, low, timer, bridges);
+
+                // Update low after returning
+                low[node] = min(low[node], low[neighbor]);
+
+                // 🔥 Bridge condition
+                if (low[neighbor] > tin[node]) {
+                    bridges.push_back({node, neighbor});
+                }
+            }
+            else {
+                // Back edge → update low
+                low[node] = min(low[node], tin[neighbor]);
+            }
+        }
+    }
+
+    vector<vector<int>> criticalConnections(int V, vector<vector<int>>& E) {
+
+        // Step 1: Build graph
+        vector<int> adj[V];
+        for (auto &e : E) {
+            int u = e[0], v = e[1];
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<int> visited(V, 0);
+        vector<int> tin(V, -1), low(V, -1);
+
+        int timer = 0;
+        vector<vector<int>> bridges;
+
+        // Run DFS for all components
+        for (int i = 0; i < V; i++) {
+            if (!visited[i]) {
+                dfs(i, -1, adj, visited, tin, low, timer, bridges);
+            }
+        }
+
+        return bridges;
+    }
+};
+```
+
+### Articulation point in graph
+
+```cpp
+class Solution {
+public:
+
+    void dfs(int node, int parent, vector<int> adj[], vector<int> &visited,
+            vector<int> &tin, vector<int> &low, vector<int> &mark, int &timer) {
+
+        visited[node] = 1;
+
+        tin[node] = low[node] = timer++;
+
+        int childCount = 0;
+
+        for (int neighbor : adj[node]) {
+
+            if (neighbor == parent) continue;
+
+            if (!visited[neighbor]) {
+
+                dfs(neighbor, node, adj, visited, tin, low, mark, timer);
+
+                // Update low value after DFS
+                low[node] = min(low[node], low[neighbor]);
+
+                /*  ARTICULATION CONDITION (non-root):
+                    If child cannot reach ancestors of node */
+                if (low[neighbor] >= tin[node] && parent != -1) {
+                    mark[node] = 1;
+                }
+                childCount++;
+            }
+            else {
+                // Back edge
+                low[node] = min(low[node], tin[neighbor]);
+            }
+        }
+
+        /*  ROOT CONDITION:
+            Root is articulation point if it has more than 1 child */
+        if (parent == -1 && childCount > 1) {
+            mark[node] = 1;
+        }
+    }
+
+    vector<int> articulationPoints(int n, vector<int> adj[]) {
+
+        vector<int> visited(n, 0);
+        vector<int> tin(n, -1), low(n, -1);
+        vector<int> mark(n, 0);
+
+        int timer = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (!visited[i]) {
+                dfs(i, -1, adj, visited, tin, low, mark, timer);
+            }
+        }
+
+        vector<int> result;
+
+        for (int i = 0; i < n; i++) {
+            if (mark[i]) result.push_back(i);
+        }
+
+        // If no articulation points
+        if (result.empty()) return {-1};
+
+        return result;
+    }
+};
+```
