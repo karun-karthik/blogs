@@ -555,3 +555,215 @@ public:
     }
 };
 ```
+
+### Floyd-Warshall Algorithm
+> Compute all-pairs shortest paths by iteratively considering each node as an intermediate node.
+```cpp
+class Solution {
+public:
+    void shortestDistance(vector<vector<int>>& matrix) {
+
+        int n = matrix.size();
+
+        /*
+        STEP 1: Convert -1 → INF
+        -1 means no direct edge
+        Use large value so it doesn't affect min()
+        */
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (matrix[i][j] == -1) {
+                    matrix[i][j] = 1e9;
+                }
+            }
+        }
+
+        /*
+        STEP 2: Distance from node to itself = 0
+        */
+        for (int i = 0; i < n; i++) {
+            matrix[i][i] = 0;
+        }
+
+        /* CORE IDEA:
+        ----------
+            Try every node as an intermediate node (via)
+            
+            If going through 'via' gives shorter path → update
+        */
+        for (int via = 0; via < n; via++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+
+                    // Relaxation using intermediate node
+                    if (matrix[i][via] + matrix[via][j] < matrix[i][j]) {
+                        matrix[i][j] = matrix[i][via] + matrix[via][j];
+                    }
+                }
+            }
+        }
+
+        /* STEP 3: Convert INF back to -1 (unreachable) */
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (matrix[i][j] == 1e9) {
+                    matrix[i][j] = -1;
+                }
+            }
+        }
+    }
+};
+```
+
+### Find the city with the smallest number of neighbors
+> Use Floyd-Warshall to compute all-pairs shortest paths, then count reachable cities for each node.
+```cpp
+class Solution {
+public:
+    int findCity(int n, int m, vector<vector<int>>& edges, int distanceThreshold) {
+
+        const int INF = 1e9;
+
+        // Step 1: Initialize adjacency matrix
+        vector<vector<int>> dist(n, vector<int>(n, INF));
+
+        // Distance to itself = 0
+        for (int i = 0; i < n; i++) {
+            dist[i][i] = 0;
+        }
+
+        // Fill edges (undirected)
+        for (auto &it : edges) {
+            int u = it[0], v = it[1], w = it[2];
+            dist[u][v] = w;
+            dist[v][u] = w;
+        }
+
+        /*
+        STEP 2: Floyd-Warshall
+        ----------------------
+        Try every node as intermediate (via)
+        */
+        for (int via = 0; via < n; via++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+
+                    // Avoid overflow when path doesn't exist
+                    if (dist[i][via] == INF || dist[via][j] == INF) continue;
+
+                    dist[i][j] = min(dist[i][j],
+                                     dist[i][via] + dist[via][j]);
+                }
+            }
+        }
+
+        /*
+        STEP 3: Find city with minimum reachable nodes
+        (within distanceThreshold)
+        
+        If tie → pick city with larger index
+        */
+        int minCount = INF;
+        int result = -1;
+
+        for (int i = 0; i < n; i++) {
+
+            int count = 0;
+
+            for (int j = 0; j < n; j++) {
+                if (i != j && dist[i][j] <= distanceThreshold) {
+                    count++;
+                }
+            }
+
+            // Tie-breaking handled automatically (<=)
+            if (count <= minCount) {
+                minCount = count;
+                result = i;
+            }
+        }
+
+        return result;
+    }
+};
+```
+
+### Kosaraju Algorithm
+> Count number of strongly connected components
+```cpp
+class Solution{
+public:
+
+    // First DFS: compute finishing order
+    void dfsFinishTime(int node, vector<int> graph[], vector<int> &visited, stack<int> &finishStack) {
+        visited[node] = 1;
+        for (int neighbor : graph[node]) {
+            if (!visited[neighbor]) {
+                dfsFinishTime(neighbor, graph, visited, finishStack);
+            }
+        }
+        // Node finishes AFTER exploring all reachable nodes
+        finishStack.push(node);
+    }
+
+    // Second DFS: explore one SCC in reversed graph
+    void dfsMarkComponent(int node, vector<int> reversedGraph[], vector<int> &visited) {
+        visited[node] = 1;
+        for (int neighbor : reversedGraph[node]) {
+            if (!visited[neighbor]) {
+                dfsMarkComponent(neighbor, reversedGraph, visited);
+            }
+        }
+    }
+
+    int kosaraju(int totalNodes, vector<int> graph[]) {
+
+        stack<int> finishStack;
+        vector<int> visited(totalNodes, 0);
+
+        /*
+        STEP 1:
+        Compute nodes in decreasing finishing time
+        */
+        for (int node = 0; node < totalNodes; node++) {
+            if (!visited[node]) {
+                dfsFinishTime(node, graph, visited, finishStack);
+            }
+        }
+
+        /*
+        STEP 2:
+        Build reversed graph
+        */
+        vector<int> reversedGraph[totalNodes];
+
+        for (int node = 0; node < totalNodes; node++) {
+            for (int neighbor : graph[node]) {
+                reversedGraph[neighbor].push_back(node);
+            }
+        }
+
+        // Reset visited for second pass
+        fill(visited.begin(), visited.end(), 0);
+
+        /*
+        STEP 3:
+        Process nodes in stack order → each DFS = one SCC
+        */
+        int stronglyConnectedComponents = 0;
+
+        while (!finishStack.empty()) {
+
+            int node = finishStack.top();
+            finishStack.pop();
+
+            if (!visited[node]) {
+                stronglyConnectedComponents++;
+                dfsMarkComponent(node, reversedGraph, visited);
+            }
+        }
+
+        return stronglyConnectedComponents;
+    }
+};
+```
