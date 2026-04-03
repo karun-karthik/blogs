@@ -129,6 +129,14 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/graphs-2.md"
     },
     {
+      "slug": "mst-101",
+      "title": "MST: 101",
+      "date": "2026-04-04",
+      "domain": "DSA",
+      "topic": "Graphs",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/mst.md"
+    },
+    {
       "slug": "docker-101",
       "title": "Docker 101: Ship Containers with Confidence",
       "date": "2026-02-22",
