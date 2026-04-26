@@ -191,13 +191,13 @@ This approach ensures that Quick Sort efficiently sorts the array using the divi
 
 ```cpp
 int partition(vector<int>& arr, int low, int high) {
-    int ele = arr[low];
+    int pivot = arr[low];
     int i = low;
     int j = high;
 
     while (i < j) {
-        while (arr[i] <= ele && i <= high) i++;
-        while (arr[j] > ele && j >= low) j--;
+        while (i <= high && arr[i] <= pivot) i++;
+        while (j >= low && arr[j] > pivot) j--;
         if (i < j) swap(arr[i], arr[j]);
     }
     swap(arr[low], arr[j]);
@@ -207,8 +207,8 @@ int partition(vector<int>& arr, int low, int high) {
 void qs(vector<int>& arr, int low, int high) {
     if (low < high) {
         int pivot = partition(arr, low, high);
-        qs(arr, low, pivot-1);
-        qs(arr, pivot+1, high);
+        qs(arr, low, pivot - 1);
+        qs(arr, pivot + 1, high);
     }
 }
 

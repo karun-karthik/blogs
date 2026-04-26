@@ -1,7 +1,7 @@
 {
   "posts": [
     {
-      "slug": "sorting",
+      "slug": "sorting-101",
       "title": "Sorting: 101",
       "date": "2026-02-01",
       "domain": "DSA",
@@ -9,7 +9,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/sorting.md"
     },
     {
-      "slug": "arrays",
+      "slug": "arrays-101",
       "title": "Arrays: 101",
       "date": "2026-02-07",
       "domain": "DSA",
@@ -17,7 +17,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/arrays.md"
     },
     {
-      "slug": "hashing",
+      "slug": "hashing-101",
       "title": "Hashing: 101",
       "date": "2026-02-11",
       "domain": "DSA",
@@ -25,7 +25,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/hashing.md"
     },
     {
-      "slug": "binary-search",
+      "slug": "binary-search-101",
       "title": "Binary Search: 101",
       "date": "2026-02-12",
       "domain": "DSA",
@@ -33,7 +33,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/binary-search.md"
     },
     {
-      "slug": "recursion",
+      "slug": "recursion-101",
       "title": "Recursion: 101",
       "date": "2026-02-15",
       "domain": "DSA",
@@ -41,7 +41,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/recursion.md"
     },
     {
-      "slug": "dp-1",
+      "slug": "dp-101",
       "title": "DP: 101",
       "date": "2026-02-17",
       "domain": "DSA",
@@ -49,15 +49,15 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp-1.md"
     },
     {
-      "slug": "dp-2",
-      "title": "DP: 102 :)",
+      "slug": "dp-201",
+      "title": "DP: 201",
       "date": "2026-02-25",
       "domain": "DSA",
       "topic": "Dynamic Programming",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/dp-2.md"
     },
     {
-      "slug": "linked-list",
+      "slug": "linked-list-101",
       "title": "Linked Lists: 101",
       "date": "2026-02-28",
       "domain": "DSA",
@@ -65,7 +65,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/linked-list.md"
     },
     {
-      "slug": "trees",
+      "slug": "trees-101",
       "title": "Trees: 101",
       "date": "2026-03-14",
       "domain": "DSA",
@@ -73,7 +73,7 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/trees.md"
     },
     {
-      "slug": "bst",
+      "slug": "binary-search-trees-101",
       "title": "Binary Search Trees: 101",
       "date": "2026-03-16",
       "domain": "DSA",
@@ -81,7 +81,63 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/bst.md"
     },
     {
-      "slug": "devops",
+      "slug": "heaps-101",
+      "title": "Heaps: 101",
+      "date": "2026-03-19",
+      "domain": "DSA",
+      "topic": "Heaps",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/heap.md"
+    },
+    {
+      "slug": "bit-manipulation-101",
+      "title": "Bit Manipulation: 101",
+      "date": "2026-03-20",
+      "domain": "DSA",
+      "topic": "Bit Manipulation",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/bit-manipulation.md"
+    },
+    {
+      "slug": "greedy-101",
+      "title": "Greedy: 101",
+      "date": "2026-03-21",
+      "domain": "DSA",
+      "topic": "Greedy",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/greedy.md"
+    },
+    {
+      "slug": "sliding-window-101",
+      "title": "Sliding Window: 101",
+      "date": "2026-03-22",
+      "domain": "DSA",
+      "topic": "Sliding Window",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/sliding-window.md"
+    },
+    {
+      "slug": "graphs-101",
+      "title": "Graphs: 101",
+      "date": "2026-03-23",
+      "domain": "DSA",
+      "topic": "Graphs",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/graphs-1.md"
+    },
+    {
+      "slug": "graphs-201",
+      "title": "Graphs: 201",
+      "date": "2026-03-30",
+      "domain": "DSA",
+      "topic": "Graphs",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/graphs-2.md"
+    },
+    {
+      "slug": "mst-101",
+      "title": "MST: 101",
+      "date": "2026-04-04",
+      "domain": "DSA",
+      "topic": "Graphs",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/mst.md"
+    },
+    {
+      "slug": "docker-101",
       "title": "Docker 101: Ship Containers with Confidence",
       "date": "2026-02-22",
       "domain": "DevOps",
