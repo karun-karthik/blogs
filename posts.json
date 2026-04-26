@@ -137,6 +137,14 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/mst.md"
     },
     {
+      "slug": "stacks-n-queues-101",
+      "title": "Stacks & Queues: 101",
+      "date": "2026-04-27",
+      "domain": "DSA",
+      "topic": "Stacks & Queues",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/dsa/stack-queue.md"
+    },
+    {
       "slug": "docker-101",
       "title": "Docker 101: Ship Containers with Confidence",
       "date": "2026-02-22",
