@@ -751,3 +751,102 @@ string removeKdigits(string nums, int k) {
     return result.empty() ? "0" : result;
 }
 ```
+
+# FAQs
+### Implement a Min-Stack
+```cpp
+class MinStack {
+private:
+    stack<long long> st;
+    long long mini;
+
+public:
+    MinStack() {
+        mini = LLONG_MAX;
+    }
+
+    void push(int value) {
+
+        if (st.empty()) {
+            st.push(value);
+            mini = value;
+        }
+        else {
+            if (value >= mini) {
+                st.push(value);
+            }
+            else {
+                /* Encode value: store a smaller number to track previous min */
+                st.push(2LL * value - mini);
+                mini = value;
+            }
+        }
+    }
+
+    void pop() {
+
+        if (st.empty()) return;
+
+        long long topVal = st.top();
+        st.pop();
+
+        if (topVal < mini) {
+            /* Encoded value detected; Recover previous minimum */
+            mini = 2LL * mini - topVal;
+        }
+    }
+
+    int top() {
+
+        long long topVal = st.top();
+
+        if (topVal < mini) {
+            // Encoded → actual value is current minimum
+            return mini;
+        }
+
+        return topVal;
+    }
+
+    int getMin() {
+        return mini;
+    }
+};
+```
+
+### Sliding Window Maximum
+```cpp
+vector<int> maxSlidingWindow(vector<int> &arr, int k) {
+
+    int n = arr.size();
+    vector<int> result;
+
+    deque<int> dq;  
+    // stores indices
+    // maintains decreasing values: arr[dq[0]] >= arr[dq[1]] >= ...
+
+    for (int i = 0; i < n; i++) {
+
+        // 1) Remove indices out of current window [i-k+1, i]
+        if (!dq.empty() && dq.front() <= i - k) {
+            dq.pop_front();
+        }
+
+        // 2) Maintain monotonic decreasing order
+        // Remove all smaller/equal elements from back
+        while (!dq.empty() && arr[dq.back()] <= arr[i]) {
+            dq.pop_back();
+        }
+
+        // 3) Add current index
+        dq.push_back(i);
+
+        // 4) Record answer when window is valid
+        if (i >= k - 1) {
+            result.push_back(arr[dq.front()]);  // max of window
+        }
+    }
+
+    return result;
+}
+```
