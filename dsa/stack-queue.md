@@ -850,3 +850,696 @@ vector<int> maxSlidingWindow(vector<int> &arr, int k) {
     return result;
 }
 ```
+
+### Trapping Rainwater Problem
+```cpp
+class Solution {
+public:
+    int trap(vector<int> &height) {
+
+        int n = height.size();
+        int left = 0, right = n - 1;
+        int leftMax = 0, rightMax = 0;
+        int water = 0;
+
+        /*
+        CORE IDEA:
+        ----------
+        Water at index i depends on:
+        min(max height on left, max height on right) - height[i]
+
+        Instead of precomputing arrays,
+        we use two pointers and maintain running max.
+        */
+
+        while (left < right) {
+
+            /*
+            Always move the side with smaller height
+            because it is the limiting factor
+            */
+            if (height[left] <= height[right]) {
+
+                // If current bar is lower than leftMax → water can be trapped
+                if (height[left] < leftMax) {
+                    water += leftMax - height[left];
+                }
+                else {
+                    // Update left boundary
+                    leftMax = height[left];
+                }
+
+                left++;
+            }
+            else {
+
+                // Same logic for right side
+                if (height[right] < rightMax) {
+                    water += rightMax - height[right];
+                }
+                else {
+                    // Update right boundary
+                    rightMax = height[right];
+                }
+
+                right--;
+            }
+        }
+
+        return water;
+    }
+};
+```
+
+### Largest rectangle in a Histogram
+```cpp
+class Solution {
+public:
+    int largestRectangleArea(vector<int> &heights) {
+
+        int n = heights.size();
+
+        stack<int> st;
+        // Monotonic increasing stack (stores indices)
+        // heights[st[0]] < heights[st[1]] < ...
+
+        int maxArea = 0;
+
+        /*
+        IDEA:
+        -----
+        Each bar tries to expand left and right
+        until a smaller bar blocks it.
+
+        When a bar is popped:
+        - Current index (i) becomes its Next Smaller Element (NSE)
+        - New stack top becomes its Previous Smaller Element (PSE)
+
+        → This gives us full width for that bar
+        */
+
+        for (int i = 0; i <= n; i++) {
+
+            /*
+            For i == n:
+            Treat height as 0 (sentinel)
+            → Forces all remaining bars to be processed
+            → Eliminates need for a separate cleanup loop
+            */
+            int currHeight = (i == n ? 0 : heights[i]);
+
+            /*
+            If current bar is smaller,
+            it becomes the "right boundary" for taller bars in stack
+            */
+            while (!st.empty() && currHeight < heights[st.top()]) {
+
+                int idx = st.top();
+                st.pop();
+
+                int height = heights[idx];
+
+                /*
+                Boundaries:
+                - Right boundary → current index i
+                - Left boundary → new stack top after pop
+                */
+                int right = i;
+                int left = st.empty() ? -1 : st.top();
+
+                int width = right - left - 1;
+
+                maxArea = max(maxArea, height * width);
+            }
+
+            /*
+            Push current index:
+            It may act as a future PSE for upcoming bars
+            */
+            st.push(i);
+        }
+
+        return maxArea;
+    }
+};
+```
+
+### Maximum Rectangles
+Given a m x n binary matrix filled with 0's and 1's, find the largest rectangle containing only 1's and return its area.
+
+```cpp
+class Solution {
+public:
+
+    // Helper: Largest Rectangle in Histogram
+    int largestRectangleArea(vector<int> &heights) {
+
+        int n = heights.size();
+        stack<int> st;
+        int maxArea = 0;
+
+        for (int i = 0; i <= n; i++) {
+
+            int currHeight = (i == n ? 0 : heights[i]);
+
+            while (!st.empty() && currHeight < heights[st.top()]) {
+
+                int idx = st.top();
+                st.pop();
+
+                int height = heights[idx];
+
+                int right = i;
+                int left = st.empty() ? -1 : st.top();
+
+                int width = right - left - 1;
+
+                maxArea = max(maxArea, height * width);
+            }
+
+            st.push(i);
+        }
+
+        return maxArea;
+    }
+
+
+    int maximalAreaOfSubMatrixOfAll1(vector<vector<int>> &matrix) {
+
+        int n = matrix.size();
+        int m = matrix[0].size();
+
+        vector<int> heights(m, 0);
+
+        int maxArea = 0;
+
+        // Build histogram row by row
+        for (int row = 0; row < n; row++) {
+
+            for (int col = 0; col < m; col++) {
+
+                // If cell = 1 → extend height
+                // If cell = 0 → reset height
+
+                if (matrix[row][col] == 1)
+                    heights[col] += 1;
+                else
+                    heights[col] = 0;
+            }
+
+            /* Treat current row as histogram */
+            int area = largestRectangleArea(heights);
+
+            maxArea = max(maxArea, area);
+        }
+
+        return maxArea;
+    }
+};
+
+
+### Stock Span
+```cpp
+class Solution
+{
+private:
+    vector<int> findPGE(vector<int> &arr) {
+
+        int n = arr.size();
+        vector<int> res(n);
+
+        stack<int> st;
+        // Monotonic decreasing stack (stores indices)
+        // arr[st.top()] always represents a candidate for previous greater
+
+        for (int i = 0; i < n; i++) {
+
+            int curr = arr[i];
+
+            // Remove all elements <= current
+            // because they cannot be "previous greater" anymore
+            while (!st.empty() && arr[st.top()] <= curr) {
+                st.pop();
+            }
+
+            // If stack is empty → no greater element on left
+            // Else → top of stack is nearest greater element
+            res[i] = st.empty() ? -1 : st.top();
+
+            // Push current index for future comparisons
+            st.push(i);
+        }
+
+        return res;
+    }
+
+public:
+    vector<int> stockSpan(vector<int> arr, int n) {
+
+        // Step 1: Find Previous Greater Element indices
+        vector<int> pge = findPGE(arr);
+
+        vector<int> span(n);
+
+        // Step 2: Compute span
+        for (int i = 0; i < n; i++) {
+
+            // If no greater element → span = i + 1
+            // Else → span = distance from previous greater
+            span[i] = i - pge[i];
+        }
+
+        return span;
+    }
+};
+```
+
+```cpp
+class Solution
+{
+public:
+    vector<int> stockSpan(vector<int> arr, int n) {
+
+        stack<int> st;  // stores indices
+        vector<int> span(n);
+
+        for (int i = 0; i < n; i++) {
+
+            // Remove all elements <= current
+            // They cannot block span anymore
+            while (!st.empty() && arr[st.top()] <= arr[i]) {
+                st.pop();
+            }
+
+            // If stack empty → full span till beginning
+            // Else → distance from previous greater
+            span[i] = st.empty() ? (i + 1) : (i - st.top());
+
+            // Push current index
+            st.push(i);
+        }
+
+        return span;
+    }
+};
+```
+
+### Celebrity Problem
+A celebrity is a person who is known by everyone else at the party but does not know anyone in return. Given a square matrix M of size N x N where M[i][j] is 1 if person i knows person j, and 0 otherwise, determine if there is a celebrity at the party. Return the index of the celebrity or -1 if no such person exists.
+```cpp
+class Solution
+{
+public:
+    int celebrity(vector<vector<int>> &M) {
+
+        int n = M.size();
+
+        int top = 0, bottom = n - 1;
+
+        // Step 1: Eliminate non-celebrities
+        while (top < bottom) {
+
+            // If top knows bottom → top cannot be celebrity
+            if (M[top][bottom] == 1) {
+                top++;
+            }
+            // Else → bottom cannot be celebrity
+            else {
+                bottom--;
+            }
+        }
+
+        // Potential celebrity
+        int candidate = top;
+
+        // Step 2: Verify candidate
+
+        for (int i = 0; i < n; i++) {
+
+            if (i == candidate) continue;
+
+            // Candidate should NOT know anyone
+            if (M[candidate][i] == 1) return -1;
+
+            // Everyone should know candidate
+            if (M[i][candidate] == 0) return -1;
+        }
+
+        return candidate;
+    }
+};
+```
+
+```cpp
+class Solution
+{
+public:
+    int celebrity(vector<vector<int>> &M) {
+
+        int n = M.size();
+        stack<int> st;
+
+        // Step 1: Push all people into stack
+        for (int i = 0; i < n; i++) {
+            st.push(i);
+        }
+
+        // Step 2: Eliminate non-celebrities
+        while (st.size() > 1) {
+
+            int a = st.top(); st.pop();
+            int b = st.top(); st.pop();
+
+            // If a knows b → a cannot be celebrity
+            if (M[a][b] == 1) {
+                st.push(b);
+            }
+            // Else → b cannot be celebrity
+            else {
+                st.push(a);
+            }
+        }
+
+        // Potential celebrity
+        int candidate = st.top();
+
+        // Step 3: Verify candidate
+        for (int i = 0; i < n; i++) {
+
+            if (i == candidate) continue;
+
+            // Candidate should not know anyone
+            if (M[candidate][i] == 1) return -1;
+
+            // Everyone should know candidate
+            if (M[i][candidate] == 0) return -1;
+        }
+
+        return candidate;
+    }
+};
+```
+
+### LRU Cache
+```cpp
+class LRUCache {
+private:
+    class Node {
+    public:
+        int key, value;
+        Node* prev;
+        Node* next;
+
+        Node(int k, int v) {
+            key = k;
+            value = v;
+            prev = next = NULL;
+        }
+    };
+
+    int capacity;  // maximum size of cache
+
+    unordered_map<int, Node*> mp;  
+    // key → pointer to node in DLL
+
+    Node* head; // dummy head → most recently used side
+    Node* tail; // dummy tail → least recently used side
+
+    // Remove a node from its current position in DLL
+    void removeNode(Node* node) {
+        Node* prevNode = node->prev;
+        Node* nextNode = node->next;
+
+        prevNode->next = nextNode;
+        nextNode->prev = prevNode;
+    }
+
+    // Insert node right after head → mark as most recently used
+    void insertAfterHead(Node* node) {
+        node->next = head->next;
+        node->prev = head;
+
+        head->next->prev = node;
+        head->next = node;
+    }
+
+public:
+
+    LRUCache(int capacity) {
+        this->capacity = capacity;
+
+        // Create dummy head and tail to simplify operations
+        head = new Node(-1, -1);
+        tail = new Node(-1, -1);
+
+        head->next = tail;
+        tail->prev = head;
+    }
+
+    int get(int key_) {
+
+        // If key not present → return -1
+        if (mp.find(key_) == mp.end()) {
+            return -1;
+        }
+        Node* node = mp[key_];
+
+        // Move accessed node to front (MRU)
+        removeNode(node);
+        insertAfterHead(node);
+
+        return node->value;
+    }
+
+    void put(int key_, int value) {
+
+        // If key already exists → update value and move to front
+        if (mp.find(key_) != mp.end()) {
+            Node* node = mp[key_];
+            node->value = value;
+            removeNode(node);
+            insertAfterHead(node);
+        } else {
+            // If cache is full → remove least recently used node
+            if (mp.size() == capacity) {
+                Node* lru = tail->prev;  // last real node
+                removeNode(lru);
+                mp.erase(lru->key);
+                delete lru;  // free memory
+            }
+
+            // Insert new node at front (MRU position)
+            Node* newNode = new Node(key_, value);
+            insertAfterHead(newNode);
+            mp[key_] = newNode;
+        }
+    }
+};
+```
+
+### LFU Cache
+```cpp
+class LFUCache {
+    
+private:
+    int capacity;
+    int minFreq;
+
+    unordered_map<int, pair<int,int>> keyMap;
+    // key → {value, freq}
+
+    unordered_map<int, list<int>> freqMap;
+    // freq → list of keys (LRU order within same freq)
+
+    unordered_map<int, list<int>::iterator> pos;
+    // key → position in freq list (for O(1) erase)
+
+    // Update frequency of a key
+    void updateFreq(int key) {
+
+        int freq = keyMap[key].second;
+
+        // Remove key from current freq list
+        freqMap[freq].erase(pos[key]);
+
+        // If this was the only key with minFreq → update minFreq
+        if (freqMap[freq].empty()) {
+            freqMap.erase(freq);
+            if (minFreq == freq) {
+                minFreq++;
+            }
+        }
+
+        // Increase frequency
+        keyMap[key].second++;
+
+        int newFreq = freq + 1;
+
+        // Insert into new freq list (most recent at front)
+        freqMap[newFreq].push_front(key);
+
+        pos[key] = freqMap[newFreq].begin();
+    }
+
+public:
+
+    LFUCache(int capacity) {
+        this->capacity = capacity;
+        minFreq = 0;
+    }
+
+    int get(int key) {
+
+        // Key not found
+        if (keyMap.find(key) == keyMap.end()) {
+            return -1;
+        }
+
+        // Update frequency
+        updateFreq(key);
+
+        return keyMap[key].first;
+    }
+
+    void put(int key, int value) {
+
+        // Edge case: capacity = 0
+        if (capacity == 0) return;
+
+        // If key exists → update value and frequency
+        if (keyMap.find(key) != keyMap.end()) {
+
+            keyMap[key].first = value;
+
+            updateFreq(key);
+        }
+        else {
+
+            // If full → remove LFU key
+            if (keyMap.size() == capacity) {
+
+                // Get least frequently used list
+                int lfuKey = freqMap[minFreq].back();
+
+                // Remove least recently used within that freq
+                freqMap[minFreq].pop_back();
+
+                if (freqMap[minFreq].empty()) {
+                    freqMap.erase(minFreq);
+                }
+
+                keyMap.erase(lfuKey);
+                pos.erase(lfuKey);
+            }
+
+            // Insert new key with freq = 1
+            keyMap[key] = {value, 1};
+
+            freqMap[1].push_front(key);
+            pos[key] = freqMap[1].begin();
+
+            minFreq = 1;  // reset min frequency
+        }
+    }
+};
+```
+
+# Monotonic Stack — Quick Pattern
+
+**Use when:**
+- nearest greater / smaller element
+- "span" / "visibility" / "first blocking"
+- histogram / ranges where element is the limiting factor
+
+**Core idea:**
+Maintain a stack that is monotonic (increasing or decreasing). Pop until the invariant holds → the top becomes the answer.
+
+### Choose the Stack Type
+
+| Query | Stack Type | Pop Condition |
+| --- | --- | --- |
+| Next Greater (>) | Decreasing | `arr[st.top()] <= curr` |
+| Next Smaller (<) | Increasing | `arr[st.top()] >= curr` |
+| Previous Greater | Decreasing | same as above |
+| Previous Smaller | Increasing | same as above |
+
+> “Greater → decreasing stack”, “Smaller → increasing stack”
+
+### Templates (Index-based, O(n))
+1. **Next Greater Element (to right)**
+```cpp
+vector<int> nextGreater(vector<int>& a) {
+    int n = a.size();
+    vector<int> ans(n, -1);
+    stack<int> st; // decreasing stack (indices)
+
+    for (int i = n - 1; i >= 0; --i) {
+        while (!st.empty() && a[st.top()] <= a[i]) st.pop();
+        ans[i] = st.empty() ? -1 : a[st.top()];
+        st.push(i);
+    }
+    return ans;
+}
+```
+2. **Previous Greater Element (to left)**
+```cpp
+vector<int> prevGreater(vector<int>& a) {
+    int n = a.size();
+    vector<int> ans(n, -1);
+    stack<int> st; // decreasing
+
+    for (int i = 0; i < n; ++i) {
+        while (!st.empty() && a[st.top()] <= a[i]) st.pop();
+        ans[i] = st.empty() ? -1 : a[st.top()];
+        st.push(i);
+    }
+    return ans;
+}
+```
+3. **Next Smaller Element (to right)**
+```cpp
+vector<int> nextSmaller(vector<int>& a) {
+    int n = a.size();
+    vector<int> ans(n, -1);
+    stack<int> st; // increasing
+
+    for (int i = n - 1; i >= 0; --i) {
+        while (!st.empty() && a[st.top()] >= a[i]) st.pop();
+        ans[i] = st.empty() ? -1 : a[st.top()];
+        st.push(i);
+    }
+    return ans;
+}
+```
+4. **Previous Smaller Element (to left)**
+```cpp
+vector<int> prevSmaller(vector<int>& a) {
+    int n = a.size();
+    vector<int> ans(n, -1);
+    stack<int> st; // increasing
+
+    for (int i = 0; i < n; ++i) {
+        while (!st.empty() && a[st.top()] >= a[i]) st.pop();
+        ans[i] = st.empty() ? -1 : a[st.top()];
+        st.push(i);
+    }
+    return ans;
+}
+```
+
+### Circular Next Greater Element
+```cpp
+vector<int> nextGreaterCircular(vector<int>& a) {
+    int n = a.size();
+    vector<int> ans(n, -1);
+    stack<int> st;
+
+    for (int i = 2*n - 1; i >= 0; --i) {
+        int idx = i % n;
+        while (!st.empty() && st.top() <= a[idx]) st.pop();
+        if (i < n) ans[idx] = st.empty() ? -1 : st.top();
+        st.push(a[idx]);
+    }
+    return ans;
+}
+```
