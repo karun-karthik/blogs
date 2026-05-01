@@ -1056,7 +1056,7 @@ public:
         return maxArea;
     }
 };
-
+```
 
 ### Stock Span
 ```cpp
