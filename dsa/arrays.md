@@ -103,14 +103,26 @@ void rotateArray(vector<int>& nums, int k) {
 
 ```cpp
 void moveZeroes(vector<int>& nums) {
-    int n = nums.size();
     int i = 0, j = 0;
-    while (i < n && j < n) {
-        if (nums[i] != 0) {
+    int n = nums.size();
+
+    // i -> traverses the array
+    // j -> points to the position where the next non-zero element should be placed
+    while (i < n) {
+        if (nums[i] == 0) {
+            // Skip zero elements
+            i++;
+        } else {
+            // Move the current non-zero element to its correct position
+            // If i == j, swap has no effect
             swap(nums[i], nums[j]);
+
+            // Advance both pointers:
+            // j moves to the next insertion position,
+            // i continues scanning the array
+            i++;
             j++;
         }
-        i++;
     }
 }
 ```
@@ -118,17 +130,40 @@ void moveZeroes(vector<int>& nums) {
 ### Remove Duplicates from Sorted Array
 
 ```cpp
+/*
+    Approach:
+    - Use two pointers:
+      i -> points to the last unique element in the array.
+      j -> scans the array looking for new unique elements.
+
+    Intuition:
+    - Initially, both i and j start at index 0.
+    - If nums[j] == nums[i], we've found a duplicate,
+      so just move j forward.
+    - If nums[j] != nums[i], we've found a new unique element.
+      Place it right after the last unique element
+      (at index i + 1), then increment both i and j.
+    - At the end, the first (i + 1) elements contain all
+      unique values in sorted order.
+*/
 int removeDuplicates(vector<int>& nums) {
-    int i = 0, j = 0;
     int n = nums.size();
-    while (i < n) {
-        if (nums[i] != nums[j]) {
+    int i = 0, j = 0;
+
+    while (j < n) {
+        if (nums[i] == nums[j]) {
+            // Duplicate element, skip it
             j++;
-            nums[j] = nums[i];
+        } else {
+            // New unique element found
+            nums[i + 1] = nums[j];
+            i++;
+            j++;
         }
-        i++;
     }
-    return j+1;
+
+    // Number of unique elements
+    return i + 1;
 }
 ```
 
@@ -203,20 +238,30 @@ A leader in an array is an element whose value is strictly greater than all elem
 
 ```cpp
 vector<int> leaders(vector<int>& nums) {
-    vector<int> res;
-    int n = nums.size();
-    int j = n-1;
-    res.push_back(nums[j]);
-    int val = nums[j];
-    while (j > 0) {
-        j--;
-        if (nums[j] > val) {
-            val = nums[j];
-            res.push_back(val);
+    vector<int> leadersList;
+    int lastIndex = nums.size() - 1;
+
+    // The rightmost element is always a leader
+    leadersList.push_back(nums[lastIndex]);
+    int maxFromRight = nums[lastIndex];
+
+    // Traverse the array from right to left
+    while (lastIndex >= 0) {
+        // If the current element is greater than every element
+        // seen to its right, it is a leader
+        if (nums[lastIndex] > maxFromRight) {
+            maxFromRight = nums[lastIndex];
+            leadersList.push_back(nums[lastIndex]);
         }
+
+        lastIndex--;
     }
-    reverse(res.begin(), res.end());
-    return res;
+
+    // Leaders were collected from right to left,
+    // so reverse them to restore the original order
+    reverse(leadersList.begin(), leadersList.end());
+
+    return leadersList;
 }
 ```
 
@@ -492,6 +537,69 @@ int maxSubArray(vector<int>& nums) {
 }
 ```
 
+### Next Permutation
+```
+void nextPermutation(vector<int>& nums) {
+    int n = nums.size();
+
+    // Example:
+    // nums = [1,2,5,4]
+
+    // Step 1: Find the pivot
+    // Traverse from the right and find the first element
+    // that is smaller than its next element.
+    //
+    // 1 2 5 4
+    //     ^
+    // 5 >= 4 -> move left
+    //
+    // 1 2 5 4
+    //   ^
+    // 2 < 5 -> Pivot found (index = 1)
+
+    int i = n - 2;
+    while (i >= 0 && nums[i] >= nums[i + 1]) {
+        i--;
+    }
+
+    // Step 2: Find the smallest element greater than the pivot.
+    // Search from the right.
+    //
+    // 1 2 5 4
+    //       ^
+    // 4 > 2 -> stop
+    //
+    // Swap 2 and 4
+    //
+    // Before:
+    // 1 2 5 4
+    //
+    // After:
+    // 1 4 5 2
+
+    if (i >= 0) {
+        int j = n - 1;
+        while (nums[j] <= nums[i]) {
+            j--;
+        }
+        swap(nums[i], nums[j]);
+    }
+
+    // Step 3: Reverse everything after the pivot.
+    //
+    // Current array:
+    // 1 4 5 2
+    //     ----
+    //     suffix = [5,2]
+    //
+    // Reverse it: [5,2] -> [2,5]
+    //
+    // Final answer: 1 4 2 5
+
+    reverse(nums.begin() + i + 1, nums.end());
+}
+```
+
 ## FAQ - Hard
 
 
@@ -590,43 +698,46 @@ Two elements a[i] and a[j] form an inversion if a[i] > a[j] and i < j.
 - An array sorted in descending order has maximum inversion.
 
 ```cpp
-long long int merge(vector<int>&arr, int low, int mid, int high) {
+long long int merge(vector<int>&nums, int low, int mid, int high) {
+    int left = low, right = mid + 1;
+    long long int count = 0;
     vector<int> temp;
-    int left = low, right = mid+1;
-    int count = 0;
+
     while (left <= mid && right <= high) {
-        if (arr[left] <= arr[right]) {
-            temp.push_back(arr[left]);
-            left++;
+        if (nums[left] <= nums[right]) {
+            // Left element is already in correct order,
+            // so add it to the merged array
+            temp.push_back(nums[left++]);
         } else {
-            temp.push_back(arr[right]);
-            right++;
-            count += (mid-left+1); // main result
+            // nums[right] is smaller than nums[left], which means
+            // it forms an inversion with every remaining element
+            // from left to mid (since both halves are sorted)
+            temp.push_back(nums[right++]);
+            count += (mid - left) + 1;
         }
     }
-    while (left <= mid) {
-        temp.push_back(arr[left]);
-        left++;
-    }
-    while (right <= high) {
-        temp.push_back(arr[right]);
-        right++;
-    }
+
+    while (left <= mid) temp.push_back(nums[left++]);
+    while (right <= high) temp.push_back(nums[right++]);
+
     for (int i=low; i<=high; i++) {
-        arr[i] = temp[i-low];
+        nums[i] = temp[i-low];
     }
+
     return count;
 }
-long long int mergeSort(vector<int>& arr, int low, int high) {
+
+long long int mergeSort(vector<int>&nums, int low, int high) {
     long long int count = 0;
     if (low < high) {
-        int mid = low + (high-low)/2;
-        count += mergeSort(arr, low, mid);
-        count += mergeSort(arr, mid+1, high);
-        count += merge(arr, low, mid, high);
+        int mid = (low + high) / 2;
+        count += mergeSort(nums, low, mid);
+        count += mergeSort(nums, mid + 1, high);
+        count += merge(nums, low, mid, high);
     }
     return count;
 }
+
 long long int numberOfInversions(vector<int> nums) {
     return mergeSort(nums, 0, nums.size()-1);
 }
@@ -656,18 +767,25 @@ void merge(vector<int>& arr, int start, int mid, int end) {
     while (right <= end) temp[k++] = arr[right++];
     for (int i=start; i<=end; i++) arr[i] = temp[i-start];
 }
-int countPairs(vector<int> &arr, int low, int mid, int high) {
-    int right = mid + 1;
-    int cnt = 0;
+
+int countPairs(int low, int mid, int high, vector<int> &nums) {
+    int right = mid + 1; // Start from the beginning of the right half
+    int count = 0;
+
     for (int i = low; i <= mid; i++) {
-        /*while right is less than equal to high
-        and arr[i] is greater than 2 * arr[right]
-        then increment right by 1*/
-        while (right <= high && arr[i] > 2 * arr[right]) right++;
-        cnt += (right - (mid + 1));
+        // Since both halves are sorted, move 'right' until
+        // nums[i] <= 2 * nums[right]
+        while (right <= high && (long long)nums[i] > 2LL * nums[right])
+            right++;
+
+        // All elements before 'right' satisfy:
+        // nums[i] > 2 * nums[j]
+        count += (right - (mid + 1));
     }
-    return cnt;
+
+    return count;
 }
+
 int mergeSort(vector<int>& nums, int start, int end) {
     int count = 0;
     if (start >= end) return count;
@@ -678,6 +796,7 @@ int mergeSort(vector<int>& nums, int start, int end) {
     merge(nums, start, mid, end);
     return count;
 }
+
 int reversePairs(vector<int>& nums) {
     return mergeSort(nums, 0, nums.size()-1);
 }
@@ -689,19 +808,29 @@ Given an integer array nums. Find the subarray with the largest product, and ret
 A subarray is a contiguous non-empty sequence of elements within an array.
 
 ```cpp
-int maxProduct(vector<int>& arr) {
-    int res = INT_MIN;
-    int suffix = 1;
-    int prefix = 1;
-    int n = arr.size();
-    for (int i = 0; i<arr.size(); i++) {
+int maxProduct(vector<int>& nums) {
+    int n = nums.size();
+    int ans = INT_MIN;
+    int prefix = 1, suffix = 1;
+
+    for (int i = 0; i < n; i++) {
+        // Reset the product after encountering a zero,
+        // since any subarray crossing a zero has product 0
         if (prefix == 0) prefix = 1;
         if (suffix == 0) suffix = 1;
-        prefix = prefix * arr[i];
-        suffix = suffix * arr[n-i-1];
-        res = max(res, max(suffix, prefix));
+
+        // Compute product from the left
+        prefix *= nums[i];
+
+        // Compute product from the right
+        suffix *= nums[n - i - 1];
+
+        // The maximum product subarray can be obtained
+        // from either direction (handles odd number of negatives)
+        ans = max(ans, max(prefix, suffix));
     }
-    return res;
+
+    return ans;
 }
 ```
 
