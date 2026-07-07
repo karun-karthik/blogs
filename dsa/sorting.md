@@ -18,15 +18,26 @@ The selection sort algorithm sorts an array by repeatedly finding the minimum el
 ```cpp
 vector<int> selectionSort(vector<int>& nums) {
     int n = nums.size();
-    for (int i=0; i<n-1; i++) {
+
+    // In each iteration, find the smallest element
+    // from the unsorted portion [i...n-1] and place
+    // it at its correct position (index i).
+    for (int i = 0; i < n - 1; i++) {
         int minIdx = i;
-        for (int j= i+1; j<n; j++) {
+
+        // Search for the minimum element in the
+        // remaining unsorted portion of the array.
+        for (int j = i + 1; j < n; j++) {
             if (nums[j] < nums[minIdx]) {
                 minIdx = j;
             }
         }
+
+        // Move the smallest element to the beginning
+        // of the unsorted portion.
         swap(nums[i], nums[minIdx]);
     }
+
     return nums;
 }
 ```
@@ -77,13 +88,22 @@ Insertion sort builds a sorted array one element at a time by repeatedly picking
 
 ```cpp
 vector<int> insertionSort(vector<int>& nums) {
-    for (int i=0; i<nums.size(); i++) {
+    int n = nums.size();
+
+    // Assume the first element is already sorted.
+    // In each iteration, insert nums[i] into its
+    // correct position in the sorted prefix [0...i-1].
+    for (int i = 0; i < n; i++) {
         int j = i;
-        while (j>0 && nums[j-1] > nums [j]) {
-            swap(nums[j-1], nums[j]);
+
+        // Keep swapping the current element left
+        // until it is no longer smaller than its predecessor.
+        while (j > 0 && nums[j - 1] > nums[j]) {
+            swap(nums[j - 1], nums[j]);
             j--;
         }
     }
+
     return nums;
 }
 ```
@@ -117,38 +137,51 @@ By repeating these steps recursively, Merge Sort efficiently sorts the entire ar
 **Code**
 
 ```cpp
-void merge(vector<int>&arr, int low, int mid, int high) {
-    vector<int> temp(high-low+1);
+void merge(vector<int>& arr, int low, int mid, int high) {
+    vector<int> temp(high - low + 1);
     int left = low, right = mid + 1;
-    int k=0;
-    while(left <= mid && right <= high) {
-        if (arr[left]<=arr[right]) {
+    int k = 0;
+
+    // Merge the two sorted halves by repeatedly
+    // choosing the smaller element.
+    while (left <= mid && right <= high) {
+        if (arr[left] <= arr[right]) {
             temp[k++] = arr[left++];
         } else {
             temp[k++] = arr[right++];
         }
     }
-    while(left<=mid) {
+
+    // Copy any remaining elements from the left half.
+    while (left <= mid) {
         temp[k++] = arr[left++];
     }
-    while(right<=high) {
+
+    // Copy any remaining elements from the right half.
+    while (right <= high) {
         temp[k++] = arr[right++];
     }
-    for(int i=low; i<=high; i++) {
-        arr[i] = temp[i-low];
+
+    // Copy the merged result back into the original array.
+    for (int i = low; i <= high; i++) {
+        arr[i] = temp[i - low];
     }
 }
 
-void ms(vector<int>&arr, int low, int high) {
-    if (low>=high) return;
-    int mid = (low+high)/2;
+void ms(vector<int>& arr, int low, int high) {
+    // Base case: subarray has 0 or 1 element.
+    if (low >= high) return;
+
+    int mid = (low + high) / 2;
+
+    // Recursively sort both halves, then merge them.
     ms(arr, low, mid);
-    ms(arr, mid+1, high);
+    ms(arr, mid + 1, high);
     merge(arr, low, mid, high);
 }
 
 vector<int> mergeSort(vector<int>& nums) {
-    ms(nums, 0, nums.size()-1);
+    ms(nums, 0, nums.size() - 1);
     return nums;
 }
 ```
@@ -190,30 +223,45 @@ This approach ensures that Quick Sort efficiently sorts the array using the divi
 **Code**
 
 ```cpp
-int partition(vector<int>& arr, int low, int high) {
-    int pivot = arr[low];
-    int i = low;
-    int j = high;
+int partition(int low, int high, vector<int> &nums) {
+    int i = low, j = high;
+    int pivot = nums[low];
 
+    // Rearrange the array so that:
+    // - elements <= pivot are on the left
+    // - elements > pivot are on the right
     while (i < j) {
-        while (i <= high && arr[i] <= pivot) i++;
-        while (j >= low && arr[j] > pivot) j--;
-        if (i < j) swap(arr[i], arr[j]);
+        // Find the first element greater than the pivot
+        while (i < high && nums[i] <= pivot) i++;
+
+        // Find the first element less than or equal to the pivot
+        while (j > low && nums[j] > pivot) j--;
+
+        // Swap misplaced elements
+        if (i < j) {
+            swap(nums[i], nums[j]);
+        }
     }
-    swap(arr[low], arr[j]);
+
+    // Place the pivot in its correct sorted position
+    swap(nums[low], nums[j]);
+
     return j;
 }
 
-void qs(vector<int>& arr, int low, int high) {
-    if (low < high) {
-        int pivot = partition(arr, low, high);
-        qs(arr, low, pivot - 1);
-        qs(arr, pivot + 1, high);
-    }
+void qs(int low, int high, vector<int>& nums) {
+    // Base case: subarray has 0 or 1 element
+    if (low >= high) return;
+
+    // Partition the array and recursively sort
+    // the left and right subarrays
+    int pivotIndex = partition(low, high, nums);
+    qs(low, pivotIndex - 1, nums);
+    qs(pivotIndex + 1, high, nums);
 }
 
 vector<int> quickSort(vector<int>& nums) {
-    qs(nums, 0, nums.size()-1);
+    qs(0, nums.size() - 1, nums);
     return nums;
 }
 ```
