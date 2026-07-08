@@ -80,26 +80,33 @@ int longestConsecutiveSequence(vector<int>& arr) {
 // TC ~ O(2N) count be for set traversal in the worst case,
 // also if set operations take O(N), then total time complexist will be O(NLogN)
 
-int longestConsecutiveSequence(vector<int>& arr) {
-    int n = arr.size();
-    if (n == 0) return 0;
+int longestConsecutive(vector<int>& nums) {
+    if (nums.empty()) return 0;
+
+    // Store all unique elements for O(1) average-time lookups
+    unordered_set<int> st(nums.begin(), nums.end());
 
     int longest = 1;
-    unordered_set<int> st;
 
-    for (auto i: arr)   st.insert(i);
+    for (int num : st) {
+        // Process only if 'num' is the first element of a sequence.
+        // If (num - 1) exists, this sequence will be counted
+        // when we reach its actual starting element.
+        if (!st.count(num - 1)) {
+            int curr = num;
+            int len = 1;
 
-    for (auto it: st) {
-        if (st.find(it - 1) == st.end()) {
-            int count = 1;
-            int x = it;
-            while (st.find(x + 1) != st.end()) {
-                count++;
-                x++;
+            // Count consecutive elements starting from 'num'
+            while (st.count(curr + 1)) {
+                curr++;
+                len++;
             }
-            longest = max(count, longest);
+
+            // Update the maximum sequence length found so far
+            longest = max(longest, len);
         }
     }
+
     return longest;
 }
 ```
@@ -146,26 +153,45 @@ We use prefix sum to find the longest subarray with sum as K
 **Code**
 ```cpp
 // TC: O(N) or O(NxlogN) SC: O(N)
-int longestSubarray(vector<int>& nums, int K) {
-    unordered_map<int, int> mp;
-    int prefixSum = 0;
-    int maxLength = 0;
+int longestSubarray(vector<int> &nums, int k) {
+    unordered_map<int, int> mp; // Stores the first occurrence of each prefix sum
 
-    for (int i=0; i<nums.size(); i++) {
-        prefixSum += nums[i];
-        
-        if (prefixSum == k) maxLength = max(maxLength, i + 1);
+    int sum = 0;
+    int longest = 0;
 
-        int remainingSum = prefixSum - k;
+    for (int i = 0; i < nums.size(); i++) {
+        // Compute the prefix sum up to the current index
+        sum += nums[i];
 
-        if (mp.find(remainingSum) != mp.end()) {
-            int len = i - mp[remainingSum];
-            maxLength = max(maxLength, len);
+        // If the prefix sum itself is k, then the subarray
+        // from index 0 to i has the required sum.
+        if (sum == k) {
+            longest = max(longest, i + 1);
         }
 
-        if (mp.find(prefixSum) == mp.end())   mp[prefixSum] = i;
+        // Intuition:
+        // If currentPrefixSum - previousPrefixSum = k,
+        // then the elements between those two prefix sums
+        // form a subarray with sum k.
+        //
+        // previousPrefixSum = currentPrefixSum - k
+        int rem = sum - k;
+
+        if (mp.find(rem) != mp.end()) {
+            int len = i - mp[rem];
+            longest = max(longest, len);
+        }
+
+        // Store only the first occurrence of each prefix sum.
+        // Intuition:
+        // Keeping the earliest index gives the longest possible
+        // subarray when the same prefix sum is encountered later.
+        if (mp.find(sum) == mp.end()) {
+            mp[sum] = i;
+        }
     }
-    return maxLength;
+
+    return longest;
 }
 ```
 
@@ -182,25 +208,41 @@ This approach is only suitable for arrays with positive elements. In this, we ma
 Code
 ```cpp
 // TC: O(N), SC: O(1)
-int longestSubarray(vector<int> &nums, int k){
+int longestSubarray(vector<int> &nums, int k) {
     int n = nums.size();
-    int maxLength = 0;
-    int left = 0, right = 0, currSum = nums[0];
+
+    int maxLen = 0;
+
+    // Sliding window boundaries
+    int left = 0, right = 0;
+
+    // Sum of the current window
+    int sum = nums[0];
 
     while (right < n) {
-        while (left <= right && currSum > k) {
-            currSum -= nums[left];
+
+        // Intuition:
+        // Since all elements are non-negative, if the window sum exceeds k,
+        // expanding the window will only increase the sum further.
+        // Therefore, shrink the window from the left until the sum <= k.
+        while (left <= right && sum > k) {
+            sum -= nums[left];
             left++;
         }
 
-        if (currSum == k) {
-            maxLength = max(maxLength, right - left + 1);
+        // Update the answer if the current window has the required sum
+        if (sum == k) {
+            maxLen = max(maxLen, right - left + 1);
         }
 
+        // Expand the window by including the next element
         right++;
-        if (right < n) currSum += nums[right];
+        if (right < n) {
+            sum += nums[right];
+        }
     }
-    return maxLength;
+
+    return maxLen;
 }
 ```
 
@@ -285,17 +327,29 @@ Having 0 already in the map lets us correctly count subarrays that start from th
 **Code**
 ```cpp
 // TC: O(N) or O(NxlogN) SC: O(N)
-int subarraySum(vector<int> &nums, int k) {
-    int n = nums.size();
-    unordered_map<int, int> mp;
-    int currSum = 0, count = 0;
+int subarraySum(vector<int>& nums, int k) {
+    unordered_map<int, int> prefixFreq;
 
-    mp[0] = 1;
+    // A prefix sum of 0 exists once before the array starts.
+    // This helps count subarrays that begin from index 0.
+    prefixFreq[0] = 1;
 
-    for (int i=0; i<n; i++) {
-        currSum += nums[i]; // add current element to prefix sum
-        count += mp[currSum - k]; // add number of subarrays with sum equal to x-k
-        mp[currSum] += 1; // increment count
+    int prefixSum = 0;
+    int count = 0;
+
+    for (int num : nums) {
+        // Update the running prefix sum.
+        prefixSum += num;
+
+        // If there was an earlier prefix sum equal to (prefixSum - k),
+        // then the elements between that prefix and the current index
+        // form a subarray whose sum is k.
+        if (prefixFreq.find(prefixSum - k) != prefixFreq.end()) {
+            count += prefixFreq[prefixSum - k];
+        }
+
+        // Record the current prefix sum for future subarrays.
+        prefixFreq[prefixSum]++;
     }
 
     return count;
@@ -389,16 +443,29 @@ Having 0 already in the map lets us correctly count subarrays that start from th
 ```cpp
 // TC: O(N) or O(NxlogN) SC: O(N)
 int subarraysWithXorK(vector<int> &nums, int k) {
-    int xr = 0;
+    unordered_map<int, int> xorFreq;
+
+    // XOR of an empty prefix is 0.
+    // This helps count subarrays starting from index 0.
+    xorFreq[0] = 1;
+
+    int prefixXor = 0;
     int count = 0;
-    unordered_map<int, int> mp;
-    mp[xr]++;
-    for (int i=0; i<nums.size(); i++) {
-        xr = xr^nums[i];
-        int x = xr^k;
-        count += mp[x]; // how many times I've seen it before
-        mp[xr]++;
+
+    for (int num : nums) {
+        // Compute XOR of elements from index 0 to current index.
+        prefixXor ^= num;
+
+        // If a previous prefix XOR is (prefixXor ^ k),
+        // then the XOR of the subarray between them is k.
+        if (xorFreq.find(prefixXor ^ k) != xorFreq.end()) {
+            count += xorFreq[prefixXor ^ k];
+        }
+
+        // Store the current prefix XOR for future subarrays.
+        xorFreq[prefixXor]++;
     }
+
     return count;
 }
 ```
