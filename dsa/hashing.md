@@ -469,3 +469,132 @@ int subarraysWithXorK(vector<int> &nums, int k) {
     return count;
 }
 ```
+
+### Count subarrays with sum divisible by K
+```cpp
+int subarraySumDivisbleByK(vector<int> &nums, int k) {
+
+    // Maps remainder -> number of times it has occurred.
+    unordered_map<int, int> remainderFreq;
+
+    int prefixSum = 0;
+    int count = 0;
+
+    // Empty prefix has remainder 0.
+    remainderFreq[0] = 1;
+
+    for (int num : nums) {
+
+        // Update running prefix sum.
+        prefixSum += num;
+
+        // Normalize remainder to always lie in [0, k-1].
+        int rem = ((prefixSum % k) + k) % k;
+
+        // Every previous prefix with the same remainder
+        // forms a subarray whose sum is divisible by k.
+        count += remainderFreq[rem];
+
+        // Record the current remainder.
+        remainderFreq[rem]++;
+    }
+
+    return count;
+}
+```
+
+### Group words by Anagrams
+```cpp
+vector<vector<string>> groupAnagrams(vector<string>& nums) {
+    // Maps a character frequency signature to all words
+    // having that exact frequency.
+    unordered_map<string, vector<string>> mp;
+
+    for (string s : nums) {
+
+        // Count occurrences of each character.
+        vector<int> freq(26, 0);
+        for (char c : s)
+            freq[c - 'a']++;
+
+        // Build a unique key representing the frequency array.
+        // Example:
+        // "eat" -> #1#0#0...#1...#1...
+        string key = "";
+        for (int count : freq)
+            key += "#" + to_string(count);
+
+        // All anagrams generate the same key.
+        mp[key].push_back(s);
+    }
+
+    // Collect all groups.
+    vector<vector<string>> res;
+    for (auto &entry : mp)
+        res.push_back(entry.second);
+
+    return res;
+}
+```
+
+### Maximum Points on a Line
+```cpp
+int maximumPointsOnALine(vector<vector<int>>& points) {
+    int n = points.size();
+
+    // 0, 1 or 2 points are always collinear.
+    if (n <= 2) return n;
+
+    int ans = 2;
+
+    // Treat each point as the starting point.
+    for (int i = 0; i < n; i++) {
+
+        // Maps a normalized slope -> number of points having that slope
+        // with respect to the current point.
+        unordered_map<string, int> slopeFreq;
+
+        int maxPointsFromCurrent = 0;
+
+        // Compute the slope from point i to every other point.
+        for (int j = i + 1; j < n; j++) {
+
+            int dx = points[j][0] - points[i][0];
+            int dy = points[j][1] - points[i][1];
+
+            // Handle vertical lines.
+            if (dx == 0) {
+                dy = 1;
+            }
+            // Handle horizontal lines.
+            else if (dy == 0) {
+                dx = 1;
+            }
+            else {
+                // Keep a consistent sign.
+                // (2,1) and (-2,-1) represent the same slope.
+                if (dx < 0) {
+                    dx = -dx;
+                    dy = -dy;
+                }
+
+                // Reduce the fraction dy/dx to its simplest form.
+                int g = gcd(abs(dx), abs(dy));
+                dx /= g;
+                dy /= g;
+            }
+
+            // Use the normalized slope as the hash key.
+            string key = to_string(dx) + "_" + to_string(dy);
+
+            // Count how many points share this slope.
+            maxPointsFromCurrent = max(maxPointsFromCurrent, ++slopeFreq[key]);
+        }
+
+        // +1 accounts for the starting point itself.
+        ans = max(ans, maxPointsFromCurrent + 1);
+    }
+
+    return ans;
+}
+```
