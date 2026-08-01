@@ -726,36 +726,42 @@ ListNode* sortList(ListNode* &head) {
 
 ### Remove Nth node from the back of Linked List
 ```cpp
-// Removes the N-th node from the end of the linked list
 ListNode* removeNthFromEnd(ListNode* head, int n) {
+    // Intuition:
+    // Use two pointers with a gap of 'n' nodes between them.
+    // When the fast pointer reaches the end, the slow pointer
+    // will be just before the node that needs to be removed.
 
-    // Dummy node simplifies edge cases (like deleting head)
+    // Dummy node handles edge cases like deleting the head node.
     ListNode* dummy = new ListNode(0);
     dummy->next = head;
 
     ListNode* fast = dummy;
     ListNode* slow = dummy;
 
-    // Move fast pointer n+1 steps ahead
+    // Create a gap of (n + 1) nodes between fast and slow.
+    // This ensures slow stops at the node before the target.
     for (int i = 0; i <= n; i++) {
         fast = fast->next;
     }
 
-    // Move both pointers until fast reaches the end
+    // Move both pointers together until fast reaches the end.
     while (fast != nullptr) {
         fast = fast->next;
         slow = slow->next;
     }
 
-    // Node to delete
+    // Remove the nth node from the end.
     ListNode* nodeToDelete = slow->next;
-
-    // Skip the target node
-    slow->next = slow->next->next;
+    slow->next = nodeToDelete->next;
 
     delete nodeToDelete;
 
-    return dummy->next;
+    // Save the new head before deleting the dummy node.
+    ListNode* newHead = dummy->next;
+    delete dummy;
+
+    return newHead;
 }
 ```
 
@@ -870,16 +876,17 @@ ListNode* addOne(ListNode* head) {
     return reverseList(reversedHead);
 }
 ```
+
 ```cpp
 // Helper function that adds carry and returns the carry to the previous node
-int addOneHelper(ListNode* node) {
+int solve(ListNode* node) {
 
     // Base case: beyond last node
     if (node == nullptr)
         return 1;   // initial +1
 
     // Recursively process next node
-    int carry = addOneHelper(node->next);
+    int carry = solve(node->next);
 
     int sum = node->val + carry;
 
@@ -892,7 +899,7 @@ int addOneHelper(ListNode* node) {
 // Main function
 ListNode* addOne(ListNode* head) {
 
-    int carry = addOneHelper(head);
+    int carry = solve(head);
 
     // If carry remains, create new head
     if (carry) {
@@ -1077,40 +1084,39 @@ bool isPalindrome(ListNode* head) {
 
 ### Find the intersection of point Y in Linked List
 ```cpp
-// Finds the intersection node of two singly linked lists
-ListNode* getIntersectionNode(ListNode* headA, ListNode* headB) {
+ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+    // If either list is empty, they cannot intersect.
+    if (headA == NULL || headB == NULL) return NULL;
 
-    // If either list is empty, an intersection is impossible
-    if (headA == nullptr || headB == nullptr)
-        return nullptr;
+    ListNode *a = headA;
+    ListNode *b = headB;
 
-    // Traversal pointers for both lists
-    ListNode* currentA = headA;
-    ListNode* currentB = headB;
+    // Traverse both lists with two pointers.
+    // When a pointer reaches the end of its list, redirect it to the
+    // head of the other list.
+    //
+    // After switching, both pointers will have traveled the same total
+    // distance (lengthA + lengthB). Therefore:
+    // - If an intersection exists, they will meet at the intersection node.
+    // - Otherwise, they will both eventually become NULL.
+    while (a != b) {
+        a = a->next;
+        b = b->next;
 
-    /*
-        Traverse both lists simultaneously.
+        // Early exit if they meet after advancing.
+        if (a == b) return a;
 
-        When currentA reaches the end of list A,
-        redirect it to the head of list B.
+        // Once pointer 'a' finishes list A, continue from list B.
+        if (a == NULL) a = headB;
 
-        When currentB reaches the end of list B,
-        redirect it to the head of list A.
-
-        This ensures both pointers travel the same total distance:
-            lengthA + lengthB
-
-        If an intersection exists, they will meet there.
-        If no intersection exists, both will eventually become nullptr.
-    */
-    while (currentA != currentB) {
-
-        currentA = (currentA == nullptr) ? headB : currentA->next;
-        currentB = (currentB == nullptr) ? headA : currentB->next;
+        // Once pointer 'b' finishes list B, continue from list A.
+        if (b == NULL) b = headA;
     }
 
-    // Either the intersection node or nullptr
-    return currentA;
+    // Returns either:
+    // - the intersection node, or
+    // - NULL if the lists do not intersect.
+    return a;
 }
 // TC: O(m+n) SC: O(1)
 ```
@@ -1147,119 +1153,88 @@ bool hasCycle(ListNode* head) {
 ### Find the starting point of a loop in Linked List
 ```cpp
 // Returns the node where the cycle begins (or nullptr if no cycle)
-ListNode* detectCycleStart(ListNode* head) {
-
+ListNode* findStartingPoint(ListNode* head) {
+    // Initialize both pointers at the head.
     ListNode* slow = head;
     ListNode* fast = head;
 
-    // Step 1: Detect if a cycle exists
-    while (fast != nullptr && fast->next != nullptr) {
-
+    // Phase 1: Detect whether a cycle exists.
+    while (fast != NULL && fast->next != NULL) {
+        // Slow moves one step.
         slow = slow->next;
+
+        // Fast moves two steps.
         fast = fast->next->next;
 
+        // A meeting point confirms the presence of a cycle.
         if (slow == fast) {
-
-            /*
-                Step 2: Move one pointer to head.
-                Move both one step at a time.
-                They will meet at the start of the cycle.
-            */
+            // Phase 2: Find the starting node of the cycle.
+            // Move one pointer back to the head.
+            // Keep the other at the meeting point.
             slow = head;
 
+            // Move both pointers one step at a time.
+            // They will meet at the cycle's entry point.
             while (slow != fast) {
                 slow = slow->next;
                 fast = fast->next;
             }
 
-            return slow;  // cycle start node
+            // Return the first node where the cycle begins.
+            return slow;
         }
     }
 
-    // No cycle
-    return nullptr;
+    // No cycle found.
+    return NULL;
 }
 ```
+
+### Remove a cycle from linked list
 ```cpp
-// Remove a cycle from a singly linked list if one exists
+// Remove a cycle from a singly linked list (if present)
 void removeCycle(ListNode* head) {
 
-    // Empty list cannot contain a cycle
-    if (head == nullptr)
-        return;
+    if (head == nullptr) return;
 
-    // Two pointers used for Floyd's cycle detection
-    // slow moves 1 step at a time
-    // fast moves 2 steps at a time
+    // Phase 1: Detect cycle using Floyd's Algorithm
     ListNode* slow = head;
     ListNode* fast = head;
 
-    /*
-        Phase 1: Detect whether a cycle exists.
-
-        If the list contains a loop, the fast pointer will
-        eventually meet the slow pointer inside the cycle.
-        If fast reaches nullptr, the list has no cycle.
-    */
-    while (fast != nullptr && fast->next != nullptr) {
-
-        slow = slow->next;          // move 1 step
-        fast = fast->next->next;    // move 2 steps
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
 
         if (slow == fast)
-            break;  // meeting point inside the cycle
+            break;
     }
 
-    // If fast reached the end, there is no cycle
+    // No cycle found
     if (fast == nullptr || fast->next == nullptr)
         return;
 
-    /*
-        Phase 2: Locate the node where the cycle begins.
-
-        Move slow back to the head.
-        Keep fast at the meeting point.
-
-        If we move both pointers one step at a time,
-        they will meet at the start of the cycle.
-
-        However, to remove the cycle we actually want
-        the node *just before* the cycle start.
-    */
+    // Phase 2: Find the last node of the cycle
     slow = head;
 
-    // Special case: cycle begins at the head node
+    // Cycle starts at head
     if (slow == fast) {
 
-        // Move fast until it reaches the last node in the cycle
+        // Move fast to the last node in the cycle
         while (fast->next != slow)
             fast = fast->next;
 
     } else {
 
-        /*
-            Move both pointers together until their
-            next pointers match.
-
-            At this moment:
-            slow->next == fast->next
-
-            This node is the start of the cycle,
-            and fast is the node just before it.
-        */
+        // Move both pointers until their next pointers
+        // point to the start of the cycle.
+        // 'fast' ends up at the last node of the cycle.
         while (slow->next != fast->next) {
             slow = slow->next;
             fast = fast->next;
         }
     }
 
-    /*
-        Phase 3: Break the cycle.
-
-        fast currently points to the last node in the cycle.
-        Setting its next pointer to nullptr restores
-        the linked list to a proper linear structure.
-    */
+    // Phase 3: Break the cycle
     fast->next = nullptr;
 }
 ```
@@ -1269,40 +1244,38 @@ void removeCycle(ListNode* head) {
 ```cpp
 // Returns the length of the cycle in the linked list
 // If no cycle exists, returns 0
-int findLengthOfLoop(ListNode *head) {
-
+int findLengthOfLoop(ListNode* head) {
+    // Initialize two pointers at the head.
     ListNode* slow = head;
     ListNode* fast = head;
 
-    /*
-        Step 1: Detect whether a cycle exists
-        using Floyd's Tortoise and Hare algorithm
-    */
-    while (fast != nullptr && fast->next != nullptr) {
+    // Phase 1: Detect whether a cycle exists.
+    while (fast != NULL && fast->next != NULL) {
+        // Slow moves one step.
+        slow = slow->next;
 
-        slow = slow->next;           // move 1 step
-        fast = fast->next->next;     // move 2 steps
+        // Fast moves two steps.
+        fast = fast->next->next;
 
-        // Cycle detected
+        // If the pointers meet, a cycle is present.
         if (slow == fast) {
+            // Phase 2: Count the number of nodes in the cycle.
+            // Start from the next node and traverse until
+            // we reach the meeting point again.
+            ListNode* curr = slow->next;
+            int count = 1;
 
-            /*
-                Step 2: Count the number of nodes
-                in the cycle
-            */
-            int loopLength = 1;
-            ListNode* current = slow->next;
-
-            while (current != slow) {
-                loopLength++;
-                current = current->next;
+            while (curr != slow) {
+                count++;
+                curr = curr->next;
             }
 
-            return loopLength;
+            // Return the length of the loop.
+            return count;
         }
     }
 
-    // No cycle present
+    // No cycle found.
     return 0;
 }
 ```
@@ -1311,65 +1284,57 @@ int findLengthOfLoop(ListNode *head) {
 
 ### Reverse Linked List in a group of given size K
 ```cpp
+/*
+    prev → node before the current section
+    head → first node being processed
+    tail → last node of the current group
+    first → first node of the group (becomes the tail after reversal)
+    next → first node after the group
+    nxt → temporary next pointer during reversal
+*/
 
-// Reverse nodes from start up to (but not including) end
-ListNode* reverseSegment(ListNode* start, ListNode* end) {
+// Returns the last node of the next group of size k.
+// If fewer than k nodes remain, returns nullptr.
+ListNode* getGroupTail(ListNode* prev, int k) {
+    while (prev != nullptr && k--) {
+        prev = prev->next;
+    }
+    return prev;
+}
 
+// Reverses the nodes in the range [start, end).
+// 'end' is not included in the reversal.
+ListNode* reverse(ListNode* start, ListNode* end = nullptr) {
     ListNode* prev = end;
 
     while (start != end) {
-
-        // Save next node before reversing pointer
-        ListNode* nextNode = start->next;
-
-        // Reverse pointer
+        ListNode* next = start->next;
         start->next = prev;
-
         prev = start;
-        start = nextNode;
+        start = next;
     }
 
-    return prev;  // new head of reversed segment
+    return prev;  // New head of the reversed range.
 }
 
-
-// Reverse nodes of the linked list in groups of size k
 ListNode* reverseKGroup(ListNode* head, int k) {
+    ListNode dummy(0);
+    dummy.next = head;
 
-    // Dummy node helps simplify head manipulation
-    ListNode* dummy = new ListNode(0);
-    dummy->next = head;
+    ListNode* prev = &dummy;
+    ListNode* tail = getGroupTail(prev, k);
 
-    // Points to the node before the current group
-    ListNode* prevGroup = dummy;
+    while (tail != nullptr) {
+        ListNode* next = tail->next;
+        ListNode* first = prev->next;
 
-    while (true) {
+        prev->next = reverse(first, next);
 
-        // Step 1: Find the k-th node from prevGroup
-        ListNode* kthNode = prevGroup;
-
-        for (int i = 0; i < k && kthNode != nullptr; i++) {
-            kthNode = kthNode->next;
-        }
-
-        // If fewer than k nodes remain, stop
-        if (kthNode == nullptr)
-            break;
-
-        // Step 2: Identify the start of the next group
-        ListNode* nextGroupHead = kthNode->next;
-
-        // Step 3: Current group's first node
-        ListNode* groupStart = prevGroup->next;
-
-        // Step 4: Reverse current group
-        prevGroup->next = reverseSegment(groupStart, nextGroupHead);
-
-        // Step 5: Move prevGroup to the end of the reversed group
-        prevGroup = groupStart;
+        prev = first;
+        tail = getGroupTail(prev, k);
     }
 
-    return dummy->next;
+    return dummy.next;
 }
 ```
 
@@ -1494,9 +1459,30 @@ ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
 
 ### Flatten a Linked List
 ```cpp
-// Find the middle of the horizontal list
-ListNode* findMid(ListNode* head) {
+// Merge two sorted child lists
+ListNode* merge(ListNode* a, ListNode* b) {
+    ListNode dummy(-1);
+    ListNode* cur = &dummy;
 
+    while (a && b) {
+        if (a->val <= b->val) {
+            cur->child = a;
+            a = a->child;
+        } else {
+            cur->child = b;
+            b = b->child;
+        }
+
+        cur = cur->child;
+        cur->next = nullptr;  // Flattened list uses only child links
+    }
+
+    cur->child = a ? a : b;
+
+    return dummy.child;
+}
+
+ListNode* findMid(ListNode* head) {
     ListNode* slow = head;
     ListNode* fast = head->next;
 
@@ -1508,96 +1494,21 @@ ListNode* findMid(ListNode* head) {
     return slow;
 }
 
-// Merge two sorted lists connected using the 'child' pointer
-ListNode* merge(ListNode* list1, ListNode* list2) {
-
-    // Create a dummy node on the heap to simplify list construction
-    ListNode* dummyNode = new ListNode(-1);
-
-    // Tail pointer used to build the merged list
-    ListNode* tail = dummyNode;
-
-    /*
-        Traverse both lists simultaneously.
-        Always attach the smaller node to the merged list.
-        The merged list is formed using the 'child' pointer.
-    */
-    while (list1 && list2) {
-
-        if (list1->val < list2->val) {
-
-            // Attach node from list1
-            tail->child = list1;
-
-            // Move list1 down its vertical chain
-            list1 = list1->child;
-
-        } else {
-
-            // Attach node from list2
-            tail->child = list2;
-
-            // Move list2 down its vertical chain
-            list2 = list2->child;
-        }
-
-        // Move the tail pointer forward
-        tail = tail->child;
-
-        // Ensure horizontal links are removed
-        // The flattened list should only use 'child'
-        tail->next = NULL;
-    }
-
-    // Attach remaining nodes from whichever list is not empty
-    tail->child = (list1) ? list1 : list2;
-
-    // The merged list starts after the dummy node
-    return dummyNode->child;
-}
-
-// Flatten the multi-level linked list
-// TC: O(N * M) in worst case
-ListNode* flattenLinkedList1(ListNode* head) {
-
-    // Base case: empty list or only one column
-    if (!head || !head->next)
-        return head;
-
-    /*
-        Step 1:
-        Recursively flatten the lists to the right.
-        This ensures that when merging,
-        both lists are already flattened.
-    */
-    head->next = flattenLinkedList1(head->next);
-
-    /*
-        Step 2:
-        Merge the current vertical list with the
-        already-flattened list on the right.
-    */
-    return merge(head, head->next);
-}
-
-// Divide and conquer flatten
-// TC: O(N Log N)
 ListNode* flattenLinkedList(ListNode* head) {
+    // 0 or 1 horizontal list is already flattened
+    if (!head || !head->next) return head;
 
-    if (!head || !head->next)
-        return head;
-
-    // Step 1: Split the horizontal list
+    // Split the horizontal list into two halves
     ListNode* mid = findMid(head);
     ListNode* right = mid->next;
-    mid->next = NULL;
+    mid->next = nullptr;
 
-    // Step 2: Flatten both halves
-    ListNode* leftFlat = flattenLinkedList(head);
-    ListNode* rightFlat = flattenLinkedList(right);
+    // Flatten both halves
+    ListNode* left = flattenLinkedList(head);
+    right = flattenLinkedList(right);
 
-    // Step 3: Merge the two flattened lists
-    return merge(leftFlat, rightFlat);
+    // Merge the two sorted child lists
+    return merge(left, right);
 }
 ```
 
@@ -1677,84 +1588,67 @@ ListNode* sortList(ListNode* head) {
 
 ### Clone a Linked List with Random and Next Pointer
 ```cpp
-// Step 1: Insert copied nodes between original nodes
-// Example:
-// 1 → 2 → 3
+// Step 1: Insert a copy after every original node.
+// A -> B -> C
 // becomes
-// 1 → 1' → 2 → 2' → 3 → 3'
-void insertInbetween(ListNode* head) {
-    ListNode* temp = head;
+// A -> A' -> B -> B' -> C -> C'
+void insertCopies(ListNode* head) {
+    ListNode* cur = head;
 
-    while (temp != NULL) {
-        // Create a copy of the current node
-        ListNode* copy = new ListNode(temp->val);
+    while (cur) {
+        ListNode* copy = new ListNode(cur->val);
 
-        // Store the original next node
-        ListNode* nextNode = temp->next;
+        copy->next = cur->next;
+        cur->next = copy;
 
-        // Insert the copy right after the original node
-        copy->next = nextNode;
-        temp->next = copy;
-
-        // Move to the next original node
-        temp = nextNode;
+        cur = copy->next;   // Move to next original node
     }
 }
 
-// Step 2: Assign random pointers for copied nodes
-// Since copy nodes are placed right after original nodes,
-// temp->random->next gives the copied random node
+// Step 2: Set random pointers for copied nodes.
+// Since every copy is right after its original:
+// original->random->next is the copied random node.
 void connectRandom(ListNode* head) {
-    ListNode* temp = head;
+    ListNode* cur = head;
 
-    while (temp != NULL) {
-        ListNode* copyNode = temp->next;
+    while (cur) {
+        if (cur->random)
+            cur->next->random = cur->random->next;
 
-        if (temp->random) {
-            copyNode->random = temp->random->next;
-        } else {
-            copyNode->random = NULL;
-        }
-
-        // Move to the next original node
-        temp = temp->next->next;
+        cur = cur->next->next;   // Skip copied node
     }
 }
 
-// Step 3: Separate the copied list from the original list
-ListNode* getCopyList(ListNode* head) {
-    ListNode* temp = head;
+// Step 3: Separate the original and copied lists.
+ListNode* extractCopy(ListNode* head) {
+    ListNode dummy(-1);
+    ListNode* tail = &dummy;
+    ListNode* cur = head;
 
-    // Dummy node to build the copied list
-    ListNode* dummy = new ListNode(-1);
-    ListNode* res = dummy;
+    while (cur) {
+        ListNode* copy = cur->next;
 
-    while (temp != NULL) {
-        // Extract the copied node
-        res->next = temp->next;
-        res = res->next;
+        // Add copy to copied list
+        tail->next = copy;
+        tail = copy;
 
-        // Restore the original list
-        temp->next = temp->next->next;
+        // Restore original list
+        cur->next = copy->next;
 
-        temp = temp->next;
+        cur = cur->next;
     }
 
-    return dummy->next;
+    return dummy.next;
 }
 
-// Main function to copy the linked list with random pointers
 ListNode* copyRandomList(ListNode* head) {
-    if (head == NULL) return NULL;
+    if (!head)
+        return nullptr;
 
-    // Step 1: Insert copy nodes between originals
-    insertInbetween(head);
-
-    // Step 2: Connect random pointers of copied nodes
+    insertCopies(head);
     connectRandom(head);
 
-    // Step 3: Separate copied list
-    return getCopyList(head);
+    return extractCopy(head);
 }
 ```
 
@@ -1762,81 +1656,160 @@ ListNode* copyRandomList(ListNode* head) {
 ### Delete all occurrences of a key in DLL
 ```cpp
 ListNode* deleteAllOccurrences(ListNode* head, int target) {
-    // Pointer to traverse the list
-    ListNode* curr = head;
+    ListNode* cur = head;
 
-    while (curr != NULL) {
-        // If current node contains the target value
-        if (curr->val == target) {
-            // If the node to delete is the head node
-            if (curr == head) {
-                head = curr->next;
-            }
+    while (cur) {
+        ListNode* next = cur->next;
 
-            // Store pointers to neighboring nodes
-            ListNode* next = curr->next;
-            ListNode* prev = curr->prev;
+        if (cur->val == target) {
+            // If deleting the head node, update head
+            if (cur == head) head = next;
 
-            // Update the next node's prev pointer
-            if (next != NULL) {
-                next->prev = prev;
-            }
+            // Connect previous node to next node
+            if (cur->prev) cur->prev->next = next;
 
-            // Update the previous node's next pointer
-            if (prev != NULL) {
-                prev->next = next;
-            }
+            // Connect next node to previous node
+            if (next) next->prev = cur->prev;
 
-            // Delete the current node
-            delete curr;
-
-            // Move to the next node
-            curr = next;
-
-        } else {
-            // Move forward if current node doesn't match target
-            curr = curr->next;
+            delete cur;
         }
+
+        // Move forward using saved next pointer
+        cur = next;
     }
 
-    // Return the updated head of the list
     return head;
 }
 ```
 
 ### Remove duplicates from a sorted DLL
 ```cpp
-ListNode * removeDuplicates(ListNode *head) {
+ListNode* removeDuplicates(ListNode* head) {
+    ListNode* cur = head;
 
-    ListNode* curr = head;
+    while (cur && cur->next) {
+        if (cur->val == cur->next->val) {
+            ListNode* dup = cur->next;
 
-    // Traverse the list
-    while (curr != NULL && curr->next != NULL) {
+            // Skip duplicate node
+            cur->next = dup->next;
 
-        // If duplicate found
-        if (curr->val == curr->next->val) {
+            // Fix backward link
+            if (dup->next) dup->next->prev = cur;
 
-            // Node to delete
-            ListNode* duplicate = curr->next;
-
-            // Skip the duplicate node
-            curr->next = duplicate->next;
-
-            // Fix prev pointer of next node if it exists
-            if (duplicate->next != NULL) {
-                duplicate->next->prev = curr;
-            }
-
-            // Delete duplicate node
-            delete duplicate;
-
+            delete dup;
         } else {
-
-            // Move to next unique node
-            curr = curr->next;
+            cur = cur->next;
         }
     }
 
     return head;
+}
+```
+
+## Contests
+
+### Segregate nodes into 3 parts in LL
+
+Given the head of a singly linked list, group all nodes based on the remainder when their indices are divided by 3 (i.e., indices % 3). Rearrange the list so that nodes with the same remainder are grouped together, and the groups appear in the order of increasing remainder values (0, 1, then 2). Return the head of the reordered linked list.
+
+Consider the 1st node to have index 1 and so on. The relative order of the elements inside each group must remain the same as the given input.
+
+```cpp
+ListNode* segregateLinkedList(ListNode* head) {
+
+    // INTUITION:
+    // Distribute nodes into three separate linked lists
+    // based on their position (1st, 2nd, 3rd, ...):
+    //
+    // Position % 3 == 1 → List 1
+    // Position % 3 == 2 → List 2
+    // Position % 3 == 0 → List 0
+    //
+    // Finally, connect the three lists together.
+
+    // Dummy nodes simplify list construction
+    ListNode zeroDummy(0), oneDummy(0), twoDummy(0);
+
+    ListNode* zero = &zeroDummy;
+    ListNode* one  = &oneDummy;
+    ListNode* two  = &twoDummy;
+
+    int position = 1;
+
+    while (head) {
+
+        // Append current node to its corresponding list
+        if (position % 3 == 1) {
+            one->next = head;
+            one = one->next;
+        }
+        else if (position % 3 == 2) {
+            two->next = head;
+            two = two->next;
+        }
+        else {
+            zero->next = head;
+            zero = zero->next;
+        }
+
+        position++;
+        head = head->next;
+    }
+
+    // Connect the three lists:
+    // List0 -> List1 -> List2
+    zero->next = (oneDummy.next != nullptr) ? oneDummy.next : twoDummy.next;
+    one->next = twoDummy.next;
+
+    // Mark the end of the merged list
+    two->next = nullptr;
+
+    return zeroDummy.next;
+}
+```
+
+### Special Linked List
+Given the head of Linked List and an integer val, partition the list as a special Linked List.
+A special linked list is one in which all nodes with values less than val come before all nodes equal to or greater than val. You have to keep the relative ordering of the nodes within the partition the same as the initial list.
+```cpp
+ListNode* partitionList(ListNode* head, int val) {
+
+    // INTUITION:
+    // Split the original list into two lists:
+    // 1. Nodes with value < val
+    // 2. Nodes with value >= val
+    //
+    // Finally, connect the two lists while
+    // preserving the original relative order.
+
+    // Dummy nodes simplify list construction
+    ListNode smallDummy(0), largeDummy(0);
+
+    ListNode* small = &smallDummy;
+    ListNode* large = &largeDummy;
+
+    while (head) {
+
+        // Append node to the appropriate list
+        if (head->val < val) {
+            small->next = head;
+            small = small->next;
+        } else {
+            large->next = head;
+            large = large->next;
+        }
+
+        head = head->next;
+    }
+
+    // Terminate the larger list to avoid cycles
+    large->next = nullptr;
+
+    // Connect:
+    // Smaller list -> Larger list
+    small->next = largeDummy.next;
+
+    return smallDummy.next;
 }
 ```
