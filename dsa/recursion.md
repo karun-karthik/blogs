@@ -1,10 +1,13 @@
 ## Basics
 
 ### Pow(x, n)
-```
+```cpp
 // TC: O(logN) SC: O(logN)
 double power(double x, long n) {
+    // Base case: anything raised to 0 is 1
     if (n == 0) return 1.0;
+
+    // Base case: anything raised to 1 is itself
     if (n == 1) return x;
 
     // If 'n' is even
@@ -18,10 +21,14 @@ double power(double x, long n) {
 }
 
 double myPow(double x, int n) {
-    int num = n;
+    long long num = n;
+
+    // If n is negative
     if (num < 0) {
+        // Calculate the power of -n and take reciprocal
         return (1.0 / power(x, -1 * num));
     }
+    // If n is non-negative
     return power(x, num);
 }
 ```
@@ -32,7 +39,7 @@ Given an integer n.Generate all possible combinations of well-formed parentheses
 Input : 2
 Output : [ "(())" , "()()" ]
 ```
-```
+```cpp
 // TC: O((4^n / sqrt(n))*n) & SC: O((4^n / sqrt(n))*n),
 void generate(int idx, string s, int open, int close, vector<string>&res, int n) {
     if (open > n)   return;
@@ -60,7 +67,7 @@ Input : nums = [1, 2, 3]
 Output : [[] , [1] , [2] , [1, 2] , [3] , [1, 3] , [2, 3] , [1, 2 ,3]]
 ```
 
-```
+```cpp
 // TC: O(2^N) SC: O(N* 2^N)
 void solve(int idx, vector<int>&nums, vector<int> &aux, vector<vector<int>>&res) {
     if (idx == nums.size()) {
@@ -84,7 +91,7 @@ vector<vector<int> > powerSet(vector<int>& nums) {
 ## Subsequence Problems
 
 ### Check if there exists a subsequence with sum K
-Given an array nums and an integer k. R﻿eturn true if there exist subsequences such that the sum of all elements in subsequences is equal to k else false.
+Given an array nums and an integer k. Return true if there exist subsequences such that the sum of all elements in subsequences is equal to k else false.
 
 ```cpp
 // TC: O(2^N) SC: O(N)
@@ -105,14 +112,22 @@ bool checkSubsequenceSum(vector<int>& nums, int k) {
 ### Count all subsequences with sum K
 ```cpp
 // TC: O(2^N) SC: O(N)
-int solve(int idx, int k, vector<int>&nums) {
-    if (k == 0) return 1;
-    if (k < 0 || idx >= nums.size())    return 0;
-    return solve(idx + 1, k - nums[idx], nums) + solve(idx + 1, k, nums);
+int solve(int idx, vector<int>& nums, int k, int sum) {
+    if (idx == nums.size()) {
+        if (sum == k) {
+            return 1;
+        }
+        return 0;
+    }
+
+    int pick = solve(idx + 1, nums, k, sum + nums[idx]);
+    int notPick = solve(idx + 1, nums, k, sum);
+
+    return pick + notPick;
 }
 
 int countSubsequenceWithTargetSum(vector<int>& nums, int k){
-    return solve(0, k, nums);
+    return solve(0, nums, k, 0);
 }
 ```
 
@@ -130,7 +145,7 @@ void solve(int idx, vector<int> &aux, vector<vector<int>>& res, vector<int>&cand
         res.push_back(aux);
         return;
     }
-    if (target < 0 || idx == candidates.size()) return;
+    if (target < 0 || idx >= candidates.size()) return;
     aux.push_back(candidates[idx]);
     solve(idx, aux, res, candidates, target-candidates[idx]);
     aux.pop_back();
@@ -192,25 +207,56 @@ Input : k = 3, n = 9
 Output : [[1, 2, 6],[1, 3, 5],[2, 3, 4]]
 ```
 ```cpp
-void solve(int idx, int lim, int target, vector<int>& a,
-    vector<int>& aux, vector<vector<int>>&res) {
-    if (aux.size() == lim && target == 0) {
-        res.push_back(aux);
+void solve(vector<vector<int>>& res, vector<int>& curr, int k, int target, int start, int sum) {
+
+    // Base Case:
+    // If we have picked exactly k numbers,
+    // check whether they form the required sum.
+    if (curr.size() == k) {
+        if (sum == target) res.push_back(curr);
         return;
     }
-    if (target <= 0 || aux.size() > lim) return;
-    if (idx == a.size() && lim != 0 && target != 0) return; // condition I missed out adding
-    aux.push_back(a[idx]);
-    solve(idx + 1, lim, target - a[idx], a, aux, res);
-    aux.pop_back();
-    solve(idx + 1, lim, target, a, aux, res);
+
+    // Pruning:
+    // Since numbers are positive, the sum can only increase.
+    // If we've already exceeded the target,
+    // no point exploring further.
+    if (sum > target) return;
+
+    // Try every possible next number.
+    // 'start' ensures:
+    // 1. Numbers are chosen only once.
+    // 2. Combinations remain sorted.
+    for (int num = start; num <= 9; num++) {
+
+        // Choose
+        curr.push_back(num);
+
+        // Explore remaining numbers
+        solve(res, curr, k, target, num + 1, sum + num);
+
+        // Backtrack
+        curr.pop_back();
+    }
 }
 
-vector<vector<int> > combinationSum3(int k, int target) {
-    vector<int> a = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    vector<int> aux;
+vector<vector<int>> combinationSum3(int k, int n) {
+
+    // INTUITION:
+    // We need all combinations of exactly k distinct numbers
+    // from the range [1...9] whose sum equals n.
+    //
+    // At every step we decide:
+    // - Pick the current number
+    // - Continue with larger numbers only
+    //
+    // This naturally fits Backtracking.
+
     vector<vector<int>> res;
-    solve(0, k, target, a, aux, res);
+    vector<int> curr;
+
+    solve(res, curr, k, n, 1, 0);
+
     return res;
 }
 ```
@@ -228,8 +274,8 @@ void solve(int idx, int sum, vector<int> &s, vector<int> &nums) {
         s.push_back(sum);
         return;
     }
-    solve(idx+1, sum + nums[idx], s, nums);
-    solve(idx+1, sum, s, nums);
+    solve(idx + 1, sum + nums[idx], s, nums);
+    solve(idx + 1, sum, s, nums);
 }
 
 vector<int> subsetSums(vector<int>& nums) {
@@ -250,7 +296,7 @@ void solve(int idx, vector<int> &aux, vector<vector<int>> &res, vector<int>&nums
     for (int i = idx; i < nums.size(); i++) {
         if (i > idx && nums[i] == nums[i-1])    continue;
         aux.push_back(nums[i]);
-        solve(i+1, aux, res, nums);
+        solve(i + 1, aux, res, nums);
         aux.pop_back();
     }
 }
@@ -273,7 +319,7 @@ Mapping of digits to letters is given in first example.
 Input : digits = "34"
 Output : [ "dg", "dh", "di", "eg", "eh", "ei", "fg", "fh", "fi" ]
 ```
-```
+```cpp
 // TC: O(4^N * N), SC: O(N)
 void solve(int idx, string aux, vector<string>& res, string digits, map<char, string> mp) {
     if (idx == digits.length()) {
@@ -281,7 +327,7 @@ void solve(int idx, string aux, vector<string>& res, string digits, map<char, st
         return;
     }
     string alpha = mp[digits[idx]];
-    for (int i=0; i<alpha.size(); i++) {
+    for (int i = 0; i < alpha.size(); i++) {
         solve(idx + 1, aux + alpha[i], res, digits, mp);
     }
 }
@@ -525,4 +571,186 @@ void solveSudoku(vector<vector<char> >& board) {
 TC: O(9E), where E (<= 81) is the number of empty cells.
 As each empty cell can be filled with 1 to 9 digits.
 SC: O(E), because of the recursive stack space.
+```
+
+### M Coloring Problem
+Given an integer M and an undirected graph with N vertices (zero indexed) and E edges. The goal is to determine whether the graph can be coloured with a maximum of M colors so that no two of its adjacent vertices have the same colour applied to them.
+
+In this context, colouring a graph refers to giving each vertex a different colour. If the colouring of vertices is possible then return true, otherwise return false.
+
+```cpp
+bool isSafe(int color, int node, vector<int>& colors, vector<int> adj[]) {
+
+    // Check whether any adjacent node
+    // is already painted with the same color.
+    for (int neighbour : adj[node]) {
+        if (colors[neighbour] == color)
+            return false;
+    }
+
+    return true;
+}
+
+bool solve(int node, int m, int n, vector<int>& colors, vector<int> adj[]) {
+
+    // Base Case:
+    // All nodes have been successfully colored.
+    if (node == n)
+        return true;
+
+    // Try every available color for the current node.
+    for (int color = 1; color <= m; color++) {
+
+        // Current color doesn't violate graph coloring rules.
+        if (isSafe(color, node, colors, adj)) {
+
+            // Choose
+            colors[node] = color;
+
+            // Color the remaining nodes.
+            if (solve(node + 1, m, n, colors, adj))
+                return true;
+
+            // Backtrack
+            colors[node] = 0;
+        }
+    }
+
+    // No valid color assignment found for this node.
+    return false;
+}
+
+bool graphColoring(vector<vector<int>>& edges, int m, int n) {
+
+    // INTUITION:
+    // Color one node at a time.
+    //
+    // For each node, try every possible color.
+    // If a color doesn't conflict with any adjacent node,
+    // recursively color the remaining graph.
+    //
+    // If a choice leads to a dead end,
+    // undo it and try the next color.
+
+    // Build adjacency list.
+    vector<int> adj[n];
+
+    for (auto edge : edges) {
+        adj[edge[0]].push_back(edge[1]);
+        adj[edge[1]].push_back(edge[0]);
+    }
+
+    // 0 indicates the node is currently uncolored.
+    vector<int> colors(n, 0);
+
+    return solve(0, m, n, colors, adj);
+}
+```
+
+## Contest
+
+### Combinational XOR
+Given an array of distinct integers nums and an integer k, return all unique non-empty combinations of elements with a bitwise XOR of k. Return an empty vector if no combinations are possible.
+Each element can be used only once in each combination. Two combinations are unique if at least one element is present in only one combination. Answer can be returned in any order.
+```cpp
+void solve(int idx, int xorSum, vector<int>& curr, vector<vector<int>>& res,
+           vector<int>& nums, int k) {
+
+    // If the XOR of the current subset equals k,
+    // store the current combination.
+    if (xorSum == k && !curr.empty()) {
+        res.push_back(curr);
+    }
+
+    // Base Case:
+    // No more elements left to explore.
+    if (idx >= nums.size())
+        return;
+
+    // Try every possible next element.
+    for (int i = idx; i < nums.size(); i++) {
+
+        // Choose
+        curr.push_back(nums[i]);
+
+        // Include current element in the XOR
+        solve(i + 1, xorSum ^ nums[i], curr, res, nums, k);
+
+        // Backtrack
+        curr.pop_back();
+    }
+}
+
+vector<vector<int>> combinationXor(vector<int> nums, int k) {
+
+    // INTUITION:
+    // Generate every possible subset.
+    //
+    // Keep track of the XOR of the current subset.
+    // Whenever the XOR becomes equal to k,
+    // record the current combination.
+    //
+    // Since every element can either be chosen or skipped,
+    // this naturally fits Backtracking.
+
+    vector<vector<int>> res;
+    vector<int> curr;
+
+    solve(0, 0, curr, res, nums, k);
+
+    return res;
+}
+```
+
+### Find Distinct Expressions
+Given an integer array nums, return all distinct values obtained by inserting mathematical ' + ' (addition) or ' - ' (subtraction) between each element of nums and evaluating the resulting expression.
+Return the results in increasing order.
+
+```cpp
+void solve(int idx, int sum, vector<int>& res, vector<int>& nums) {
+
+    // Base Case:
+    // We've assigned '+' or '-' to every number.
+    // Store the resulting expression value.
+    if (idx == nums.size()) {
+        res.push_back(sum);
+        return;
+    }
+
+    // Choice 1:
+    // Place a '+' before the current number.
+    solve(idx + 1, sum + nums[idx], res, nums);
+
+    // Choice 2:
+    // Place a '-' before the current number.
+    solve(idx + 1, sum - nums[idx], res, nums);
+}
+
+vector<int> distinctExpressions(vector<int>& nums) {
+
+    // INTUITION:
+    // The first number is fixed.
+    //
+    // For every remaining number,
+    // we have exactly two choices:
+    //   +nums[i]
+    //   -nums[i]
+    //
+    // Explore every possible expression using Backtracking.
+    // Finally, remove duplicate expression values.
+
+    vector<int> res;
+
+    // Expression starts with the first number.
+    solve(1, nums[0], res, nums);
+
+    // Keep only distinct expression values.
+    set<int> uniqueValues(res.begin(), res.end());
+
+    vector<int> ans(uniqueValues.begin(), uniqueValues.end());
+
+    sort(ans.begin(), ans.end());
+
+    return ans;
+}
 ```
