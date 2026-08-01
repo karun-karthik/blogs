@@ -226,6 +226,58 @@ vector<int> searchRange(vector<int> &nums, int target) {
 }
 ```
 
+```cpp
+class Solution {
+public:
+
+    int search(vector<int>& nums, int target, bool findFirst) {
+
+        int low = 0, high = nums.size() - 1;
+        int ans = -1;
+
+        while (low <= high) {
+
+            int mid = low + (high - low) / 2;
+
+            if (nums[mid] == target) {
+
+                // Store current occurrence
+                ans = mid;
+
+                // Continue searching towards the required boundary
+                if (findFirst)
+                    high = mid - 1;
+                else
+                    low = mid + 1;
+            }
+            else if (nums[mid] < target) {
+
+                low = mid + 1;
+            }
+            else {
+
+                high = mid - 1;
+            }
+        }
+
+        return ans;
+    }
+
+    vector<int> searchRange(vector<int>& nums, int target) {
+
+        int first = search(nums, target, true);
+
+        // Target not present
+        if (first == -1)
+            return {-1, -1};
+
+        int last = search(nums, target, false);
+
+        return {first, last};
+    }
+};
+```
+
 ### Search in a rotated sorted array 1
 Given an integer array nums, sorted in ascending order (with distinct values) and a target value k. The array is rotated at some pivot point that is unknown. Find the index at which k is present and if k is not present return -1.
 ```cpp
@@ -326,29 +378,58 @@ So, we can notice that the array has been rotated 4 times.
 ```
 
 ```cpp
-int findKRotation(vector<int> &arr)  {
-    int low = 0, high = arr.size()-1;
-    int idx = -1;
-    int mini = INT_MAX;
+int findKRotation(vector<int> &arr) {
+    // INTUITION:
+    // Number of rotations = index of the minimum element.
+    // So the problem reduces to finding the minimum element in a
+    // rotated sorted array using Binary Search.
+
+    int low = 0, high = arr.size() - 1;
+
+    int minValue = INT_MAX;
+    int rotationIndex = -1;
 
     while (low <= high) {
-        int mid = (low + high)/2;
+
+        int mid = low + (high - low) / 2;
+
+        // If the current search space is already sorted,
+        // arr[low] is the minimum in this range.
+        if (arr[low] <= arr[high]) {
+            if (arr[low] < minValue) {
+                minValue = arr[low];
+                rotationIndex = low;
+            }
+            break;
+        }
+
+        // Left half is sorted.
         if (arr[low] <= arr[mid]) {
-            if (arr[low] <= mini) {
-                idx = low;
-                mini = arr[low];
+
+            // The first element of a sorted half is its minimum.
+            // Record it and search the unsorted half.
+            if (arr[low] < minValue) {
+                minValue = arr[low];
+                rotationIndex = low;
             }
+
             low = mid + 1;
-        } else {
-            if (arr[mid] <= mini) {
-                idx = mid;
-                mini = arr[mid];
+        }
+        // Right half is sorted.
+        else {
+
+            // Mid is the smallest element of this half.
+            // Record it and continue searching left.
+            if (arr[mid] < minValue) {
+                minValue = arr[mid];
+                rotationIndex = mid;
             }
+
             high = mid - 1;
         }
     }
 
-    return idx;
+    return rotationIndex;
 }
 ```
 
@@ -361,26 +442,44 @@ int findKRotation(vector<int> &arr)  {
   - If `arr[mid] == arr[mid + 1]` → single element is in **left half**
   - If `arr[mid] == arr[mid - 1]` → single element is in **right half**
 
-```
+```cpp
 int singleNonDuplicate(vector<int> &nums) {
     int n = nums.size();
+
+    // Edge cases
     if (n == 1) return nums[0];
+
     if (nums[0] != nums[1]) return nums[0];
-    if (nums[n-1] != nums[n-2]) return nums[n-1];
 
-    int low = 1, high = n-2;
+    if (nums[n - 1] != nums[n - 2]) return nums[n - 1];
+
+    int low = 1;
+    int high = n - 2;
+
     while (low <= high) {
-        int mid = (low + high) / 2;
 
-        if (nums[mid-1] != nums[mid] && nums[mid] != nums[mid+1])
-            return nums[mid];   // mid is a single element
+        int mid = low + (high - low) / 2;
 
-        bool oddIndex = (mid % 2 == 1 && nums[mid] == nums[mid - 1]);
-        bool evenIndex = (mid % 2 == 0 && nums[mid] == nums[mid + 1]);
+        // Found the unique element
+        if (nums[mid] != nums[mid - 1] &&
+            nums[mid] != nums[mid + 1]) {
+            return nums[mid];
+        }
 
-        if (oddIndex || evenIndex) {
+        /*
+        Left half is "properly paired" if:
+        1. mid is even and matches next
+        2. mid is odd and matches previous
+
+        In that case, unique element lies on the right.
+        Otherwise, it lies on the left.
+        */
+        if ((mid % 2 == 0 && nums[mid] == nums[mid + 1]) ||
+            (mid % 2 == 1 && nums[mid] == nums[mid - 1])) {
+
             low = mid + 1;
-        } else {
+        }
+        else {
             high = mid - 1;
         }
     }
@@ -397,20 +496,37 @@ If n is not a perfect square, then return the floor value of sqrt(n).
 ```
 
 ```cpp
-int floorSqrt(int n)  {
-    int low = 1, high = n;
-    int ans = 0;
-    while (low <= high) {
-        int mid = low + (high - low)/2;
-        long long val = 1LL * mid * mid;
+int floorSqrt(int n) {
+    // INTUITION:
+    // We need the largest number x such that x*x <= n.
+    // As x increases, x*x also increases (monotonic property),
+    // making Binary Search applicable.
 
-        if (val <= (long long)n) {
-            low = mid + 1;
+    int low = 0, high = n;
+    int ans = 0;
+
+    while (low <= high) {
+
+        int mid = low + (high - low) / 2;
+
+        // Use long long to prevent integer overflow
+        long long square = 1LL * mid * mid;
+
+        if (square <= n) {
+
+            // mid is a valid answer.
+            // Try to find a larger valid square root.
             ans = mid;
-        } else {
+            low = mid + 1;
+        }
+        else {
+
+            // mid is too large.
+            // Search in the smaller half.
             high = mid - 1;
         }
     }
+
     return ans;
 }
 ```
@@ -425,50 +541,58 @@ If the Nth root is not an integer, return -1.
 ```
 
 ```cpp
-int check(int mid, int n, int m) {
-    long long res = 1;
-    for (int i = 0; i < n; i++) {
-      res = res * mid;
-      if (res > m)  return 2; // larger than required
-    }
-    if (res == m)  return 1; // exact match found
-    return 0; // smaller than required
-}
+long long power(int base, int exp, int limit) {
+    long long ans = 1;
 
-int checkLogN(int mid, int n, int m) {
-    long long res = 1;
-    long long base = mid;
+    // Compute base^exp.
+    // Stop early if the value exceeds the limit,
+    // since we only care whether it is <=, == or > limit.
+    while (exp--) {
 
-    while (n > 0) {
-      // if n is odd, multiply once
-        if (n & 1) {
-            res *= base;
-            if (res > m) return 2;
-            n--;
-        } else {
-            // if even, square the base
-            base *= base;
-            if (base > m) return 2;
-            n = n/2;
-        }
+        ans *= base;
+
+        if (ans > limit)
+            return ans;
     }
-    if (res == m) return 1;
-    return 0;
+
+    return ans;
 }
 
 int NthRoot(int N, int M) {
-    int low = 1, high = M;
+
+    // INTUITION:
+    // We need to find an integer x such that:
+    //      x^N = M
+    //
+    // As x increases, x^N also increases monotonically.
+    // Hence, Binary Search can be applied on the answer.
+
+    int low = 0, high = M;
 
     while (low <= high) {
-        int mid = low + (high - low) / 2;
-        int res = checkLogN(mid, N, M);
-        // int res = check(mid, N, M);
 
-        if (res == 1) return mid;
-        else if (res == 2)  high = mid - 1;
-        else low = mid + 1; // when res = 0
+        int mid = low + (high - low) / 2;
+
+        long long currPower = power(mid, N, M);
+
+        if (currPower == M) {
+            // Exact Nth root found
+            return mid;
+        }
+        else if (currPower < M) {
+            // mid is too small.
+            // Search for a larger root.
+            low = mid + 1;
+        }
+        else {
+            // mid is too large.
+            // Search in the left half.
+            high = mid - 1;
+        }
     }
-    return -1; // no integer with Nth root
+
+    // No integer Nth root exists
+    return -1;
 }
 ```
 
@@ -480,27 +604,43 @@ After dividing each element by the chosen divisor,
 take the ceiling of the result (i.e., round up to the next whole number).
 
 ```cpp
-int helper(int mid, vector<int>& nums) {
+// Returns the sum of ceil(nums[i] / divisor) for all elements.
+// Integer alternative: ceil(a / b) = (a + b - 1) / b
+int divisorSum(vector<int>& nums, int divisor) {
     int sum = 0;
-    for (auto it: nums) {
-        sum += ceil((double)(it) / (double)(mid));
+
+    for (int num : nums) {
+        // sum += ceil((double)num / divisor);
+        // Equivalent integer formula:
+        sum += (num + divisor - 1) / divisor;
     }
+
     return sum;
 }
-int smallestDivisor(vector<int> &nums, int limit) {
-    int max = *max_element(nums.begin(), nums.end());
-    int low = 1, high = max;
+
+int smallestDivisor(vector<int>& nums, int limit) {
+    int low = 1;
+    int high = *max_element(nums.begin(), nums.end());
+
     int ans = -1;
+
+    // Binary search for the smallest valid divisor.
     while (low <= high) {
         int mid = low + (high - low) / 2;
-        int sumDivisor = helper(mid, nums);
-        if (sumDivisor <= limit) {
+
+        // Sum after dividing each element by 'mid' (rounded up).
+        int divSum = divisorSum(nums, mid);
+
+        if (divSum <= limit) {
+            // 'mid' is valid. Try to find a smaller valid divisor.
             ans = mid;
-            high = mid - 1; // if it's within the limit then go further less
+            high = mid - 1;
         } else {
+            // Divisor is too small, resulting sum exceeds the limit.
             low = mid + 1;
         }
     }
+
     return ans;
 }
 ```
@@ -517,28 +657,40 @@ Each hour, the monkey chooses a non-empty pile of bananas and eats k bananas. If
 
 Determine the minimum number of bananas the monkey must eat per hour to finish all the bananas within h hours.
 
-```
-int helper(int mid, vector<int> &nums) {
-    int sum = 0;
-    for (int i: nums) {
-        sum += ceil((double) i / (double) mid);
+```cpp
+// Returns true if Koko can finish all bananas at 'rate' bananas/hour.
+bool canComplete(int rate, vector<int>& nums, int h) {
+    long long hours = 0;
+
+    for (int bananas : nums) {
+        // Hours needed for the current pile.
+        // ceil(a / b) = (a + b - 1) / b
+        hours += (bananas + rate - 1) / rate;
     }
-    return sum;
+
+    return hours <= h;
 }
 
 int minimumRateToEatBananas(vector<int> nums, int h) {
-    int low = 1, high = *max_element(nums.begin(), nums.end());
-    int ans = -1;
+    int low = 1;
+    int high = *max_element(nums.begin(), nums.end());
+
+    int ans = high;
+
+    // Binary search for the minimum valid eating rate.
     while (low <= high) {
-        int mid = (low + high) / 2;
-        int minimumBananas = helper(mid, nums);
-        if (minimumBananas <= h) {
+        int mid = low + (high - low) / 2;
+
+        if (canComplete(mid, nums, h)) {
+            // Current rate works. Try a smaller one.
             ans = mid;
             high = mid - 1;
         } else {
+            // Current rate is too slow.
             low = mid + 1;
         }
     }
+
     return ans;
 }
 ```
@@ -547,83 +699,129 @@ int minimumRateToEatBananas(vector<int> nums, int h) {
 
 Given n roses and an array nums where nums[i] denotes that the 'ith' rose will bloom on the nums[i]th day, only adjacent bloomed roses can be picked to make a bouquet. Exactly k adjacent bloomed roses are required to make a single bouquet. Find the minimum number of days required to make at least m bouquets, each containing k roses. Return -1 if it is not possible.
 
-```
-bool checkBouquets(vector<int> &nums, int mid, int m, int k) {
-    int countOfFlowers = 0;
-    int noOfBouquets = 0;
+```cpp
+// Returns true if it's possible to make at least 'm' bouquets
+// by 'day', where each bouquet requires 'k' adjacent bloomed flowers.
+bool canMakeBouquet(int day, vector<int>& nums, int k, int m) {
+    int bouquets = 0;
+    int flowerCount = 0;
 
-    for (int flowerOnDay: nums) {
-        if (flowerOnDay <= mid) {
-        countOfFlowers++;
+    for (int flowersOnDay : nums) {
+
+        if (flowersOnDay <= day) {
+            // Flower has bloomed by 'day'.
+            flowerCount++;
         } else {
-        // if more flowers are available on a day
-        noOfBouquets += (countOfFlowers)/k;
-        countOfFlowers = 0;
+            // Current streak ends. Form as many bouquets as possible.
+            bouquets += flowerCount / k;
+            flowerCount = 0;
         }
     }
 
-    // create another bouquet with remaining flowers
-    noOfBouquets += (countOfFlowers)/k;
-    return noOfBouquets >= m; // true if required bouquet count is met 
+    // Count bouquets from the last streak.
+    bouquets += flowerCount / k;
+
+    return bouquets >= m;
 }
 
-int roseGarden(int n,vector<int> nums, int k, int m) {
-    long long targetFlowers = m * k;
-    if (targetFlowers > n)  return -1;
+int roseGarden(int n, vector<int>& nums, int k, int m) {
+
+    // Not enough flowers to make the required bouquets.
+    if ((long long)k * m > n)
+        return -1;
+
     int low = *min_element(nums.begin(), nums.end());
     int high = *max_element(nums.begin(), nums.end());
+
     int ans = -1;
+
+    // Binary search for the minimum day on which all bouquets can be made.
     while (low <= high) {
-        int mid = low + (high - low)/2;
-        if (checkBouquets(nums, mid, m, k)) {
+        int mid = low + (high - low) / 2;
+
+        if (canMakeBouquet(mid, nums, k, m)) {
+            // 'mid' works. Try to find an earlier valid day.
             ans = mid;
             high = mid - 1;
         } else {
+            // Not enough flowers have bloomed yet.
             low = mid + 1;
         }
     }
+
     return ans;
-  }
+}
 ```
 
 ## FAQ
 
 ### Aggressive Cows
 Given an array nums of size n, which denotes the positions of stalls, and an integer k, which denotes the number of aggressive cows, assign stalls to k cows such that the minimum distance between any two cows is the maximum possible. Find the maximum possible minimum distance.
-```
-bool canPlaceCow(vector<int>&nums, int dist, int cows) {
-    int n = nums.size();
+```cpp
+bool canPlace(vector<int>& nums, int minDistance, int k) {
+    // Place the first cow at the first stall
     int placedCows = 1;
     int lastCowPosition = nums[0];
 
-    for (int i = 1; i < n; i++) {
-        // if distance between curr cow and last placed cow
-        // is greater than dist, then place cow and update last
-        if (nums[i] - lastCowPosition >= dist) {
+    // Greedily place each next cow at the earliest valid stall
+    for (int i = 1; i < nums.size(); i++) {
+
+        // Current stall is far enough from the last placed cow
+        if (nums[i] - lastCowPosition >= minDistance) {
+
             placedCows++;
             lastCowPosition = nums[i];
         }
-        // if more cows are placed than k,
-        // then it's a possible answer, return true
-        if (placedCows >= cows) return true;
+
+        // Successfully placed all cows
+        if (placedCows == k)
+            return true;
     }
+
+    // Unable to place all cows with the given minimum distance
     return false;
 }
+
 int aggressiveCows(vector<int> &nums, int k) {
-    int n = nums.size();
+
     sort(nums.begin(), nums.end());
-    int low = 1, high = nums[n-1] - nums[0];
-    // high is max possible distance between first and last stall
-    int ans;
+
+    // INTUITION:
+    // We need to maximize the minimum distance between any two cows.
+    //
+    // Instead of directly finding the answer,
+    // Binary Search on the possible distance.
+    //
+    // Search Space:
+    // Minimum possible distance = 0
+    // Maximum possible distance = last stall - first stall
+
+    int low = 0;
+    int high = nums.back() - nums.front();
+
+    int ans = -1;
+
     while (low <= high) {
-        int mid = (low + high) / 2;
-        if (canPlaceCow(nums, mid, k)) {
-            low = mid + 1; // if max then use low, min use high
+
+        int mid = low + (high - low) / 2;
+
+        // Can we place all cows while keeping
+        // at least 'mid' distance between them?
+        if (canPlace(nums, mid, k)) {
+
+            // 'mid' is feasible.
+            // Try to maximize the minimum distance.
             ans = mid;
-        } else {
+            low = mid + 1;
+        }
+        else {
+
+            // Distance is too large.
+            // Reduce the required minimum distance.
             high = mid - 1;
         }
     }
+
     return ans;
 }
 ```
@@ -635,40 +833,48 @@ Given an array nums of n integers, where nums[i] represents the number of pages 
 Allocate the books to m students in such a way that the maximum number of pages assigned to a student is minimized. If the allocation of books is not possible, return -1.
 
 ```cpp
-int countStudents(vector<int> &nums, int pageLimit) {
-    int n = nums.size();
-    int students = 1;
-    int pages = 0;
+// I have total pages in nums (sum of it)
+// no. of students is m
+// page is the number of pages each student can get
+bool canAllocate(int page, vector<int>& nums, int m) {
+    int allocated = 1;
+    int pageCount = 0;
 
-    for (int i = 0; i<n; i++) {
-        if (pages + nums[i] <= pageLimit) {
-            pages += nums[i];
+    for (int i = 0; i < nums.size(); i++) {
+        if (pageCount + nums[i] <= page) {
+            pageCount += nums[i];
         } else {
-            students++;
-            pages = nums[i];
+            allocated++;
+            pageCount = nums[i];
         }
     }
 
-    return students;
+    return allocated <= m;
 }
 
-int findPages(vector<int> &nums, int m)  {
-    int n = nums.size();
-    // if more students than books then all students cannot get atleast 1 book
-    if (m > n)  return -1; 
+int findPages(vector<int>& nums, int m) {
+
+    if (m > nums.size())
+        return -1;
+
     int low = *max_element(nums.begin(), nums.end());
     int high = accumulate(nums.begin(), nums.end(), 0);
-    int ans;
+
+    int ans = -1;
+
+    // Binary search for the minimum feasible page limit.
     while (low <= high) {
-        int mid = low + (high - low)/2;
-        int students = countStudents(nums, mid);
-        if (students <= m) {
+
+        int mid = low + (high - low) / 2;
+
+        if (canAllocate(mid, nums, m)) {
             ans = mid;
-            high = mid - 1;
+            high = mid - 1;      // Try a smaller limit.
         } else {
-            low = mid + 1;
+            low = mid + 1;       // Increase the page limit.
         }
     }
+
     return ans;
 }
 ```
@@ -684,18 +890,51 @@ Find the index(0-based) of a peak element in the array. If there are multiple pe
 
 ```cpp
 int findPeakElement(vector<int> &arr) {
+
     int n = arr.size();
+
+    // INTUITION:
+    // A peak is an element greater than both its neighbors.
+    //
+    // Instead of checking every element, Binary Search works because:
+    // - If we're on an increasing slope, a peak must exist on the right.
+    // - If we're on a decreasing slope, a peak must exist on the left.
+    //
+    // We simply move towards the side that is guaranteed to contain a peak.
+
+    // Single element is always a peak
     if (n == 1) return 0;
-    if (arr[0] > arr[1])    return 0;
-    if (arr[n-1] > arr[n-2])    return n-1;
-    int low = 1, high = n-2;
+
+    // Check boundary peaks
+    if (arr[0] > arr[1]) return 0;
+    if (arr[n - 1] > arr[n - 2]) return n - 1;
+
+    int low = 1;
+    int high = n - 2;
+
     while (low <= high) {
-        int mid = (low + high) / 2;
-        if (arr[mid] > arr[mid-1] && arr[mid] > arr[mid+1])
+
+        int mid = low + (high - low) / 2;
+
+        // Current element is greater than both neighbours
+        if (arr[mid] > arr[mid - 1] &&
+            arr[mid] > arr[mid + 1]) {
             return mid;
-        if (arr[mid] > arr[mid-1])  low = mid + 1;
-        else high = mid - 1;
+        }
+
+        // Increasing slope
+        // A peak is guaranteed to exist on the right
+        else if (arr[mid] > arr[mid - 1]) {
+            low = mid + 1;
+        }
+
+        // Decreasing slope
+        // A peak is guaranteed to exist on the left
+        else {
+            high = mid - 1;
+        }
     }
+
     return -1;
 }
 ```
@@ -782,86 +1021,321 @@ double median(vector<int>& arr1, vector<int>& arr2) {
 ```
 
 **Optimal**
+```
+Binary Search on Partition
+
+    Example:
+    a = [1, 3, 8]
+    b = [7, 9, 10, 11]
+
+    Merged array:
+    [1, 3, 7, 8, 9, 10, 11]
+
+    Goal:
+    Partition both arrays such that:
+    1. Left half contains (n + m + 1) / 2 elements.
+    2. Every element in the left half <= every element in the right half.
+
+    Example partition:
+
+    a : [1 3 8 | ]
+    b : [7 | 9 10 11]
+
+    left1  = 8
+    right1 = INF
+    left2  = 7
+    right2 = 9
+
+    Conditions:
+    left1 <= right2  (8 <= 9)  ✓
+    left2 <= right1  (7 <= INF) ✓
+
+    Valid partition found.
+
+    Odd total elements:
+    Median = max(left1, left2) = 8
+
+    Even total elements:
+    Median = (max(left1, left2) + min(right1, right2)) / 2
+
+    ----------------------------------------------------
+
+    How do we move the partition?
+
+    Case 1:
+    left1 > right2
+
+    a : [1 3 8 | 9]
+    b : [5 6 | 7]
+
+    8 > 7
+
+    => Too many elements taken from array 'a'.
+    => Move partition LEFT.
+
+    high = cut1 - 1
+
+    ----------------------------------------------------
+
+    Case 2:
+    left2 > right1
+
+    a : [1 3 | 4]
+    b : [5 6 | 7]
+
+    6 > 4
+
+    => Too few elements taken from array 'a'.
+    => Move partition RIGHT.
+
+    low = cut1 + 1
+
+    Time Complexity : O(log(min(n, m)))
+    Space Complexity: O(1)
+```
 
 ```cpp
-double median(vector<int> &arr1, vector<int> &arr2) {
-    int n1 = arr1.size(), n2 = arr2.size();
-    // Ensure arr1 is the smaller array
-    if (n1 > n2)    return median(arr2, arr1);
-    int n = n1 + n2; // total elements
-    int left = (n1 + n2 + 1)/2; // length of left half of array
-    int low = 0, high = n1; // bs on the smallest array always
+double median(vector<int>& a, vector<int>& b) {
+    int n = a.size(), m = b.size();
+
+    // Always binary search on the smaller array.
+    if (n > m)
+        return median(b, a);
+
+    int total = n + m;
+    int leftSize = (total + 1) / 2;
+
+    int low = 0, high = n;
 
     while (low <= high) {
-        int mid1 = (low + high) / 2;
-        int mid2 = left - mid1;
-        // Calculate l1, l2, r1, and r2
-        int l1 = (mid1 > 0) ? arr1[mid1 - 1] : INT_MIN;
-        int r1 = (mid1 < n1) ? arr1[mid1] : INT_MAX;
-        int l2 = (mid2 > 0) ? arr2[mid2 - 1] : INT_MIN;
-        int r2 = (mid2 < n2) ? arr2[mid2] : INT_MAX;
 
-        if (l1 <= r2 && l2 <= r1) {
-            if (n % 2 == 1) return max(l1, l2);
-            else return (max(l1, l2) + min(r1, r2)) / 2.0;
+        // Partition index in both arrays.
+        int cut1 = low + (high - low) / 2;
+        int cut2 = leftSize - cut1;
+
+        // Elements around the partition.
+        int left1  = (cut1 > 0) ? a[cut1 - 1] : INT_MIN;
+        int right1 = (cut1 < n) ? a[cut1]     : INT_MAX;
+
+        int left2  = (cut2 > 0) ? b[cut2 - 1] : INT_MIN;
+        int right2 = (cut2 < m) ? b[cut2]     : INT_MAX;
+
+        // Correct partition found.
+        if (left1 <= right2 && left2 <= right1) {
+
+            // Odd length -> largest element in the left half.
+            if (total & 1)
+                return max(left1, left2);
+
+            // Even length -> average of the middle two elements.
+            return (max(left1, left2) + min(right1, right2)) / 2.0;
         }
-        else if (l1 > r2) {
-            high = mid1 - 1;
-        } else {
-            low = mid1 + 1;
-        }
+
+        // Too many elements taken from the first array.
+        if (left1 > right2)
+            high = cut1 - 1;
+
+        // Too few elements taken from the first array.
+        else
+            low = cut1 + 1;
     }
-    return 0;
+
+    return 0.0;
 }
 ```
 
 ### Kth element of 2 sorted arrays
 
 ```cpp
+/*
+    Binary Search on Partition
+
+    Goal:
+    Find the k-th smallest element in the merged sorted array
+    without actually merging the arrays.
+
+    Idea:
+    Partition both arrays such that:
+    1. Left partition contains exactly 'k' elements.
+    2. Every element in the left partition <= every element in the right partition.
+
+    Partition:
+
+    a : [ ... left1 | right1 ... ]
+                ^
+                cut1
+
+    b : [ ... left2 | right2 ... ]
+                ^
+                cut2
+
+    Since the left partition must contain exactly 'k' elements:
+
+        cut1 + cut2 = k
+        cut2 = k - cut1
+
+    ----------------------------------------------------
+
+    Search Space
+
+    cut1 must satisfy TWO constraints.
+
+    From array 'a':
+        0 <= cut1 <= n
+
+    From array 'b':
+        0 <= cut2 <= m
+
+    Substitute:
+
+        0 <= k - cut1 <= m
+
+    Solving gives:
+
+        k - m <= cut1 <= k
+
+    Combine both ranges:
+
+        max(0, k - m) <= cut1 <= min(k, n)
+
+    Hence,
+
+        low  = max(0, k - m)
+        high = min(k, n)
+
+    ----------------------------------------------------
+
+    Move Partition
+
+    left1 > right2
+    => Took too many elements from array 'a'
+    => Move LEFT
+
+    left2 > right1
+    => Took too few elements from array 'a'
+    => Move RIGHT
+
+    ----------------------------------------------------
+
+    Once the partition is valid,
+
+    left1 <= right2
+    left2 <= right1
+
+    the k-th smallest element is simply
+
+        max(left1, left2)
+
+    Time Complexity : O(log(min(n, m)))
+    Space Complexity: O(1)
+*/
 int kthElement(vector<int>& a, vector<int>& b, int k) {
-    int m = a.size();
-    int n = b.size();
+    int n = a.size();
+    int m = b.size();
 
-    // Ensure a is smaller array for optimization
-    if (m > n) {
-        // Swap a and b
-        return kthElement(b, a, k); 
-    }
-    
-    // Length of the left half
-    int left = k; 
+    // Always binary search on the smaller array.
+    if (n > m)
+        return kthElement(b, a, k);
 
-    // Apply binary search
-    int low = max(0, k - n), high = min(k, m);
+    // Valid search range for the partition in array 'a'.
+    int low = max(0, k - m);
+    int high = min(k, n);
+
     while (low <= high) {
-        int mid1 = (low + high) >> 1;
-        int mid2 = left - mid1;
+        // Partition indices.
+        int cut1 = low + (high - low) / 2;
+        int cut2 = k - cut1;
 
-        // Initialize l1, l2, r1, r2
-        // l1 = largest on left of a
-        // l2 = largest on left of b
-        // r1 = smallest on right of a
-        // r2 = smallest on right of b
-        int l1 = (mid1 > 0) ? a[mid1 - 1] : INT_MIN;
-        int l2 = (mid2 > 0) ? b[mid2 - 1] : INT_MIN;
-        int r1 = (mid1 < m) ? a[mid1] : INT_MAX;
-        int r2 = (mid2 < n) ? b[mid2] : INT_MAX;
+        // Elements around the partitions.
+        int left1  = (cut1 > 0) ? a[cut1 - 1] : INT_MIN;
+        int right1 = (cut1 < n) ? a[cut1]     : INT_MAX;
 
-        // Check if we have found the answer
-        if (l1 <= r2 && l2 <= r1) {
-            return max(l1, l2);
-        } 
-        else if (l1 > r2) {
-            // Eliminate the right half
-            high = mid1 - 1;
-        } 
-        else {
-            // Eliminate the left half
-            low = mid1 + 1;
+        int left2  = (cut2 > 0) ? b[cut2 - 1] : INT_MIN;
+        int right2 = (cut2 < m) ? b[cut2]     : INT_MAX;
+
+        // Correct partition found.
+        if (left1 <= right2 && left2 <= right1)
+            return max(left1, left2);
+
+        // Too many elements taken from the first array.
+        if (left1 > right2)
+            high = cut1 - 1;
+
+        // Too few elements taken from the first array.
+        else
+            low = cut1 + 1;
+    }
+
+    return -1; // Unreachable for valid input.
+}
+```
+
+### Split array - largest sum
+Given an integer array a of size n and an integer k. Split the array a into k non-empty subarrays such that the largest sum of any subarray is minimized. Return the minimized largest sum of the split.
+
+```cpp
+int countPartition(vector<int>& nums, int maxAllowedSum) {
+
+    // Start with one partition
+    int partitions = 1;
+    long long currentSum = 0;
+
+    for (int i = 0; i < nums.size(); i++) {
+
+        // Current element fits in the existing partition
+        if (currentSum + nums[i] <= maxAllowedSum) {
+            currentSum += nums[i];
+        } else {
+            // Current partition is full.
+            // Start a new partition from this element.
+            partitions++;
+            currentSum = nums[i];
         }
     }
-    // Dummy return statement 
-    return -1;
+
+    return partitions;
+}
+
+int largestSubarraySumMinimized(vector<int> &nums, int k) {
+
+    // INTUITION:
+    // Split the array into exactly k subarrays
+    // such that the largest subarray sum is minimized.
+    //
+    // Instead of guessing the partition,
+    // Binary Search on the answer (maximum allowed subarray sum).
+
+    // Minimum possible answer:
+    // Largest element (cannot split an element)
+    int low = *max_element(nums.begin(), nums.end());
+
+    // Maximum possible answer:
+    // Entire array as one partition
+    int high = accumulate(nums.begin(), nums.end(), 0);
+
+    int ans = -1;
+
+    while (low <= high) {
+
+        int mid = low + (high - low) / 2;
+
+        // Number of partitions needed if each partition
+        // is allowed a maximum sum of 'mid'
+        int partitions = countPartition(nums, mid);
+
+        if (partitions > k) {
+            // Too many partitions required.
+            // Increase the allowed partition sum.
+            low = mid + 1;
+        } else {
+            // Feasible solution.
+            // Try to further minimize the maximum partition sum.
+            ans = mid;
+            high = mid - 1;
+        }
+    }
+
+    return ans;
 }
 ```
 
@@ -874,33 +1348,70 @@ Given a non-empty grid mat consisting of only 0s and 1s, where all the rows are 
 If two rows have the same number of ones, consider the one with a smaller index. If no 1 exists in the matrix, return -1.
 
 ```cpp
-int lower_bound(vector<int> arr, int x) {
+int lower_bound(vector<int>& arr, int x) {
+
+    // INTUITION:
+    // Find the first index where value >= x.
+    //
+    // Since each row is sorted,
+    // the first occurrence of 1 divides the row into:
+    // [0 ... 0 | 1 ... 1]
+
     int low = 0;
     int high = arr.size() - 1;
+
+    // Default answer:
+    // If x is not found, insertion position is at the end.
     int ans = arr.size();
+
     while (low <= high) {
-        int mid = (low + high)/2;
+
+        int mid = low + (high - low) / 2;
+
         if (arr[mid] >= x) {
+
+            // mid is a valid lower bound.
+            // Search further left for the first occurrence.
             ans = mid;
             high = mid - 1;
-        } else {
+        }
+        else {
+
+            // First occurrence must lie on the right.
             low = mid + 1;
         }
     }
+
     return ans;
 }
 
-int rowWithMax1s(vector < vector < int >> & mat) {
-    int res = 0;
-    int idx = -1;
-    for (int i=0; i<mat.size(); i++) {
-        int oneCount = mat[i].size() - lower_bound(mat[i], 1);
-        if (oneCount > res) {
-            res = oneCount;
-            idx = i;
+int rowWithMax1s(vector<vector<int>>& mat) {
+
+    // INTUITION:
+    // Since every row is sorted,
+    // Number of 1's = Total columns - First occurrence of 1.
+    //
+    // Find the row having the maximum count of 1's.
+
+    int maxOnes = 0;
+    int answerRow = -1;
+
+    for (int row = 0; row < mat.size(); row++) {
+
+        // Index of first 1 in current row
+        int firstOne = lower_bound(mat[row], 1);
+
+        // Count of 1's in current row
+        int oneCount = mat[row].size() - firstOne;
+
+        // Update answer if current row has more 1's
+        if (oneCount > maxOnes) {
+            maxOnes = oneCount;
+            answerRow = row;
         }
     }
-    return idx;
+
+    return answerRow;
 }
 ```
 
@@ -910,21 +1421,47 @@ Given a 2-D array mat where the elements of each row are sorted in non-decreasin
 
 ```cpp
 // TC: O(log(N*M)) SC: O(1)
-bool searchMatrix(vector<vector<int>> &mat, int target){
-    int m = mat.size(); // rows
-    int n = mat[0].size(); // columns
-    int low = 0, high = m * n-1;
+bool searchMatrix(vector<vector<int>>& mat, int target) {
+    // Handle empty matrix cases.
+    if (mat.empty() || mat[0].empty())
+        return false;
+
+    int m = mat.size();
+    int n = mat[0].size();
+
+    // Since:
+    // 1. Each row is sorted.
+    // 2. First element of a row > last element of previous row.
+    //
+    // The entire matrix can be viewed as one sorted 1D array
+    // of size (m * n). So, we perform a normal binary search
+    // on the virtual array.
+
+    int low = 0;
+    int high = m * n - 1;
+
     while (low <= high) {
-        int mid = (low + high)/2;
-        int ele = mat[mid/n][mid%n];
+        int mid = low + (high - low) / 2;
+
+        // Convert the virtual 1D index back to its 2D position.
+        // row = mid / n
+        // col = mid % n
+        int ele = mat[mid / n][mid % n];
+
         if (ele == target) {
             return true;
-        } else if (ele < target) {
+        }
+        else if (ele < target) {
+            // Target lies in the right half.
             low = mid + 1;
-        } else {
+        }
+        else {
+            // Target lies in the left half.
             high = mid - 1;
         }
     }
+
+    // Target was not found.
     return false;
 }
 ```
@@ -934,15 +1471,41 @@ bool searchMatrix(vector<vector<int>> &mat, int target){
 Given a 2D array matrix where each row is sorted in ascending order from left to right and each column is sorted in ascending order from top to bottom, write an efficient algorithm to search for a specific integer target in the matrix.
 
 ```cpp
-bool searchMatrix(vector<vector<int>> &mat, int target){
-    int m = mat.size(); // rows
-    int n = mat[0].size(); // columns
-    int row = 0, col = n-1;
+bool searchMatrix(vector<vector<int>>& mat, int target) {
+    int m = mat.size();
+    int n = mat[0].size();
+
+    // Start from the top-right corner because it gives us
+    // two possible directions to eliminate:
+    //
+    // - Left  -> smaller values
+    // - Down  -> larger values
+    //
+    // At every step, we can discard either an entire row
+    // or an entire column, making the search efficient.
+
+    int row = 0;
+    int col = n - 1;
+
     while (row < m && col >= 0) {
-        if (mat[row][col] == target)    return true;
-        else if (mat[row][col] > target)   col--;
-        else row++;
+        if (mat[row][col] == target) {
+            return true;
+        }
+        else if (mat[row][col] > target) {
+            // Current value is too large.
+            // Everything below in this column is even larger,
+            // so move left to a smaller value.
+            col--;
+        }
+        else {
+            // Current value is too small.
+            // Everything to the left in this row is even smaller,
+            // so move down to a larger value.
+            row++;
+        }
     }
+
+    // Target does not exist in the matrix.
     return false;
 }
 ```
@@ -956,42 +1519,280 @@ Assume that the entire matrix is surrounded by an outer perimeter with the value
 Note: As there can be many peak values, 1 is given as output if the returned index is a peak number, otherwise 0.
 
 ```cpp
-int maxElement(vector<vector<int>>&arr, int col) {
-    int m = arr.size();
-    int maxVal = INT_MIN;
-    int idx = -1;
-    for (int i=0; i<m; i++) {
-        if (arr[i][col] > maxVal) {
-            maxVal = arr[i][col];
-            idx = i;
-        }
-    }
-    return idx;
-}
+vector<int> findPeakGrid(vector<vector<int>>& mat) {
+    int rows = mat.size();
+    int cols = mat[0].size();
 
-vector<int> findPeakGrid(vector<vector<int>>& arr) {
-    int m = arr.size(); // rows
-    int n = arr[0].size(); // columns
+    // INTUITION:
+    // Apply Binary Search on columns.
+    //
+    // For every middle column, consider only its maximum element.
+    // If even the maximum element isn't a peak, then no other element
+    // in that column can be a peak.
+    //
+    // Compare this maximum element with its left and right neighbours
+    // to decide which half is guaranteed to contain a peak.
 
     int low = 0;
-    int high = n-1;
+    int high = cols - 1;
 
     while (low <= high) {
-        int mid = (low + high)/2;
-        int row = maxElement(arr, mid);
+        int mid = low + (high - low) / 2;
 
-        int leftEle = mid > 0 ? arr[row][mid-1] : INT_MIN;
-        int rightEle = mid + 1 < n ? arr[row][mid+1] : INT_MIN;
+        // Find the row containing the maximum element
+        // in the current middle column.
+        int maxRow = 0;
+        for (int row = 1; row < rows; row++) {
+            if (mat[row][mid] > mat[maxRow][mid]) {
+                maxRow = row;
+            }
+        }
 
-        if (arr[row][mid] > leftEle && arr[row][mid] > rightEle) {
-            return {row, mid};
-        } else if (leftEle > arr[row][mid]) {
+        // Treat out-of-bound neighbours as -∞
+        int left = (mid > 0) ? mat[maxRow][mid - 1] : -1;
+        int right = (mid < cols - 1) ? mat[maxRow][mid + 1] : -1;
+
+        // Current element is greater than both horizontal neighbours
+        // Since it is already the maximum in its column,
+        // it is also greater than its vertical neighbours.
+        if (mat[maxRow][mid] > left && mat[maxRow][mid] > right) {
+            return {maxRow, mid};
+        }
+
+        // A larger element exists on the left.
+        // A peak is guaranteed to exist in the left half.
+        if (left > mat[maxRow][mid]) {
             high = mid - 1;
-        } else {
+        }
+
+        // Otherwise, move towards the larger element on the right.
+        else {
             low = mid + 1;
         }
     }
 
     return {-1, -1};
+}
+```
+
+### Matrix Median 
+Given a 2D array matrix that is row-wise sorted. The task is to find the median of the given matrix.
+
+```cpp
+int upperBound(vector<int>& row, int x) {
+    // INTUITION:
+    // Find the first element strictly greater than x.
+    // The returned index equals the number of elements <= x.
+
+    int low = 0;
+    int high = row.size() - 1;
+
+    // Default insertion position if no element > x exists
+    int ans = row.size();
+
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+
+        if (row[mid] > x) {
+            // mid is a valid upper bound.
+            // Try to find an earlier one.
+            ans = mid;
+            high = mid - 1;
+        } else {
+            // Elements <= x lie on the right.
+            low = mid + 1;
+        }
+    }
+
+    return ans;
+}
+
+int findMedian(vector<vector<int>>& matrix) {
+    int rows = matrix.size();
+    int cols = matrix[0].size();
+
+    // INTUITION:
+    // We are NOT searching for the median's position.
+    // We are searching for its VALUE.
+    //
+    // For every candidate value 'mid',
+    // count how many elements are <= mid.
+    //
+    // This count is monotonic:
+    // Larger value → Larger count
+    // Hence, Binary Search on the value range.
+
+    // Smallest possible value in the matrix
+    int low = INT_MAX;
+
+    // Largest possible value in the matrix
+    int high = INT_MIN;
+
+    for (int i = 0; i < rows; i++) {
+        low = min(low, matrix[i][0]);
+        high = max(high, matrix[i][cols - 1]);
+    }
+
+    // Median should have exactly 'required' elements before it
+    int required = (rows * cols) / 2;
+
+    int ans = -1;
+
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+
+        // Count elements <= mid across all rows
+        int count = 0;
+
+        for (int i = 0; i < rows; i++) {
+            count += upperBound(matrix[i], mid);
+        }
+
+        if (count > required) {
+            // Enough elements are <= mid.
+            // mid could be the median.
+            // Try finding a smaller valid value.
+            ans = mid;
+            high = mid - 1;
+        } else {
+            // Too few elements are <= mid.
+            // Median must be larger.
+            low = mid + 1;
+        }
+    }
+
+    return ans;
+}
+```
+
+## Contest
+
+### Neightbours within K distance
+Given an integer array nums with n values and a value k, return an array containing the number of neighbours for each element of the array.
+
+An element x is the neighbour of element y if x falls in the range [y-k, y+k] (inclusive).
+```
+Input: nums = [1, 4, 7, 8, 9], k = 3
+Output: [2, 3, 4, 3, 3]
+
+Explanation: Neighbours of 1 = [1, 4]
+Neighbours of 4 = [1, 4, 7]
+Neighbours of 7 = [4, 7, 8, 9]
+Neighbours of 8 = [7, 8, 9]
+Neighbours of 9 = [7, 8, 9]
+```
+```cpp
+vector<int> neighboursWithKDistance(vector<int>& nums, int k) {
+
+    int n = nums.size();
+
+    // INTUITION:
+    // For every element x, count how many elements lie in
+    // the range [x-k, x+k].
+    //
+    // Sorting allows us to Binary Search the left and right
+    // boundaries of this range in O(log n).
+
+    vector<pair<int, int>> arr;
+
+    // Store {value, original index}
+    // so that after sorting we can place answers
+    // back in the original order.
+    for (int i = 0; i < n; i++) {
+        arr.push_back({nums[i], i});
+    }
+
+    // Sort by value
+    sort(arr.begin(), arr.end());
+
+    // Extract only the sorted values
+    // to perform Binary Search.
+    vector<int> values;
+    for (auto p : arr) {
+        values.push_back(p.first);
+    }
+
+    vector<int> ans(n);
+
+    for (int i = 0; i < n; i++) {
+
+        int val = arr[i].first;
+
+        // First element >= (val - k)
+        int left = lower_bound(values.begin(), values.end(), val - k)
+                   - values.begin();
+
+        // First element > (val + k)
+        int right = upper_bound(values.begin(), values.end(), val + k)
+                    - values.begin();
+
+        // Number of elements in [val-k, val+k]
+        ans[arr[i].second] = right - left;
+    }
+
+    return ans;
+}
+```
+
+### Z-Score
+Given an array of integers marks containing the marks of a student in each subject and a multiplicative factor k. Return the Z-Score of the student.
+
+Z-Score is defined as the maximum value of x, where the student has at least x subjects where they have scored at least x * k.
+
+```cpp
+int subjectCount(vector<int>& marks, int x, int k) {
+    // Count how many subjects have marks >= x * k
+    int count = 0;
+    int requiredMarks = x * k;
+
+    for (int mark : marks) {
+        if (mark >= requiredMarks) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+int ZScore(vector<int>& marks, int k) {
+
+    // INTUITION:
+    // We need the maximum value of x such that
+    // there are at least x subjects having marks >= x * k.
+    //
+    // Instead of checking every possible x,
+    // Binary Search on the answer.
+    //
+    // Search Space:
+    // x can never exceed the number of subjects.
+
+    int n = marks.size();
+
+    int low = 0;
+    int high = n;
+
+    int ans = 0;
+
+    while (low <= high) {
+
+        int mid = low + (high - low) / 2;
+
+        // Number of subjects satisfying:
+        // marks >= mid * k
+        int count = subjectCount(marks, mid, k);
+
+        if (count >= mid) {
+            // 'mid' is a valid Z-Score.
+            // Try to maximize it.
+            ans = mid;
+            low = mid + 1;
+        } else {
+            // Not enough qualifying subjects.
+            // Reduce the candidate Z-Score.
+            high = mid - 1;
+        }
+    }
+
+    return ans;
 }
 ```
