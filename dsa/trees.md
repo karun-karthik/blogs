@@ -634,26 +634,52 @@ int maxPathSum(TreeNode* root) {
     return max(throughRoot, max(leftMax, rightMax));
 }
 ```
+
 ```cpp
 int dfs(TreeNode* node, int& maxSum) {
-    // Base case
+
+    // Base Case:
+    // An empty subtree contributes nothing to the path.
     if (node == nullptr)
         return 0;
 
-    // Get max path sum from left and right subtrees
+    // Maximum contribution from the left and right subtrees.
+    // Ignore negative contributions since they only reduce
+    // the overall path sum.
     int left = max(0, dfs(node->left, maxSum));
     int right = max(0, dfs(node->right, maxSum));
 
-    // Update global maximum path sum
+    // INTUITION:
+    // The best path passing through the current node can:
+    // Left Subtree -> Current Node -> Right Subtree
+    //
+    // Since this path ends at the current node,
+    // it is a candidate for the global maximum.
     maxSum = max(maxSum, node->data + left + right);
 
-    // Return best path going upward (parent can only take one side)
+    // Return the maximum contribution that the current node
+    // can make to its parent.
+    //
+    // A parent can extend only one branch,
+    // so choose the better of the left or right subtree.
     return node->data + max(left, right);
 }
 
 int maxPathSum(TreeNode* root) {
+
+    // INTUITION:
+    // Every node is treated as the highest point of a path.
+    //
+    // At each node:
+    // 1. Compute the maximum contribution from the left subtree.
+    // 2. Compute the maximum contribution from the right subtree.
+    // 3. Update the global answer using both sides.
+    // 4. Return only one side to the parent.
+
     int maxSum = INT_MIN;
+
     dfs(root, maxSum);
+
     return maxSum;
 }
 ```
@@ -879,108 +905,61 @@ vector<int> boundary(TreeNode* root) {
 ### Vertical Order Traversal
 ```cpp
 vector<vector<int>> verticalTraversal(TreeNode* root) {
-    /*
-        Data structure used to organize nodes by vertical position.
-        map<column, map<row, multiset<values>>>
 
-        Why this structure?
-        1. Outer map (column):
-           Keeps columns automatically sorted from left → right.
-        2. Inner map (row):
-           Keeps nodes ordered from top → bottom.
-        3. multiset:
-           If multiple nodes share the same (row, column),
-           their values must be sorted. multiset maintains this order.
-    */
+    // column -> row -> sorted node values
+    //
+    // map      : keeps columns from left to right
+    // inner map: keeps rows from top to bottom
+    // multiset : keeps nodes at the same (row, col) in sorted order
     map<int, map<int, multiset<int>>> nodes;
+    //   ↑        ↑          ↑
+    // column    row      node values
 
+    // {node, {row, col}}
+    queue<pair<TreeNode*, pair<int, int>>> q;
+    q.push({root, {0, 0}});
 
-    /*
-        BFS queue storing:
-        - current node pointer
-        - (row, column) coordinates of that node
-        We use BFS so that nodes are naturally processed
-        level by level (top → bottom).
-    */
-    queue<pair<TreeNode*, pair<int,int>>> q;
-
-    /* Root node starts at coordinate (row = 0, column = 0) */
-    q.push({root, {0,0}});
-
-    /* Standard BFS traversal of the binary tree */
+    // BFS to assign every node its (row, col) coordinate
     while (!q.empty()) {
 
-        /*
-            Structured binding:
-            Extract node and its (row, column) coordinates
-        */
-        auto [node, pos] = q.front();
+        auto curr = q.front();
         q.pop();
 
-        int row = pos.first;
-        int col = pos.second;
+        TreeNode* node = curr.first;
+        int row = curr.second.first;
+        int col = curr.second.second;
 
-
-        /*
-            Insert the node value into the structure.
-
-            nodes[col][row] groups nodes that share the same
-            vertical column and depth level.
-
-            multiset ensures sorted order when multiple nodes
-            appear in the same position.
-        */
+        // Store the node at its corresponding position
         nodes[col][row].insert(node->data);
 
+        if (node->left)
+            q.push({node->left, {row + 1, col - 1}});
 
-        /*
-            Assign coordinates to child nodes.
-
-            Left child:
-                row increases (going down)
-                column decreases (moving left)
-
-            Right child:
-                row increases
-                column increases (moving right)
-        */
-        if (node->left) q.push({node->left, {row + 1, col - 1}});
-        if (node->right) q.push({node->right, {row + 1, col + 1}});
+        if (node->right)
+            q.push({node->right, {row + 1, col + 1}});
     }
 
+    vector<vector<int>> result;
 
-    /*
-        Build the final result.
+    // Traverse columns from left to right
+    for (auto& [col, rows] : nodes) {
 
-        Because 'nodes' is a map:
-        - columns are already sorted from leftmost → rightmost
-    */
-    vector<vector<int>> res;
+        vector<int> vertical;
 
+        // Traverse rows from top to bottom
+        for (auto& [row, values] : rows) {
 
-    for (auto &[col, rows] : nodes) {
-        /*
-            This vector will store all nodes belonging
-            to the current vertical column.
-        */
-        vector<int> v;
-
-        /*
-            Iterate rows from top → bottom
-        */
-        for (auto &[row, vals] : rows) {
-            /*
-                Insert all values stored in the multiset.
-                Values are already sorted if multiple nodes
-                share the same (row, column).
-            */
-            v.insert(v.end(), vals.begin(), vals.end());
+            // Nodes sharing the same (row, col) are already
+            // sorted by the multiset.
+            vertical.insert(vertical.end(),
+                            values.begin(),
+                            values.end());
         }
 
-        res.push_back(v);
+        result.push_back(vertical);
     }
 
-    return res;
+    return result;
 }
 ```
 
@@ -1268,39 +1247,53 @@ TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
 
 ### Maximum width of a Binary Tree
 ```cpp
-long long int widthOfBinaryTree(TreeNode* root) {
-    if (!root) return 0;
-    long long ans = 0;
-    /*
-        Queue stores:
-        - node pointer
-        - index representing its position in a complete binary tree
-    */
+long long widthOfBinaryTree(TreeNode* root) {
+    if (root == nullptr) return 0;
+
+    // INTUITION:
+    // Imagine the tree as a complete binary tree.
+    // The width of each level is the distance between
+    // the leftmost and rightmost node indices.
+
+    long long maxWidth = 0;
+
+    // {node, complete binary tree index}
     queue<pair<TreeNode*, long long>> q;
     q.push({root, 0});
 
     while (!q.empty()) {
         int levelSize = q.size();
 
-        // first index of current level
-        long long start = q.front().second;
-        long long first, last;
+        // Use the first index of the level as a reference
+        // so indices remain small and never overflow.
+        long long levelStart = q.front().second;
+
+        long long firstIndex = 0;
+        long long lastIndex = 0;
 
         for (int i = 0; i < levelSize; i++) {
-            auto [node, idx] = q.front();
+            auto [node, index] = q.front();
             q.pop();
 
-            /* Normalize index to prevent overflow by subtracting the starting index */
-            idx -= start;
+            // Normalize the current index
+            index -= levelStart;
 
-            if (i == 0) first = idx;
-            if (i == levelSize - 1) last = idx;
-            if (node->left) q.push({node->left, 2 * idx});
-            if (node->right) q.push({node->right, 2 * idx + 1});
+            if (i == 0) firstIndex = index;
+
+            if (i == levelSize - 1) lastIndex = index;
+
+            // Assign children the same indices they would
+            // have in a complete binary tree.
+            if (node->left) q.push({node->left, 2 * index});
+
+            if (node->right) q.push({node->right, 2 * index + 1});
         }
-        ans = max(ans, last - first + 1);
+
+        // Width of the current level
+        maxWidth = max(maxWidth, lastIndex - firstIndex + 1);
     }
-    return ans;
+
+    return maxWidth;
 }
 ```
 
@@ -1479,75 +1472,50 @@ int timeToBurnTree(TreeNode* root, int start){
 ### Count Number of Trees in a Binary Tree
 ```cpp
 int leftHeight(TreeNode* node) {
-    int h = 0;
-    // Traverse the leftmost path to compute height
+    int height = 0;
+
+    // Height of the leftmost path
     while (node) {
-        h++;
+        height++;
         node = node->left;
     }
-    return h;
+
+    return height;
 }
 
 int rightHeight(TreeNode* node) {
-    int h = 0;
-    // Traverse the rightmost path to compute height
+    int height = 0;
+
+    // Height of the rightmost path
     while (node) {
-        h++;
+        height++;
         node = node->right;
     }
-    return h;
+
+    return height;
 }
 
 int countNodes(TreeNode* root) {
-    // Base case: empty tree has 0 nodes
+    // Empty tree
     if (root == nullptr) return 0;
 
-    // Compute height of leftmost path
-    int lh = leftHeight(root);
+    // INTUITION:
+    // If the leftmost and rightmost heights are equal,
+    // the subtree is a perfect binary tree.
+    // We can directly compute its node count instead
+    // of traversing every node.
 
-    // Compute height of rightmost path
-    int rh = rightHeight(root);
+    int leftH = leftHeight(root);
+    int rightH = rightHeight(root);
 
-    /*
-        If both heights are equal, the tree is a PERFECT binary tree.
-        A perfect binary tree with height h has:
-            Nodes = 2^h - 1
-        Instead of using pow(2, h), we use bit shifting: (1 << h)
+    if (leftH == rightH) {
+        // Perfect Binary Tree:
+        // Nodes = 2^height - 1
+        // (1 << height) computes 2^height.
+        return (1 << leftH) - 1;
+    }
 
-        Explanation of (1 << h):
-
-            1 << h  means shifting binary 1 left by h positions.
-
-        Example:
-            h = 3
-            1       = 0001
-            1 << 3  = 1000  (binary)
-            1000₂ = 8 (decimal)
-
-        So:
-            (1 << 3) - 1
-            = 8 - 1
-            = 7
-
-        Which is exactly the number of nodes in a perfect binary tree
-        of height 3.
-
-        Tree example:
-
-                1
-                / \
-                2   3
-                / \ / \
-            4  5 6  7
-
-        Total nodes = 7
-    */
-    if (lh == rh) return (1 << lh) - 1;
-
-    /*
-        If the subtree is NOT perfect,
-        recursively count nodes in left and right subtrees.
-    */
+    // Otherwise, recursively count nodes in both subtrees.
     return 1 + countNodes(root->left) + countNodes(root->right);
 }
 ```
