@@ -303,73 +303,100 @@ Morris Traversal performs inorder traversal using O(1) extra space by temporaril
 
 ```cpp
 vector<int> getInorder(TreeNode* root) {
-
-    vector<int> inorder;
+    // Inorder: Visit the root after returning from the left subtree.
+    vector<int> res;
     TreeNode* curr = root;
 
-    while (curr != nullptr) {
+    // INTUITION:
+    // Every node is visited at most twice.
+    //
+    // First Visit:
+    // Create a temporary link back to the current node
+    // and explore the left subtree.
+    //
+    // Second Visit:
+    // Remove the link, visit the node, and move right.
 
-        // Case 1: No left subtree
+    while (curr) {
+        // No left subtree -> visit immediately.
         if (curr->left == nullptr) {
-            inorder.push_back(curr->data);
+            res.push_back(curr->data);
             curr = curr->right;
         } else {
-            // Find inorder predecessor (rightmost node in left subtree)
             TreeNode* pred = curr->left;
-            while (pred->right != nullptr && pred->right != curr)
-                pred = pred->right;
 
-            // Case 2: Create thread & continue processing left by moving curr
+            // Find res predecessor
+            while (pred->right && pred->right != curr) pred = pred->right;
+
+            // First visit
             if (pred->right == nullptr) {
-                pred->right = curr;      //  temporary link
+                pred->right = curr;
                 curr = curr->left;
-            }
-            // Case 3: Thread already exists
-            else {
-                pred->right = nullptr;   // remove thread
-                inorder.push_back(curr->data);
+            } else {
+                // Second visit
+                res.push_back(curr->data); // inorder
+                pred->right = nullptr;
                 curr = curr->right;
             }
         }
     }
-    return inorder;
+
+    return res;
 }
 ```
 
 ### Morris Preorder Traversal
 ```cpp
-vector<int> preorder(TreeNode* root) {
-    vector<int> res;
+vector<int> getPreorder(TreeNode* root) {
+    // Preorder: Visit the root before going left.
+
+    vector<int> preorder;
     TreeNode* curr = root;
 
-    while (curr != nullptr) {
+    // INTUITION:
+    // Every node is visited at most twice.
+    //
+    // First Visit:
+    // Visit the node, create a temporary link,
+    // then explore the left subtree.
+    //
+    // Second Visit:
+    // Remove the temporary link and move right.
 
-        // Case 1: No left subtree
+    while (curr) {
+
+        // No left subtree -> visit immediately.
         if (curr->left == nullptr) {
-            res.push_back(curr->data);
+
+            preorder.push_back(curr->data);
             curr = curr->right;
-        } else {
+        }
+        else {
+
+            TreeNode* pred = curr->left;
 
             // Find inorder predecessor
-            TreeNode* pred = curr->left;
-            while (pred->right != nullptr && pred->right != curr)
+            while (pred->right && pred->right != curr)
                 pred = pred->right;
 
-            // First time visiting this node
+            // First visit
             if (pred->right == nullptr) {
 
-                res.push_back(curr->data);    // preorder visit
-                pred->right = curr;    // create thread
+                preorder.push_back(curr->data); // preorder
+
+                pred->right = curr;
                 curr = curr->left;
             }
-            // Thread already exists
+            // Second visit
             else {
-                pred->right = nullptr;    // remove thread
+
+                pred->right = nullptr;
                 curr = curr->right;
             }
         }
     }
-    return res;
+
+    return preorder;
 }
 ```
 
