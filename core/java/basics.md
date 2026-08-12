@@ -1,15 +1,15 @@
 # Java Core Library — Chapter 1
-## Basics of Java Programming — Interview Study & Revision Notes
+### Basics of Java Programming — Exact Interview Questions + Company/Difficulty + Answers + Follow-ups
 
-> **Source:** `04-core-library.pdf` — Chapter 1, Q1–Q40.
+> **Source:** `04-core-library.pdf`, Chapter 1 — Q1–Q40.
 >
-> **Study goal:** Do not memorize 40 isolated answers. Build one mental model, then use the follow-ups as active-recall checks.
+> This corrected version keeps the **exact question wording from the PDF**, the **Asked at / Difficulty / Topic** metadata, and the detailed study treatment. Each question also contains the common follow-up **with an answer**, so you can prepare for the next question an interviewer is likely to ask.
 >
-> The source organizes every question as: question → 30-second answer → thought process → edge cases → what NOT to say → common follow-up.
+> **Important:** “Asked at” is reproduced as the source's interview attribution; it is not a guarantee that every listed company currently asks the question.
 
 ---
 
-# 1. Master Mental Model
+# Chapter 1 Mental Model
 
 ```text
 Java
@@ -38,28 +38,23 @@ Java
 │   ├── enum
 │   └── packages / imports
 │
-├── Runtime
-│   ├── .java
-│   ├── javac
-│   ├── .class bytecode
-│   ├── JVM
-│   └── interpreter + JIT
-│
-└── Precision / identity
-    ├── String pool
-    ├── == vs equals
+└── Runtime / precision
+    ├── javac → bytecode → JVM → JIT
+    ├── String Pool
     ├── integer overflow
-    ├── double / IEEE 754
+    ├── IEEE 754
     └── BigDecimal
 ```
 
 ---
 
-# Q1 — Primitive vs Reference Types
+# Q1 — Primitives vs reference types — what's actually different?
 
-### Question
+> **Asked at:** TCS · Infosys · Cognizant · most fresher screens  
+> **Difficulty:** Easy  
+> **Topic:** Type system
 
-What's the difference between primitive types and reference types? Walk me through what's happening in memory.
+> In Java, what's the difference between primitive types and reference types? Walk me through what's happening in memory.
 
 ### Interview answer
 
@@ -109,7 +104,15 @@ Too simplistic.
 
 ---
 
-# Q2 — The 8 Primitive Types
+---
+
+# Q2 — The 8 primitive types and their sizes
+
+> **Asked at:** TCS · Infosys · Wipro · Accenture  
+> **Difficulty:** Easy  
+> **Topic:** Primitives
+
+> Name all the primitive data types in Java with their sizes and default values.
 
 ### Question
 
@@ -152,11 +155,15 @@ char c = 65;       // 'A'
 
 ---
 
-# Q3 — Autoboxing and Unboxing
+---
 
-### Question
+# Q3 — Autoboxing and unboxing — and the NPE trap
 
-What are autoboxing and unboxing?
+> **Asked at:** Razorpay · Swiggy · Cognizant · HCL  
+> **Difficulty:** Medium  
+> **Topic:** Autoboxing
+
+> What is autoboxing and unboxing in Java? Show me a case where it can throw a NullPointerException unexpectedly.
 
 ### Answer
 
@@ -197,11 +204,15 @@ int amount = balance.intValue();
 
 ---
 
-# Q4 — Type Promotion
+---
 
-### Question
+# Q4 — Type promotion in arithmetic expressions
 
-Why does `byte + byte` become `int`?
+> **Asked at:** Infosys · TCS · BrowserStack  
+> **Difficulty:** Medium  
+> **Topic:** Type promotion
+
+> What does Java do when you mix types in an arithmetic expression? For example, byte a = 10; byte b = 20; byte c = a + b; — does this compile?
 
 ### Answer
 
@@ -240,7 +251,15 @@ long total = 2_000_000_000L * 3;
 
 ---
 
-# Q5 — Widening vs Narrowing Casting
+---
+
+# Q5 — Casting — implicit (widening) vs explicit (narrowing)
+
+> **Asked at:** TCS · Accenture · Wipro  
+> **Difficulty:** Easy-Medium  
+> **Topic:** Casting
+
+> Explain implicit and explicit casting in Java. When does the compiler do it for you, and when do you have to ask?
 
 ### Answer
 
@@ -287,7 +306,15 @@ Pattern matching performs the check and binding together.
 
 ---
 
-# Q6 — Arithmetic Operators
+---
+
+# Q6 — Arithmetic operators and integer division
+
+> **Asked at:** TCS · Infosys · Wipro  
+> **Difficulty:** Easy  
+> **Topic:** Operators
+
+> Explain the arithmetic operators in Java. What does 7 / 2 give you? What about 7 % 2 ?
 
 ### Answer
 
@@ -326,7 +353,15 @@ Integer division truncates toward zero.
 
 ---
 
-# Q7 — `&&` vs `&`, `||` vs `|`
+---
+
+# Q7 — Logical operators — && vs & , || vs |
+
+> **Asked at:** Razorpay · TCS · BrowserStack  
+> **Difficulty:** Medium  
+> **Topic:** Operators
+
+> What's the difference between && and & , or between || and | ?
 
 ### Answer
 
@@ -359,7 +394,15 @@ If `user == null`, `user.isActive()` is never evaluated.
 
 ---
 
-# Q8 — Bitwise Operators
+---
+
+# Q8 — Bitwise operators in Java
+
+> **Asked at:** Zerodha · BrowserStack · Walmart Labs  
+> **Difficulty:** Medium  
+> **Topic:** Bitwise ops
+
+> Walk me through Java's bitwise operators and give a real use case for each.
 
 ### Operators
 
@@ -403,7 +446,15 @@ if ((flags & READ) != 0) {
 
 ---
 
-# Q9 — `if-else` vs `switch`
+---
+
+# Q9 — if - else vs switch — when to use which?
+
+> **Asked at:** TCS · Infosys · Cognizant  
+> **Difficulty:** Easy  
+> **Topic:** Control flow
+
+> When would you reach for switch instead of a chain of if - else if ?
 
 ### Answer
 
@@ -433,7 +484,15 @@ String result = switch (status) {
 
 ---
 
-# Q10 — Classic `for` vs Enhanced `for`
+---
+
+# Q10 — The classic for loop vs enhanced for
+
+> **Asked at:** TCS · Infosys · Wipro · Accenture  
+> **Difficulty:** Easy  
+> **Topic:** Loops
+
+> Compare the classic for loop with the enhanced for-each loop. When does it matter which you pick?
 
 ### Answer
 
@@ -475,7 +534,15 @@ Don't structurally modify a normal list directly inside an enhanced-for loop.
 
 ---
 
-# Q11 — `while` vs `do-while`
+---
+
+# Q11 — while vs do-while
+
+> **Asked at:** TCS · Infosys · HCL  
+> **Difficulty:** Easy  
+> **Topic:** Loops
+
+> What's the difference between while and do-while ? Give me a case where you'd specifically need do-while.
 
 ### Answer
 
@@ -523,7 +590,15 @@ Alternatively, extract the nested logic into a method and use `return`.
 
 ---
 
-# Q12 — `var`
+---
+
+# Q12 — The var keyword (Java 10+)
+
+> **Asked at:** Razorpay · Postman · Cred · Walmart Labs  
+> **Difficulty:** Medium  
+> **Topic:** Local-variable type
+
+> What's var in Java? When can you use it, and when can't you?
 
 ### Answer
 
@@ -561,7 +636,15 @@ Also not for:
 
 ---
 
-# Q13 — `final`
+---
+
+# Q13 — final on variables, methods, and classes
+
+> **Asked at:** TCS · Infosys · Accenture · Cognizant  
+> **Difficulty:** Easy-Medium  
+> **Topic:** final keyword
+
+> What does final mean when applied to a variable, a method, and a class?
 
 ### Three meanings
 
@@ -593,7 +676,15 @@ list.add("Java"); // valid
 
 ---
 
-# Q14 — Constants
+---
+
+# Q14 — final constants — naming and idioms
+
+> **Asked at:** TCS · Infosys · Wipro  
+> **Difficulty:** Easy  
+> **Topic:** Constants
+
+> How do you declare a constant in Java? What's the convention?
 
 Typical form:
 
@@ -625,7 +716,15 @@ Certain primitive/String `static final` fields initialized with constant express
 
 ---
 
-# Q15 — Enums
+---
+
+# Q15 — Enums in Java — more than just named integers
+
+> **Asked at:** Razorpay · Swiggy · Cred · Postman · BrowserStack  
+> **Difficulty:** Medium  
+> **Topic:** Enums
+
+> What's an enum in Java? How is it different from a C-style integer enum, and what advanced things can you do with it?
 
 ### Answer
 
@@ -669,7 +768,15 @@ It cannot extend another class, but it can implement interfaces.
 
 ---
 
-# Q16 — `static`
+---
+
+# Q16 — static semantics — fields, methods, blocks, nested classes
+
+> **Asked at:** TCS · Infosys · Cognizant · HCL  
+> **Difficulty:** Medium  
+> **Topic:** static keyword
+
+> Walk me through what static means when applied to fields, methods, blocks, and nested classes.
 
 ### Answer
 
@@ -702,7 +809,15 @@ They are **hidden**, not overridden.
 
 ---
 
-# Q17 — Naming Conventions
+---
+
+# Q17 — Java naming conventions
+
+> **Asked at:** TCS · Infosys · Wipro · Accenture  
+> **Difficulty:** Easy  
+> **Topic:** Conventions
+
+> What are Java's standard naming conventions? Walk me through what each casing style is used for.
 
 | Element | Convention |
 |---|---|
@@ -734,7 +849,15 @@ com.company.billing
 
 ---
 
-# Q18 — Packages and Imports
+---
+
+# Q18 — Packages and the import statement
+
+> **Asked at:** TCS · Infosys · Cognizant  
+> **Difficulty:** Easy  
+> **Topic:** Packages
+
+> What's a package in Java, and why do we need import statements?
 
 ### Answer
 
@@ -770,7 +893,15 @@ The classpath/module path determines where classes are found.
 
 ---
 
-# Q19 — `public static void main(String[] args)`
+---
+
+# Q19 — public static void main(String[] args) — why each word?
+
+> **Asked at:** TCS · Infosys · Wipro · Accenture · HCL  
+> **Difficulty:** Easy  
+> **Topic:** main method
+
+> Why is the main method signature public static void main(String[] args) ? What happens if you change any part?
 
 ### Break it down
 
@@ -802,7 +933,15 @@ because varargs are represented as an array at the method level.
 
 ---
 
-# Q20 — `String[] args`
+---
+
+# Q20 — The String[] args array — accessing command-line arguments
+
+> **Asked at:** TCS · Infosys  
+> **Difficulty:** Easy  
+> **Topic:** main args
+
+> How do you access command-line arguments inside main? What's args.length when no arguments are passed?
 
 Running:
 
@@ -833,7 +972,15 @@ With no arguments, `args` is an empty array, not `null`.
 
 ---
 
-# Q21 — Compilation vs Execution
+---
+
+# Q21 — Compile vs run — what does javac produce?
+
+> **Asked at:** TCS · Infosys · Wipro · Cognizant  
+> **Difficulty:** Easy  
+> **Topic:** Compile vs run
+
+> Walk me through what happens when you compile a Java program and then run it. What's a .class file?
 
 ```text
 .java source
@@ -871,7 +1018,15 @@ JVM
 
 ---
 
-# Q22 — Classpath
+---
+
+# Q22 — The classpath — how the JVM finds classes
+
+> **Asked at:** TCS · Infosys · Walmart Labs  
+> **Difficulty:** Medium  
+> **Topic:** Compile vs run
+
+> What's the classpath, and what happens if your class isn't on it?
 
 ### Answer
 
@@ -905,7 +1060,15 @@ NoClassDefFoundError
 
 ---
 
-# Q23 — `Math`
+---
+
+# Q23 — The Math class — common operations
+
+> **Asked at:** TCS · Infosys · Wipro  
+> **Difficulty:** Easy  
+> **Topic:** Math
+
+> Walk me through the most useful methods on java.lang.Math .
 
 Useful methods:
 
@@ -946,7 +1109,15 @@ For concurrent random integer generation, `ThreadLocalRandom` is generally prefe
 
 ---
 
-# Q24 — Why `0.1 + 0.2 != 0.3`
+---
+
+# Q24 — double precision — why floats break for money
+
+> **Asked at:** Razorpay · Zerodha · Groww · PhonePe · JP Morgan  
+> **Difficulty:** Medium  
+> **Topic:** Floating
+
+> Why is 0.1 + 0.2 == 0.3 false in Java? And why should you never use double for money?
 
 ### Answer
 
@@ -997,7 +1168,15 @@ Use decimal strings for exact decimal construction.
 
 ---
 
-# Q25 — `BigDecimal` vs `double`
+---
+
+# Q25 — BigDecimal vs double — when each?
+
+> **Asked at:** Razorpay · Cred · Zerodha · Groww · PhonePe · JP Morgan  
+> **Difficulty:** Medium-Hard  
+> **Topic:** BigDecimal
+
+> When would you use BigDecimal instead of double? Are there cases where double is fine?
 
 ### Answer
 
@@ -1050,7 +1229,15 @@ new BigDecimal("1.0").compareTo(new BigDecimal("1.00"))  // 0
 
 ---
 
-# Q26 — `i++` vs `++i`
+---
+
+# Q26 — Increment operators — i++ vs ++i
+
+> **Asked at:** TCS · Infosys · Wipro  
+> **Difficulty:** Easy-Medium  
+> **Topic:** Operators
+
+> What's the difference between i++ and ++i ? Does it matter in a for loop?
 
 ### Answer
 
@@ -1087,7 +1274,15 @@ The postfix expression returns the old value `5`, increments the variable to `6`
 
 ---
 
-# Q27 — Ternary Operator
+---
+
+# Q27 — Ternary operator — when (not) to use it
+
+> **Asked at:** TCS · Infosys  
+> **Difficulty:** Easy  
+> **Topic:** Operators
+
+> Explain the ternary operator. When is it better than if-else, and when is it worse?
 
 ### Answer
 
@@ -1121,7 +1316,15 @@ Only the selected branch is evaluated.
 
 ---
 
-# Q28 — `break`, `continue`, Labels
+---
+
+# Q28 — break , continue , and labels
+
+> **Asked at:** TCS · Infosys · BrowserStack  
+> **Difficulty:** Easy-Medium  
+> **Topic:** Control flow
+
+> What's the difference between break and continue ? How do labels work in nested loops?
 
 ### Answer
 
@@ -1156,7 +1359,15 @@ for (...) {
 
 ---
 
-# Q29 — `instanceof` and Pattern Matching
+---
+
+# Q29 — instanceof and pattern matching
+
+> **Asked at:** Razorpay · Cred · BrowserStack · Postman  
+> **Difficulty:** Medium  
+> **Topic:** Type checks
+
+> How do you check an object's type at runtime? What did Java 16 change here?
 
 ### Answer
 
@@ -1197,7 +1408,15 @@ type check + cast + variable binding
 
 ---
 
-# Q30 — String Concatenation
+---
+
+# Q30 — String operations — concatenation costs
+
+> **Asked at:** TCS · Infosys · Razorpay  
+> **Difficulty:** Easy-Medium  
+> **Topic:** Strings + operators
+
+> What happens under the hood with String result = a + b + c; ? Is using + in a loop bad?
 
 ### Answer
 
@@ -1229,7 +1448,15 @@ Since Java 9, ordinary string concatenation is implemented through `invokedynami
 
 ---
 
-# Q31 — Field Defaults vs Local Variables
+---
+
+# Q31 — Default values for fields vs local variables
+
+> **Asked at:** TCS · Infosys · Cognizant  
+> **Difficulty:** Easy-Medium  
+> **Topic:** Defaults
+
+> What's the default value of an int field versus an int local variable?
 
 ### Answer
 
@@ -1263,7 +1490,15 @@ Arrays also initialize their elements to defaults.
 
 ---
 
-# Q32 — Operator Precedence
+---
+
+# Q32 — Operator precedence — what bites you
+
+> **Asked at:** TCS · Infosys · Walmart Labs  
+> **Difficulty:** Medium  
+> **Topic:** Operators
+
+> What does 5 + 3 * 2 == 11 evaluate to? Walk me through operator precedence.
 
 Example:
 
@@ -1312,7 +1547,15 @@ Use parentheses when the expression is non-obvious.
 
 ---
 
-# Q33 — String Pool and `==`
+---
+
+# Q33 — String pool and == for strings
+
+> **Asked at:** TCS · Infosys · Razorpay · Swiggy  
+> **Difficulty:** Medium  
+> **Topic:** Strings
+
+> Why does "hello" == "hello" return true, but  new String("hello") == new String("hello") return false?
 
 ### Answer
 
@@ -1357,7 +1600,15 @@ equals() → logical content
 
 ---
 
-# Q34 — Integer Overflow
+---
+
+# Q34 — Integer overflow — what happens?
+
+> **Asked at:** Razorpay · Zerodha · Groww · Walmart Labs  
+> **Difficulty:** Medium  
+> **Topic:** Arithmetic
+
+> What happens when an int overflows? How can you detect or prevent it?
 
 ### Answer
 
@@ -1412,7 +1663,15 @@ int mid = low + (high - low) / 2;
 
 ---
 
-# Q35 — Enums With Behavior
+---
+
+# Q35 — Enums with behavior — strategy pattern
+
+> **Asked at:** Cred · Razorpay · Postman · BrowserStack  
+> **Difficulty:** Medium-Hard  
+> **Topic:** Enums
+
+> Can you give me a real-world enum that does more than just hold a name? Like one that encapsulates behavior?
 
 ### Answer
 
@@ -1451,7 +1710,15 @@ This can replace a large switch with polymorphic dispatch.
 
 ---
 
-# Q36 — `null`
+---
+
+# Q36 — null and the Java type system
+
+> **Asked at:** TCS · Infosys · Razorpay · Cognizant  
+> **Difficulty:** Medium  
+> **Topic:** Null
+
+> Can null be assigned to any type? What about primitives? And what's the type of null itself?
 
 ### Answer
 
@@ -1488,7 +1755,15 @@ null instanceof String // false
 
 ---
 
-# Q37 — Static Blocks
+---
+
+# Q37 — Static blocks — when do they run?
+
+> **Asked at:** TCS · Infosys · Cognizant  
+> **Difficulty:** Medium  
+> **Topic:** static
+
+> What's a static block? When does it execute? Can you have multiple static blocks in one class?
 
 ### Answer
 
@@ -1522,7 +1797,15 @@ Initialization problems can result in `ExceptionInInitializerError`.
 
 ---
 
-# Q38 — Method Overloading Resolution
+---
+
+# Q38 — Method overloading — how Java picks which one?
+
+> **Asked at:** TCS · Infosys · Wipro · Razorpay  
+> **Difficulty:** Medium  
+> **Topic:** Methods
+
+> How does Java decide which overloaded method to call when there are multiple matches?
 
 ### Answer
 
@@ -1586,7 +1869,15 @@ Now the compiler selects the String overload.
 
 ---
 
-# Q39 — Real `do-while` Use Case
+---
+
+# Q39 — do-while vs while with sentinel — real loop patterns
+
+> **Asked at:** Infosys · TCS · BrowserStack  
+> **Difficulty:** Easy-Medium  
+> **Topic:** Loops
+
+> Show me a real use case where do-while is genuinely the right choice over while.
 
 ### Best examples
 
@@ -1612,7 +1903,15 @@ do {
 
 ---
 
-# Q40 — Integrated Code Walkthrough
+---
+
+# Q40 — Tying it together — explain a 10-line snippet
+
+> **Asked at:** TCS · Infosys · Wipro · most freshers  
+> **Difficulty:** Easy-Medium  
+> **Topic:** All basics
+
+> Walk me through this code line by line: int[] amounts = {100, 200, 300}; int total = 0; for (int amount : amounts) { total += amount; } System.out.println(total); .
 
 ```java
 int[] amounts = {100, 200, 300};
@@ -1697,7 +1996,7 @@ long total = Arrays.stream(amounts).asLongStream().sum();
 
 These are the follow-ups you should be able to answer without looking:
 
-## Type system
+### Type system
 
 ### Q: Is Java pass-by-reference?
 
@@ -1721,7 +2020,7 @@ These are the follow-ups you should be able to answer without looking:
 
 ---
 
-## Operators
+### Operators
 
 ### Q: Why use `&&` instead of `&`?
 
@@ -1741,7 +2040,7 @@ These are the follow-ups you should be able to answer without looking:
 
 ---
 
-## Variables / classes
+### Variables / classes
 
 ### Q: Is `var` dynamic typing?
 
@@ -1765,7 +2064,7 @@ These are the follow-ups you should be able to answer without looking:
 
 ---
 
-## Strings
+### Strings
 
 ### Q: Why can `"hello" == "hello"` be true?
 
@@ -1781,7 +2080,7 @@ These are the follow-ups you should be able to answer without looking:
 
 ---
 
-## Numbers
+### Numbers
 
 ### Q: Why is `0.1 + 0.2` not exactly `0.3`?
 
@@ -1797,7 +2096,7 @@ These are the follow-ups you should be able to answer without looking:
 
 ---
 
-## Runtime
+### Runtime
 
 ### Q: What does javac produce?
 
@@ -1843,7 +2142,7 @@ If you can answer these **without opening the notes**, Chapter 1 is in good shap
 
 # 2-Revision Plan
 
-## Revision 1 — Understanding
+### Revision 1 — Understanding
 
 Read the chapter once and make sure you can explain:
 
@@ -1859,7 +2158,7 @@ types
 → compilation/JVM
 ```
 
-## Revision 2 — Active Recall
+### Revision 2 — Active Recall
 
 Close the notes.
 
@@ -2031,6 +2330,276 @@ where classes/JARs are found
 
 ---
 
-## Source note
+### Source note
 
 This chapter is based on **Chapter 1 of `04-core-library.pdf` (Q1–Q40)**. The source explicitly includes a common-follow-up section for each interview question; where a follow-up is explicitly present in the retrieved source, it is incorporated above. The source's Q1–Q40 organization and examples are preserved rather than replacing them with an unrelated Java syllabus.
+
+---
+
+# Chapter 1 — High-Value Follow-Up Drill
+
+Use this only after completing the 40 questions once. The goal is active recall.
+
+### Type system
+
+### Is Java pass-by-reference?
+
+**No. Java is always pass-by-value. For objects, the value being copied is the reference.**
+
+### Can a primitive field live inside a heap object?
+
+**Yes. A primitive instance field is part of its containing object.**
+
+### Why does `byte + byte` become `int`?
+
+**Binary numeric promotion promotes `byte`, `short`, and `char` arithmetic to `int`.**
+
+### Why can `2_000_000_000 * 3` overflow before assignment to `long`?
+
+**Because the multiplication is performed as `int` unless one operand is already `long`.**
+
+---
+
+### Operators
+
+### Why use `&&` instead of `&`?
+
+**Short-circuiting: the right side may not execute, which can save work and prevent unsafe evaluation.**
+
+### Difference between `>>` and `>>>`?
+
+**`>>` sign-extends; `>>>` zero-fills.**
+
+### Does integer overflow throw?
+
+**Not normally. It wraps. Use `Math.*Exact` to detect overflow.**
+
+---
+
+### Variables / classes
+
+### Is `var` dynamic typing?
+
+**No. It is compile-time local-variable type inference.**
+
+### Does `final` make an object immutable?
+
+**No. It prevents reassignment of the variable/reference.**
+
+### Can a final List be modified?
+
+**Yes, if the List itself is mutable.**
+
+### Can static methods be overridden?
+
+**No. They are hidden, not dynamically overridden.**
+
+### Does static mean thread-safe?
+
+**No. Static mutable state is shared and can require synchronization or other concurrency controls.**
+
+---
+
+### Strings
+
+### Why can `"hello" == "hello"` be true?
+
+**Identical string literals are interned and can reference the same pooled String.**
+
+### Should you use `==` for String comparison?
+
+**No. Use `.equals()` for content equality.**
+
+### Why use StringBuilder in loops?
+
+**String is immutable; repeated concatenation can repeatedly reconstruct the accumulated value.**
+
+---
+
+### Numbers
+
+### Why is `0.1 + 0.2` not exactly `0.3`?
+
+**IEEE 754 binary floating point cannot exactly represent many decimal fractions.**
+
+### When should you use BigDecimal?
+
+**For exact decimal arithmetic such as money, tax, billing, and accounting.**
+
+### Why use `new BigDecimal("0.1")` instead of `new BigDecimal(0.1)`?
+
+**The String constructor represents the intended decimal exactly; the double constructor preserves the double's existing approximation.**
+
+---
+
+### Runtime
+
+### What does `javac` produce?
+
+**JVM bytecode in `.class` files.**
+
+### What does the JIT do?
+
+**Compiles hot bytecode into optimized native machine code at runtime.**
+
+### What is the classpath?
+
+**A set of locations where Java tools/class loaders search for classes and JARs.**
+
+### Why can compilation succeed while runtime fails?
+
+**A dependency can exist on the compile-time classpath but be missing, incompatible, or fail during runtime loading/initialization.**
+
+---
+
+# Final 15-Question Revision Test
+
+1. What are Java's 8 primitives?
+2. Why is Java pass-by-value?
+3. Why does `byte + byte` become `int`?
+4. What is widening vs narrowing?
+5. Why does `&&` differ from `&`?
+6. What is the difference between `>>` and `>>>`?
+7. Why isn't `var` dynamic typing?
+8. Does `final` mean immutable?
+9. What does `static` mean for fields/methods/classes?
+10. Why should String content be compared with `.equals()`?
+11. Why does `0.1 + 0.2` have precision issues?
+12. When should you use `BigDecimal`?
+13. What happens on integer overflow?
+14. How does Java choose an overloaded method?
+15. Explain `.java → .class → JVM → JIT`.
+
+---
+
+# 2-Revision Strategy
+
+### Revision 1 — Understand
+
+For every question, say aloud:
+
+> **Exact question → 30-second answer → why → edge case → follow-up.**
+
+Do not merely reread.
+
+### Revision 2 — Active recall
+
+Close the notes and reconstruct:
+
+```text
+Types
+→ promotion
+→ casting
+→ operators
+→ control flow
+→ var/final/static
+→ enum
+→ packages/main
+→ compilation/JVM
+→ String identity
+→ precision/BigDecimal
+→ overloads
+```
+
+If you can explain those links without looking, Chapter 1 is effectively compressed into one mental model.
+
+---
+
+# One-Page Memory Sheet
+
+```text
+8 PRIMITIVES
+byte short int long
+float double char boolean
+
+JAVA
+always pass-by-value
+
+PROMOTION
+byte/short/char → int
+
+CASTING
+widening → implicit
+narrowing → explicit
+double → int = truncate
+
+ARITHMETIC
+7/2 = 3
+7.0/2 = 3.5
+7%2 = 1
+overflow = wrap
+
+LOGICAL
+&& / || = short circuit
+& / | = evaluate both boolean operands
+
+SHIFT
+>>  = sign extension
+>>> = zero fill
+
+LOOPS
+for = control/index
+enhanced-for = values
+while = 0+
+do-while = 1+
+
+var
+= compile-time local type inference
+
+final
+variable = no reassignment
+method = no override
+class = no extension
+final reference ≠ immutable object
+
+static
+field = class-level
+method = no this
+block = class initialization
+nested class = no implicit outer reference
+
+ENUM
+fixed type-safe objects
+can contain data + behavior
+
+STRING
+== = reference identity
+equals = content
+literal = pooled/interned
+loop concatenation = StringBuilder
+
+NULL
+reference only
+unboxing null = NPE
+
+DOUBLE
+IEEE 754
+0.1 + 0.2 ≠ exact 0.3
+
+MONEY
+BigDecimal
+construct from String
+immutable
+compareTo for numeric comparison
+
+OVERFLOW
+normal int arithmetic wraps
+Math.*Exact → ArithmeticException
+
+OVERLOADING
+compile time
+exact → widening → boxing → varargs
+
+INSTANCEOF
+check + cast
+pattern:
+obj instanceof Cat cat
+
+COMPILE
+.java → javac → .class
+.class → JVM
+hot code → JIT → native
+
+CLASSPATH
+where classes/JARs are found
+```
