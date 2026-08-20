@@ -480,27 +480,58 @@ vector<int> nextGreaterElements(vector<int> &arr) {
 
 ### Asteroid Collision
 ```cpp
-vector<int> asteroidCollision(vector<int> &asteroids){
-    int n = asteroids.size();
+vector<int> asteroidCollision(vector<int>& asteroids) {
+
+    /*
+        INTUITION:
+        The stack stores asteroids that are still alive.
+
+        A collision is possible only when:
+            stack top > 0  → moving right
+            current < 0    → moving left
+
+        If they collide:
+            smaller asteroid → destroyed
+            equal asteroids   → both destroyed
+            larger asteroid   → survives and may collide again
+        
+        * Stack empty → nothing to collide with.
+        * Top is negative → same direction, no collision.
+        * Therefore → current negative asteroid survives.
+    */
+
     vector<int> st;
 
-    for (int i=0; i<n; i++) {
-        if (asteroids[i] > 0) {
-            st.push_back(asteroids[i]);
-        } else {
-            while(!st.empty() && st.back() > 0 && st.back() < abs(asteroids[i])) {
-                // if opp direction and diff sizes then both will collide & one remains
-                st.pop_back();
-            }
-            if(!st.empty() && st.back() == abs(asteroids[i])) {
-                // if opp direction and same size then both collide & removed
-                st.pop_back();
-            } else if (st.empty() || st.back() < 0) {
-                // what ever asteriod remains in line 12 gets considered again
-                st.push_back(asteroids[i]);
-            }
+    for (int asteroid : asteroids) {
+
+        // Positive asteroid moves right, so it cannot
+        // collide with anything currently behind it.
+        if (asteroid > 0) {
+            st.push_back(asteroid);
+            continue;
+        }
+
+        // Current asteroid is moving left.
+        // Keep destroying smaller right-moving asteroids.
+        while (!st.empty() &&
+               st.back() > 0 &&
+               st.back() < abs(asteroid)) {
+
+            st.pop_back();
+        }
+
+        // Equal sizes → both asteroids are destroyed.
+        if (!st.empty() && st.back() == abs(asteroid)) {
+            st.pop_back();
+        }
+
+        // No collision partner remains.
+        // Current asteroid survives.
+        else if (st.empty() || st.back() < 0) {
+            st.push_back(asteroid);
         }
     }
+
     return st;
 }
 ```
