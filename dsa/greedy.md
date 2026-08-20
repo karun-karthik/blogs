@@ -130,65 +130,83 @@ bool canJump(vector<int>& nums) {
 
 ### Shortest Job First
 ```cpp
-int shortestJobFirst(vector<int>& burstTime) {
+int shortestJobFirst(vector<int>& bt) {
 
-    int n = burstTime.size();
+    // INTUITION:
+    // SJF always executes the shortest job first.
+    // So sort burst times and calculate the waiting time
+    // contributed by each previously executed process.
 
-    // Sort jobs by burst time (shortest first)
-    sort(burstTime.begin(), burstTime.end());
+    sort(bt.begin(), bt.end());
 
-    int totalWaitTime = 0;
-    int currentTime = 0; // time when current job starts
+    long long waitingTime = 0;
+    long long totalWaitingTime = 0;
 
-    for (int i = 0; i < n; i++) {
+    for (int burstTime : bt) {
+        // Current process waits for all previous processes.
+        totalWaitingTime += waitingTime;
 
-        // Wait time for current job = time it starts
-        totalWaitTime += currentTime;
-
-        // Update current time after this job finishes
-        currentTime += burstTime[i];
+        // Current process now contributes to the
+        // waiting time of all following processes.
+        waitingTime += burstTime;
     }
 
-    // Average wait time
-    return totalWaitTime / n;
+    // Return floor of average waiting time.
+    return totalWaitingTime / bt.size();
 }
 ```
 
 ### Job Sequencing Problem
 ```cpp
-vector<int> JobScheduling(vector<vector<int>>& jobs) {
+vector<int> JobScheduling(vector<vector<int>>& Jobs) {
 
-    int n = jobs.size();
+    /*
+        INTUITION:
+        Each job takes 1 unit of time and must finish by its deadline.
 
-    // Step 1: Sort jobs by profit (descending)
-    sort(jobs.begin(), jobs.end(), [](auto &a, auto &b) {
+        To maximize profit:
+        1. Pick the highest-profit job first.
+        2. Schedule it as late as possible before its deadline.
+           This keeps earlier slots available for other jobs.
+
+        Example:
+        deadline = 3
+        Try slots: 3 → 2 → 1
+    */
+
+    int n = Jobs.size();
+
+    // Process the most profitable jobs first.
+    sort(Jobs.begin(), Jobs.end(), [](auto& a, auto& b) {
         return a[2] > b[2];
     });
 
-    // Step 2: Find maximum deadline
+    // Find the latest possible time slot.
     int maxDeadline = 0;
-    for (auto &job : jobs)
+    for (auto& job : Jobs)
         maxDeadline = max(maxDeadline, job[1]);
 
-    // Slot array to track occupied time slots (-1 = free)
+    // slot[d] stores the job scheduled at time d.
     vector<int> slot(maxDeadline + 1, -1);
 
-    int countJobs = 0, maxProfit = 0;
+    int countJobs = 0;
+    int maxProfit = 0;
 
-    // Step 3: Assign jobs
-    for (auto &job : jobs) {
+    for (auto& job : Jobs) {
 
         int id = job[0];
         int deadline = job[1];
         int profit = job[2];
 
-        // Try placing job in latest available slot ≤ deadline
+        // Schedule the job as late as possible.
         for (int d = deadline; d > 0; d--) {
 
-            if (slot[d] == -1) { // slot is free
+            if (slot[d] == -1) {
+
                 slot[d] = id;
                 countJobs++;
                 maxProfit += profit;
+
                 break;
             }
         }
@@ -198,34 +216,46 @@ vector<int> JobScheduling(vector<vector<int>>& jobs) {
 }
 ```
 
+// Maximum non-overlapping → sort by end time → keep earliest finishing.
 ### N Meeting in One Room
 ```cpp
-int maxMeetings(vector<int>& start, vector<int>& end){
+int maxMeetings(vector<int>& start, vector<int>& end) {
 
-    int n = start.size();
+    /*
+        INTUITION:
+        To attend the maximum number of meetings,
+        always choose the meeting that finishes earliest.
 
-    // Combine start & end into one structure
-    vector<vector<int>> meetings;
-    for (int i = 0; i < n; i++) {
+        Why?
+        An earlier finishing meeting leaves more time for
+        the remaining meetings.
+
+        So:
+        1. Sort meetings by end time.
+        2. Pick a meeting if its start time is after
+           the end of the previously selected meeting.
+    */
+
+    vector<pair<int, int>> meetings;
+
+    for (int i = 0; i < start.size(); i++)
         meetings.push_back({start[i], end[i]});
-    }
 
-    // Sort by end time (earliest finishing meeting first)
-    // If tie → pick earlier start (not mandatory, but safe)
-    sort(meetings.begin(), meetings.end(), [](const vector<int>& a, const vector<int>& b) {
-        if (a[1] == b[1]) return a[0] < b[0];
-        return a[1] < b[1];
-    });
+    // Earliest finishing meeting first.
+    sort(meetings.begin(), meetings.end(),
+         [](auto& a, auto& b) {
+             return a.second < b.second;
+         });
 
-    int count = 1;  // first meeting always selected
-    int lastEndTime = meetings[0][1];
+    int count = 1;
+    int prevEnd = meetings[0].second;
 
-    // Greedily pick next non-overlapping meetings
-    for (int i = 1; i < n; i++) {
-        // If current meeting starts AFTER last selected meeting ends
-        if (meetings[i][0] > lastEndTime) {
-            count++;                         // select this meeting
-            lastEndTime = meetings[i][1];   // update boundary
+    for (int i = 1; i < meetings.size(); i++) {
+
+        // Meeting must start after the previous one ends.
+        if (meetings[i].first > prevEnd) {
+            count++;
+            prevEnd = meetings[i].second;
         }
     }
 
@@ -233,9 +263,21 @@ int maxMeetings(vector<int>& start, vector<int>& end){
 }
 ```
 
+// Minimum removals = Total intervals - Maximum non-overlapping intervals.
 ### Minimum Removals to make Intervals Non-overlapping
 ```cpp
 int MaximumNonOverlappingIntervals(vector<vector<int>>& intervals) {
+    /*
+        INTUITION:
+        We want to remove the minimum number of overlapping intervals.
+        Equivalently, keep the maximum number of non-overlapping intervals.
+
+        Greedy choice:
+        Always keep the interval that ends earliest.
+        This leaves the most room for future intervals.
+
+        Answer = total intervals - maximum non-overlapping intervals.
+    */
 
     int n = intervals.size();
 
@@ -265,41 +307,62 @@ int MaximumNonOverlappingIntervals(vector<vector<int>>& intervals) {
 
 ### Insert Interval
 ```cpp
-vector<vector<int>> insertNewInterval(vector<vector<int>>& intervals, vector<int>& newInterval) {
+vector<vector<int>> insertNewInterval(vector<vector<int>>& intervals,
+                                        vector<int>& newInterval) {
+    /*
+        INTUITION:
+        Since intervals are already sorted and non-overlapping,
+        process them in 3 parts:
+
+        1. BEFORE → current.end < new.start → add directly
+        2. OVERLAP → current.start <= new.end → merge
+        3. AFTER → add everything remaining
+
+        DRY:
+        intervals = [[1,3], [6,9]]
+        newInterval = [2,5]
+
+        BEFORE:
+        [1,3] is not before [2,5] because 3 >= 2.
+
+        OVERLAP:
+        [1,3] overlaps [2,5]
+        → merge → [1,5]
+
+        AFTER:
+        [6,9] does not overlap [1,5]
+        → add it directly
+
+        Result = [[1,5], [6,9]]
+    */
 
     vector<vector<int>> result;
-    int i = 0, n = intervals.size();
+    int i = 0;
+    int n = intervals.size();
 
-    // DRY: intervals = [[1,3],[6,9]], new = [2,5]
-
-    // 1. Add all intervals completely before newInterval
-    // condition: end < new.start
+    // 1. Add intervals completely before newInterval.
     while (i < n && intervals[i][1] < newInterval[0]) {
-        result.push_back(intervals[i]);   // DRY: none added
+        result.push_back(intervals[i]);
         i++;
     }
 
-    // 2. Merge overlapping intervals
-    // condition: start <= new.end
+    // 2. Merge all overlapping intervals.
     while (i < n && intervals[i][0] <= newInterval[1]) {
+        newInterval[0] = min(newInterval[0], intervals[i][0]);
+        newInterval[1] = max(newInterval[1], intervals[i][1]);
 
-        // expand newInterval to cover overlap
-        newInterval[0] = min(newInterval[0], intervals[i][0]); // DRY: 2→1
-        newInterval[1] = max(newInterval[1], intervals[i][1]); // DRY: 5→5
-
-        i++; // DRY: i moves past [1,3]
-    }
-
-    // add merged interval
-    result.push_back(newInterval); // DRY: [1,5]
-
-    // 3. Add remaining intervals (after merge)
-    while (i < n) {
-        result.push_back(intervals[i]);   // DRY: [6,9]
         i++;
     }
 
-    // DRY result = [[1,5],[6,9]]
+    // Add the final merged interval.
+    result.push_back(newInterval);
+
+    // 3. Add intervals completely after newInterval.
+    while (i < n) {
+        result.push_back(intervals[i]);
+        i++;
+    }
+
     return result;
 }
 ```
@@ -307,65 +370,123 @@ vector<vector<int>> insertNewInterval(vector<vector<int>>& intervals, vector<int
 ### Minimum number of platforms required for railways
 ```cpp
 int findPlatform(vector<int>& Arrival, vector<int>& Departure) {
+
+    /*
+        INTUITION:
+        We need the maximum number of trains present at the station
+        at the same time.
+
+        Sort arrivals and departures separately.
+        Then process them like a timeline:
+
+        Arrival  → need a platform  → count++
+        Departure → free a platform → count--
+
+        The maximum value of count is the answer.
+
+        DRY:
+        Arrival   = [900, 940, 950, 1100]
+        Departure = [910, 1200, 1120, 1130]
+
+        After sorting:
+        Arrival   = [900, 940, 950, 1100]
+        Departure = [910, 1120, 1130, 1200]
+
+        900  → arrival   → count = 1
+        910  → departure → count = 0
+        940  → arrival   → count = 1
+        950  → arrival   → count = 2
+        1100 → arrival   → count = 3
+        1120 → departure → count = 2
+        ...
+        
+        Maximum platforms needed = 3
+    */
+
     int n = Arrival.size();
 
-    // Sort arrival and departure times separately
-    // This lets us simulate timeline events
+    // Sort both event types independently.
     sort(Arrival.begin(), Arrival.end());
     sort(Departure.begin(), Departure.end());
 
-    int count = 0;     // current platforms needed
-    int maxCount = 0;  // maximum platforms needed at any time
+    int arrive = 0;
+    int depart = 0;
 
-    int arrive = 0, departure = 0;
+    int platforms = 0;
+    int maxPlatforms = 0;
 
     while (arrive < n) {
 
-        // If next event is arrival → need new platform
-        if (Arrival[arrive] <= Departure[departure]) {
-            count++;        // train arrives → occupy platform
-            arrive++;       // move to next arrival
+        // If arrival happens first then we need a platform, 
+        // If departure happens first then we do not need a platform
+        // arrive at same time as departure, then we still need a platform
+        if (Arrival[arrive] <= Departure[depart]) {
+            platforms++;
+            arrive++;
         } else {
-            count--;        // train departs → free platform
-            departure++;    // move to next departure
+            platforms--;
+            depart++;
         }
 
-        // Track peak platforms needed
-        maxCount = max(maxCount, count);
+        maxPlatforms = max(maxPlatforms, platforms);
     }
 
-    return maxCount;
+    return maxPlatforms;
 }
 ```
 
 ### Valid Parenthesis
 ```cpp
 bool isValid(string s) {
-    int low = 0;   // minimum open brackets possible
-    int high = 0;  // maximum open brackets possible
+
+    /*
+        INTUITION:
+        '*' can be '(', ')' or empty.
+
+        So instead of deciding what '*' is immediately,
+        maintain a RANGE of possible open brackets:
+
+        low  = minimum possible open brackets
+        high = maximum possible open brackets
+
+        '(' → both increase
+        ')' → both decrease
+        '*' → low decreases, high increases
+
+        If high < 0, even the maximum possibility has
+        too many closing brackets → invalid.
+
+        At the end, low must be 0 so that at least one
+        valid interpretation has all brackets balanced.
+    */
+
+    int low = 0;
+    int high = 0;
 
     for (char c : s) {
 
         if (c == '(') {
-            low++;      // must open
+            low++;
             high++;
-        } else if (c == ')') {
-            low--;      // close one if possible
+        }
+        else if (c == ')') {
+            low--;
             high--;
-        } else { // '*'
-            low--;      // treat as ')'
-            high++;     // or treat as '('
+        }
+        else { // '*'
+            low--;      // '*' acts as ')'
+            high++;     // '*' acts as '('
         }
 
-        // high < 0 → too many ')' → invalid
-        if (high < 0) return false;
+        // Even the maximum possible open brackets is negative.
+        if (high < 0)
+            return false;
 
-        // low should never go below 0
-        // (we can't have negative open brackets)
-        if (low < 0) low = 0;
+        // We cannot have fewer than 0 open brackets.
+        low = max(0, low);
     }
 
-    // valid if we can close all opens
+    // low == 0 means some interpretation can be balanced.
     return low == 0;
 }
 ```
@@ -373,34 +494,32 @@ bool isValid(string s) {
 ### Candy Problem ~ LeetCode 135
 ```cpp
 int candy(vector<int>& ratings) {
-
     int n = ratings.size();
-    vector<int> candies(n, 1); // each child gets at least 1
 
-    // Left → Right pass
-    // ensure: rating[i] > rating[i-1]
+    // INTUITION:
+    // Start with 1 candy for everyone.
+    // Left pass satisfies the left-neighbour condition.
+    // Right pass satisfies the right-neighbour condition.
+    // Take the larger requirement because both conditions must hold.
+
+    vector<int> candies(n, 1);
+
+    // Higher than left neighbour -> need one more candy.
     for (int i = 1; i < n; i++) {
-        if (ratings[i] > ratings[i - 1])
+        if (ratings[i] > ratings[i - 1]) {
             candies[i] = candies[i - 1] + 1;
+        }
     }
 
-    // Right → Left pass
-    // ensure: rating[i] > rating[i+1]
+    // Higher than right neighbour -> need one more candy.
+    // Keep the larger value because the left requirement
+    // may already be greater.
     for (int i = n - 2; i >= 0; i--) {
-        if (ratings[i] > ratings[i + 1])
+        if (ratings[i] > ratings[i + 1]) {
             candies[i] = max(candies[i], candies[i + 1] + 1);
+        }
     }
 
-    // Sum all candies
-    int total = 0;
-    for (int c : candies) total += c;
-
-    // DRY:
-    // ratings = [1,0,2]
-    // L→R: [1,1,2]
-    // R→L: [2,1,2]
-    // sum = 5
-
-    return total;
+    return accumulate(candies.begin(), candies.end(), 0);
 }
 ```

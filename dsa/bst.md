@@ -76,54 +76,56 @@ TreeNode* insertIntoBST(TreeNode* root, int val) {
 
 ### Delete a node in BST
 ```cpp
-// Helper function: returns the smallest node in a subtree
 TreeNode* findMinNode(TreeNode* node) {
-    while (node->left) {
-        node = node->left;   // keep moving left to find the minimum
-    }
+
+    // Leftmost node is the inorder successor.
+    while (node->left)
+        node = node->left;
+
     return node;
 }
 
 TreeNode* deleteNode(TreeNode* root, int key) {
-    // Base case: if tree is empty
+
+    // INTUITION:
+    // Search for the node as in a normal BST.
+    //
+    // 0/1 child -> Replace the node with its existing child.
+    // 2 children -> Copy the inorder successor, then delete it.
+    //
+    // MEMORY:
+    // Search -> Replace -> Delete Successor
+
+    // Base Case: Key not found.
     if (root == nullptr)
         return nullptr;
 
-    // If key is smaller, the node to delete lies in the left subtree
+    // Search for the node to delete.
     if (key < root->data) {
         root->left = deleteNode(root->left, key);
     }
-
-    // If key is larger, the node to delete lies in the right subtree
     else if (key > root->data) {
         root->right = deleteNode(root->right, key);
     }
-
-    // Node to delete is found
     else {
 
-        // Case 1: Node has no left child
-        // Replace node with its right child
+        // Node has at most one child.
         if (root->left == nullptr)
             return root->right;
 
-        // Case 2: Node has no right child
-        // Replace node with its left child
         if (root->right == nullptr)
             return root->left;
 
-        // Case 3: Node has two children
-        // Find the inorder successor (smallest node in right subtree)
+        // Node has two children.
+        // Replace it with its inorder successor
+        // and remove the duplicate successor.
         TreeNode* inorderSuccessor = findMinNode(root->right);
 
-        // Copy successor's value into current node
         root->data = inorderSuccessor->data;
 
-        // Delete the successor from the right subtree (as the value was copied to root)
         root->right = deleteNode(root->right, inorderSuccessor->data);
     }
 
-    // Return the updated subtree root
     return root;
 }
 ```
@@ -450,72 +452,56 @@ public:
 
 ### Largest BST in a Binary Tree
 ```cpp
-class Solution {
-
-    // Information returned from each subtree during postorder traversal
-    struct SubtreeInfo {
-        int minValue;   // smallest value in this subtree
-        int maxValue;   // largest value in this subtree
-        int size;       // number of nodes in this subtree (if it forms a BST)
-        bool isBST;     // whether this subtree itself is a valid BST
-    };
-
-    /*
-        Postorder traversal helper that evaluates each subtree and returns
-        information needed by its parent to determine whether it forms a BST.
-
-        While returning, we update the global maximum BST size found so far.
-    */
-    SubtreeInfo evaluateSubtree(TreeNode* node, int& largestBSTSize) {
-        // Base case: an empty subtree is considered a valid BST
-        // Using extreme values ensures parent comparisons work correctly
-        if (!node)  return {INT_MAX, INT_MIN, 0, true};
-
-        // Recursively evaluate left and right subtrees
-        SubtreeInfo leftInfo  = evaluateSubtree(node->left, largestBSTSize);
-        SubtreeInfo rightInfo = evaluateSubtree(node->right, largestBSTSize);
-
-        SubtreeInfo currentInfo;
-
-        /*
-            A subtree rooted at 'node' is a valid BST if:
-            1. Left subtree is BST
-            2. Right subtree is BST
-            3. node->data is greater than the maximum value in left subtree
-            4. node->data is smaller than the minimum value in right subtree
-        */
-        if (leftInfo.isBST && rightInfo.isBST
-            && node->data > leftInfo.maxValue && node->data < rightInfo.minValue) {
-
-            currentInfo.isBST = true;
-
-            // Size of BST = left subtree + right subtree + current node
-            currentInfo.size = leftInfo.size + rightInfo.size + 1;
-
-            // Update range values for parent checks
-            currentInfo.minValue = min(node->data, leftInfo.minValue);
-            currentInfo.maxValue = max(node->data, rightInfo.maxValue);
-
-            // Track the largest BST encountered so far
-            largestBSTSize = max(largestBSTSize, currentInfo.size);
-        } else {
-            // This subtree is NOT a BST
-            currentInfo.isBST = false;
-            currentInfo.size = 0;
-            // These values are set so parent nodes will fail BST checks
-            currentInfo.minValue = INT_MIN;
-            currentInfo.maxValue = INT_MAX;
-        }
-
-        return currentInfo;
-    }
-
-public:
-    int largestBST(TreeNode* root) {
-        int largestBSTSize = 0;
-        // Start postorder traversal
-        evaluateSubtree(root, largestBSTSize);
-        return largestBSTSize;
-    }
+struct Result {
+    int minValue;
+    int maxValue;
+    int size;
+    bool isBST;
 };
+
+Result solve(TreeNode* root, int& maxSize) {
+
+    // Empty tree is a valid BST with size 0.
+    if (!root)
+        return {INT_MAX, INT_MIN, 0, true};
+
+    // Get BST information from both subtrees.
+    Result left = solve(root->left, maxSize);
+    Result right = solve(root->right, maxSize);
+
+    // Current subtree is a BST if:
+    // 1. Both subtrees are BSTs.
+    // 2. All left values < root.
+    // 3. All right values > root.
+    if (left.isBST &&
+        right.isBST &&
+        left.maxValue < root->data &&
+        root->data < right.minValue) {
+
+        Result curr;
+
+        // Extend the minimum/maximum range with the current node.
+        curr.minValue = min(root->data, left.minValue);
+        curr.maxValue = max(root->data, right.maxValue);
+
+        // Current subtree size = left + root + right.
+        curr.size = left.size + right.size + 1;
+        curr.isBST = true;
+
+        // Track the largest BST found so far.
+        maxSize = max(maxSize, curr.size);
+
+        return curr;
+    }
+
+    // Invalid BST: values are irrelevant because this subtree
+    // cannot be used as a BST by its parent.
+    return {INT_MIN, INT_MAX, 0, false};
+}
+
+int largestBST(TreeNode* root) {
+    int maxSize = 0;
+    solve(root, maxSize);
+    return maxSize;
+}
 ```
