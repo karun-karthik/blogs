@@ -539,86 +539,92 @@ vector<int> asteroidCollision(vector<int>& asteroids) {
 ### Sum of subarray minimums
 ```cpp
 class Solution {
-public:
-
+   public:
     /*
-    Next Smaller Element (Strictly Smaller)
-    ---------------------------------------
-    Find next index where element < current
-    If none → n
+        INTUITION:
+        For each arr[i], count how many subarrays have arr[i] as the
+       minimum.
 
-    Use >= to ensure duplicates handled correctly
+        leftChoices  = i - previousSmallerOrEqual
+        rightChoices = nextSmaller - i
+
+        So:
+        contribution = arr[i] * leftChoices * rightChoices
+
+        We use:
+        - PSEE → Previous Smaller or Equal
+        - NSE  → Next Smaller
+
+        One side is strict and the other is non-strict
+        to handle duplicate values without double counting.
+
+        // Minimum → PSEE + NSE
+        // PSEE → pop >
+        // NSE  → pop >=
+        //
+        // Contribution = value × leftChoices × rightChoices
+        // leftChoices  = i - previousBoundary
+        // rightChoices = nextBoundary - i
     */
-    vector<int> findNextSmaller(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> next(n);
-        stack<int> st;  // stores indices
 
+    vector<int> findNSE(vector<int>& arr) {
+        int n = arr.size();
+        vector<int> nextSmaller(n);
+        stack<int> st;  // Stores indices
+
+        // Find the next STRICTLY smaller element.
         for (int i = n - 1; i >= 0; i--) {
+            // Remove elements that are >= current.
+            while (!st.empty() && arr[st.top()] >= arr[i]) st.pop();
 
-            while (!st.empty() && arr[st.top()] >= arr[i]) {
-                st.pop();
-            }
-
-            next[i] = st.empty() ? n : st.top();
+            // No smaller element on the right → use n as boundary.
+            nextSmaller[i] = st.empty() ? n : st.top();
 
             st.push(i);
         }
-        return next;
+
+        return nextSmaller;
     }
 
-    /*
-    Previous Smaller or Equal Element
-    --------------------------------
-    Find previous index where element <= current
-    If none → -1
-
-    Use > to break tie and avoid double counting
-    */
-    vector<int> findPrevSmallerEqual(vector<int>& arr) {
+    vector<int> findPSEE(vector<int>& arr) {
         int n = arr.size();
-        vector<int> prev(n);
-        stack<int> st;
+        vector<int> prevSmallerEqual(n);
+        stack<int> st;  // Stores indices
 
+        // Find the previous smaller OR equal element.
         for (int i = 0; i < n; i++) {
+            // Remove elements that are strictly greater.
+            while (!st.empty() && arr[st.top()] > arr[i]) st.pop();
 
-            while (!st.empty() && arr[st.top()] > arr[i]) {
-                st.pop();
-            }
-
-            prev[i] = st.empty() ? -1 : st.top();
+            // No smaller/equal element on the left → use -1.
+            prevSmallerEqual[i] = st.empty() ? -1 : st.top();
 
             st.push(i);
         }
-        return prev;
+
+        return prevSmallerEqual;
     }
 
-    int sumSubarrayMins(vector<int> &arr) {
-
+    int sumSubarrayMins(vector<int>& arr) {
+        const long long MOD = 1e9 + 7;
         int n = arr.size();
-        const int MOD = 1e9 + 7;
 
-        vector<int> next = findNextSmaller(arr);
-        vector<int> prev = findPrevSmallerEqual(arr);
+        vector<int> nextSmaller = findNSE(arr);
+        vector<int> prevSmallerEqual = findPSEE(arr);
 
         long long total = 0;
 
         for (int i = 0; i < n; i++) {
+            // Number of possible starting positions.
+            long long leftChoices = i - prevSmallerEqual[i];
 
-            /*
-            Contribution logic:
-            -------------------
-            arr[i] is minimum in:
-            left choices  = i - prev[i]
-            right choices = next[i] - i
+            // Number of possible ending positions.
+            long long rightChoices = nextSmaller[i] - i;
 
-            total subarrays = left * right
-            */
+            // arr[i] is the minimum in leftChoices * rightChoices
+            // subarrays.
+            long long contribution = (leftChoices * rightChoices) % MOD;
 
-            long long left = i - prev[i];
-            long long right = next[i] - i;
-
-            long long contribution = (left * right) % MOD;
             contribution = (contribution * arr[i]) % MOD;
 
             total = (total + contribution) % MOD;
@@ -633,114 +639,161 @@ public:
 ```cpp
 class Solution {
 public:
+    // Contribution = value × left choices × right choices
+    // left  = i - previous boundary
+    // right = next boundary - i
 
-    // ---------- MINIMUM CONTRIBUTION ----------
+    // Next Smaller: strictly smaller element on the right.
+    vector<int> nse(vector<int>& nums) {
 
-    vector<int> nextSmaller(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+        int n = nums.size();
+        vector<int> nextSmaller(n);
         stack<int> st;
 
         for (int i = n - 1; i >= 0; i--) {
-            while (!st.empty() && arr[st.top()] >= arr[i]) {
+
+            // Remove elements that cannot be smaller than nums[i].
+            while (!st.empty() && nums[st.top()] >= nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? n : st.top();
+
+            // No smaller element → boundary is outside the array.
+            nextSmaller[i] = st.empty() ? n : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return nextSmaller;
     }
 
-    vector<int> prevSmallerEqual(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+    // Previous Smaller or Equal: element on the left.
+    vector<int> psee(vector<int>& nums) {
+
+        int n = nums.size();
+        vector<int> prevSmallerEqual(n);
         stack<int> st;
 
         for (int i = 0; i < n; i++) {
-            while (!st.empty() && arr[st.top()] > arr[i]) {
+
+            // Remove elements strictly greater than nums[i].
+            while (!st.empty() && nums[st.top()] > nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? -1 : st.top();
+
+            // No smaller/equal element → boundary before index 0.
+            prevSmallerEqual[i] = st.empty() ? -1 : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return prevSmallerEqual;
     }
 
-    long long sumSubarrayMins(vector<int>& arr) {
-        int n = arr.size();
+    // Sum of all subarray minimums.
+    long long subArrayMin(vector<int>& nums) {
 
-        vector<int> next = nextSmaller(arr);
-        vector<int> prev = prevSmallerEqual(arr);
+        int n = nums.size();
 
-        long long sum = 0;
+        vector<int> nextSmaller = nse(nums);
+        vector<int> prevSmallerEqual = psee(nums);
+
+        long long total = 0;
 
         for (int i = 0; i < n; i++) {
-            long long left = i - prev[i];
-            long long right = next[i] - i;
 
-            sum += left * right * arr[i];
+            // Number of possible starts and ends where nums[i]
+            // remains the minimum.
+            long long left = i - prevSmallerEqual[i];
+            long long right = nextSmaller[i] - i;
+
+            // Contribution of nums[i].
+            total += nums[i] * left * right;
         }
 
-        return sum;
+        return total;
     }
 
-    // ---------- MAXIMUM CONTRIBUTION ----------
 
-    vector<int> nextGreater(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+    // Next Greater: strictly greater element on the right.
+    vector<int> nge(vector<int>& nums) {
+
+        int n = nums.size();
+        vector<int> nextGreater(n);
         stack<int> st;
 
         for (int i = n - 1; i >= 0; i--) {
-            while (!st.empty() && arr[st.top()] <= arr[i]) {
+
+            // Remove elements that cannot be greater than nums[i].
+            while (!st.empty() && nums[st.top()] <= nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? n : st.top();
+
+            // No greater element → boundary is outside the array.
+            nextGreater[i] = st.empty() ? n : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return nextGreater;
     }
 
-    vector<int> prevGreaterEqual(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+    // Previous Greater or Equal: element on the left.
+    vector<int> pgee(vector<int>& nums) {
+
+        int n = nums.size();
+        vector<int> prevGreaterEqual(n);
         stack<int> st;
 
         for (int i = 0; i < n; i++) {
-            while (!st.empty() && arr[st.top()] < arr[i]) {
+
+            // Remove elements strictly smaller than nums[i].
+            while (!st.empty() && nums[st.top()] < nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? -1 : st.top();
+
+            // No greater/equal element → boundary before index 0.
+            prevGreaterEqual[i] = st.empty() ? -1 : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return prevGreaterEqual;
     }
 
-    long long sumSubarrayMaxs(vector<int>& arr) {
-        int n = arr.size();
+    // Sum of all subarray maximums.
+    long long subArrayMax(vector<int>& nums) {
 
-        vector<int> next = nextGreater(arr);
-        vector<int> prev = prevGreaterEqual(arr);
+        int n = nums.size();
 
-        long long sum = 0;
+        vector<int> nextGreater = nge(nums);
+        vector<int> prevGreaterEqual = pgee(nums);
+
+        long long total = 0;
 
         for (int i = 0; i < n; i++) {
-            long long left = i - prev[i];
-            long long right = next[i] - i;
 
-            sum += left * right * arr[i];
+            // Number of possible starts and ends where nums[i]
+            // remains the maximum.
+            long long left = i - prevGreaterEqual[i];
+            long long right = nextGreater[i] - i;
+
+            // Contribution of nums[i].
+            total += nums[i] * left * right;
         }
 
-        return sum;
+        return total;
     }
 
-    // ---------- FINAL ANSWER ----------
-    long long subArrayRanges(vector<int> &nums) {
 
-        long long maxSum = sumSubarrayMaxs(nums);
-        long long minSum = sumSubarrayMins(nums);
+    long long subArrayRanges(vector<int>& nums) {
 
-        return maxSum - minSum;
+        /*
+            INTUITION:
+            Range = maximum - minimum.
+
+            Therefore:
+            Sum of ranges
+            = Sum of subarray maximums
+            - Sum of subarray minimums.
+        */
+
+        return subArrayMax(nums) - subArrayMin(nums);
     }
 };
 ```
@@ -748,12 +801,30 @@ public:
 ### Remove K digits
 ```cpp
 string removeKdigits(string nums, int k) {
-    string st;  // acts like a stack
+
+    /*
+        INTUITION:
+        To make the number smallest, remove a larger digit when
+        a smaller digit appears after it.
+
+        Maintain an increasing stack of digits.
+
+        Example:
+        1432
+         ↑
+        When 2 arrives, remove 4 because 4 > 2.
+
+        If removals are still left after processing all digits,
+        remove them from the end.
+
+        Finally, remove leading zeros.
+    */
+
+    string st;
 
     for (char digit : nums) {
 
-        /*  Remove previous digits if they are larger than current
-            This helps in making number smaller */
+        // Remove larger previous digits.
         while (!st.empty() && k > 0 && st.back() > digit) {
             st.pop_back();
             k--;
@@ -762,22 +833,19 @@ string removeKdigits(string nums, int k) {
         st.push_back(digit);
     }
 
-    /*
-    If still k > 0 → remove from end
-    (number is already increasing)
-    */
+    // If k removals remain, remove from the end.
     while (k > 0 && !st.empty()) {
         st.pop_back();
         k--;
     }
 
-    /* Remove leading zeros */
-    int i = 0;
-    while (i < st.size() && st[i] == '0') {
-        i++;
-    }
+    // Remove leading zeros.
+    int firstNonZero = 0;
 
-    string result = st.substr(i);
+    while (firstNonZero < st.size() && st[firstNonZero] == '0')
+        firstNonZero++;
+
+    string result = st.substr(firstNonZero);
 
     return result.empty() ? "0" : result;
 }
@@ -787,60 +855,95 @@ string removeKdigits(string nums, int k) {
 ### Implement a Min-Stack
 ```cpp
 class MinStack {
-private:
+   private:
     stack<long long> st;
-    long long mini;
+    long long minValue;
 
-public:
-    MinStack() {
-        mini = LLONG_MAX;
-    }
+   public:
+    MinStack() {}
 
     void push(int value) {
-
+        // First element: it is both the value and the minimum.
         if (st.empty()) {
             st.push(value);
-            mini = value;
+            minValue = value;
+            return;
         }
-        else {
-            if (value >= mini) {
-                st.push(value);
-            }
-            else {
-                /* Encode value: store a smaller number to track previous min */
-                st.push(2LL * value - mini);
-                mini = value;
-            }
+
+        // If value is not a new minimum, store it normally.
+        if (value >= minValue) {
+            st.push(value);
+            return;
         }
+
+        /*
+            value is a NEW minimum.
+
+            Problem:
+            We are only keeping one extra variable (minValue).
+            If we later pop this new minimum, we need to recover
+            the previous minimum.
+
+            So instead of storing 'value' directly, encode the
+            previous minimum inside the stack value.
+
+                encoded = 2 * value - previousMin
+
+            After this:
+                minValue = value
+
+            Since encoded < value, we can later recognize that
+            this stack value is encoded rather than a normal value.
+        */
+        long long encoded = 2LL * value - minValue;
+
+        st.push(encoded);
+        minValue = value;
     }
 
     void pop() {
+        /*
+            Normally, the top is just the value we should remove.
 
-        if (st.empty()) return;
+            But if:
+                st.top() < minValue
 
-        long long topVal = st.top();
-        st.pop();
+            then this is an encoded value. It means the current
+            minimum was created when this element was pushed.
 
-        if (topVal < mini) {
-            /* Encoded value detected; Recover previous minimum */
-            mini = 2LL * mini - topVal;
+            Encoding was:
+                encoded = 2 * newMin - oldMin
+
+            At this point:
+                newMin = minValue
+
+            So we can recover:
+                oldMin = 2 * minValue - encoded
+        */
+        if (st.top() < minValue) {
+            minValue = 2LL * minValue - st.top();
         }
+
+        st.pop();
     }
 
     int top() {
+        /*
+            If top < minValue, top is an encoded value.
+            The actual element represented by it is minValue.
 
-        long long topVal = st.top();
-
-        if (topVal < mini) {
-            // Encoded → actual value is current minimum
-            return mini;
+            Otherwise, top itself is the actual element.
+        */
+        if (st.top() < minValue) {
+            return minValue;
         }
 
-        return topVal;
+        return st.top();
     }
 
     int getMin() {
-        return mini;
+        // The minimum is always available in O(1).
+        return minValue;
     }
 };
 ```
