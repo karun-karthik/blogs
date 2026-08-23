@@ -949,36 +949,106 @@ class MinStack {
 ```
 
 ### Sliding Window Maximum
+                    current element
+                           ↓
+                 ┌──────────────────┐
+                 │                  │
+          expired?            smaller behind?
+                 │                  │
+             pop_front         pop_back
+                 │                  │
+                 └────────┬─────────┘
+                          ↓
+                     push current
+                          ↓
+                   front = maximum
 ```cpp
-vector<int> maxSlidingWindow(vector<int> &arr, int k) {
+vector<int> maxSlidingWindow(vector<int>& arr, int k) {
+    /*
+        INTUITION:
+        Use a max heap storing {value, index}.
+
+        As the window moves:
+        1. Add the new element to the heap.
+        2. Remove elements whose index is outside the window.
+        3. The heap top is the maximum of the current window.
+
+        We store the index along with the value so we can identify
+        and discard elements that have left the window.
+    */
 
     int n = arr.size();
     vector<int> result;
 
-    deque<int> dq;  
-    // stores indices
-    // maintains decreasing values: arr[dq[0]] >= arr[dq[1]] >= ...
+    // Max heap: largest value stays on top.
+    // Pair = {value, index}
+    priority_queue<pair<int, int>> maxHeap;
 
-    for (int i = 0; i < n; i++) {
+    // Build the first window.
+    for (int i = 0; i < k; i++) maxHeap.push({arr[i], i});
 
-        // 1) Remove indices out of current window [i-k+1, i]
-        if (!dq.empty() && dq.front() <= i - k) {
+    result.push_back(maxHeap.top().first);
+
+    // Slide the window from left to right.
+    for (int right = k; right < n; right++) {
+        // Add the new element entering the window.
+        maxHeap.push({arr[right], right});
+
+        // Current window = [windowStart ... right]
+        int windowStart = right - k + 1;
+
+        // Remove stale elements from the top.
+        while (maxHeap.top().second < windowStart) maxHeap.pop();
+
+        // Top is the maximum of the current window.
+        result.push_back(maxHeap.top().first);
+    }
+
+    return result;
+}
+```
+```cpp
+vector<int> maxSlidingWindow(vector<int>& arr, int k) {
+
+    /*
+        INTUITION:
+        The deque stores indices of useful candidates for the maximum.
+
+        Maintain values in decreasing order:
+            arr[dq.front()] >= arr[dq.back()]
+
+        For every new element:
+        1. Remove indices that left the window.
+        2. Remove smaller/equal elements from the back because
+           the current element makes them useless.
+        3. Add the current index.
+        4. Once the first window is complete, deque front is the maximum.
+    */
+
+    int n = arr.size();
+    vector<int> result;
+    deque<int> dq;  // Stores indices, not values.
+
+    for (int right = 0; right < n; right++) {
+
+        // Current window is [right - k + 1 ... right].
+        int windowStart = right - k + 1;
+
+        // Remove elements that are outside the current window.
+        if (!dq.empty() && dq.front() < windowStart)
             dq.pop_front();
-        }
 
-        // 2) Maintain monotonic decreasing order
-        // Remove all smaller/equal elements from back
-        while (!dq.empty() && arr[dq.back()] <= arr[i]) {
+        // Remove candidates smaller than the current element.
+        // They can never become the maximum while current is present.
+        while (!dq.empty() && arr[dq.back()] <= arr[right])
             dq.pop_back();
-        }
 
-        // 3) Add current index
-        dq.push_back(i);
+        // Current element becomes a candidate.
+        dq.push_back(right);
 
-        // 4) Record answer when window is valid
-        if (i >= k - 1) {
-            result.push_back(arr[dq.front()]);  // max of window
-        }
+        // A complete window exists only after k elements.
+        if (right >= k - 1)
+            result.push_back(arr[dq.front()]);
     }
 
     return result;
@@ -987,135 +1057,124 @@ vector<int> maxSlidingWindow(vector<int> &arr, int k) {
 
 ### Trapping Rainwater Problem
 ```cpp
-class Solution {
-public:
-    int trap(vector<int> &height) {
+int trap(vector<int>& height) {
 
-        int n = height.size();
-        int left = 0, right = n - 1;
-        int leftMax = 0, rightMax = 0;
-        int water = 0;
+    /*
+        INTUITION:
+        Water at i = min(leftMax, rightMax) - height[i].
 
-        /*
-        CORE IDEA:
-        ----------
-        Water at index i depends on:
-        min(max height on left, max height on right) - height[i]
+        We use two pointers and only process the side with
+        the smaller boundary.
 
-        Instead of precomputing arrays,
-        we use two pointers and maintain running max.
-        */
+        If height[left] <= height[right]:
+            leftMax is the limiting boundary, so we can safely
+            calculate water at left and move left forward.
 
-        while (left < right) {
+        Otherwise:
+            rightMax is the limiting boundary, so we can safely
+            calculate water at right and move right backward.
 
-            /*
-            Always move the side with smaller height
-            because it is the limiting factor
-            */
-            if (height[left] <= height[right]) {
+        We only need leftMax and rightMax instead of arrays.
+    */
 
-                // If current bar is lower than leftMax → water can be trapped
-                if (height[left] < leftMax) {
-                    water += leftMax - height[left];
-                }
-                else {
-                    // Update left boundary
-                    leftMax = height[left];
-                }
+    int n = height.size();
 
-                left++;
-            }
-            else {
+    int left = 0;
+    int right = n - 1;
 
-                // Same logic for right side
-                if (height[right] < rightMax) {
-                    water += rightMax - height[right];
-                }
-                else {
-                    // Update right boundary
-                    rightMax = height[right];
-                }
+    int leftMax = 0;
+    int rightMax = 0;
 
-                right--;
-            }
+    int water = 0;
+
+    while (left < right) {
+
+        // Left side has the smaller/equal boundary.
+        if (height[left] <= height[right]) {
+
+            // Current bar is below the best left boundary.
+            if (height[left] < leftMax)
+                water += leftMax - height[left];
+            else
+                leftMax = height[left];
+
+            left++;
         }
 
-        return water;
+        // Right side has the smaller boundary.
+        else {
+
+            // Current bar is below the best right boundary.
+            if (height[right] < rightMax)
+                water += rightMax - height[right];
+            else
+                rightMax = height[right];
+
+            right--;
+        }
     }
-};
+
+    return water;
+}
 ```
 
 ### Largest rectangle in a Histogram
 ```cpp
-class Solution {
-public:
-    int largestRectangleArea(vector<int> &heights) {
+int largestRectangleArea(vector<int>& heights) {
+    /*
+        INTUITION:
+        For every bar, find how far its rectangle can extend.
 
-        int n = heights.size();
-
-        stack<int> st;
-        // Monotonic increasing stack (stores indices)
-        // heights[st[0]] < heights[st[1]] < ...
-
-        int maxArea = 0;
-
-        /*
-        IDEA:
-        -----
-        Each bar tries to expand left and right
-        until a smaller bar blocks it.
+        PSE = Previous Smaller Element
+        NSE = Next Smaller Element
 
         When a bar is popped:
-        - Current index (i) becomes its Next Smaller Element (NSE)
-        - New stack top becomes its Previous Smaller Element (PSE)
+            NSE = current index i
+            PSE = stack top after popping
 
-        → This gives us full width for that bar
-        */
+        width = NSE - PSE - 1
+        area  = height × width
 
-        for (int i = 0; i <= n; i++) {
+        We use a monotonic increasing stack of indices.
 
-            /*
-            For i == n:
-            Treat height as 0 (sentinel)
-            → Forces all remaining bars to be processed
-            → Eliminates need for a separate cleanup loop
-            */
-            int currHeight = (i == n ? 0 : heights[i]);
+        A virtual 0 at the end forces all remaining bars
+        to be popped and their areas calculated.
+    */
 
-            /*
-            If current bar is smaller,
-            it becomes the "right boundary" for taller bars in stack
-            */
-            while (!st.empty() && currHeight < heights[st.top()]) {
+    int n = heights.size();
+    stack<int> st;
 
-                int idx = st.top();
-                st.pop();
+    int largestArea = 0;
 
-                int height = heights[idx];
+    for (int i = 0; i <= n; i++) {
+        // Virtual 0 acts as NSE for remaining bars.
+        int currentHeight = (i == n) ? 0 : heights[i];
 
-                /*
-                Boundaries:
-                - Right boundary → current index i
-                - Left boundary → new stack top after pop
-                */
-                int right = i;
-                int left = st.empty() ? -1 : st.top();
+        // Current height is smaller → previous bars found their NSE.
+        while (!st.empty() && heights[st.top()] >= currentHeight) {
+            int idx = st.top();
+            st.pop();
 
-                int width = right - left - 1;
+            // After popping, stack top is the PSE.
+            int PSE = st.empty() ? -1 : st.top();
 
-                maxArea = max(maxArea, height * width);
-            }
+            // Current index is the NSE.
+            int NSE = i;
 
-            /*
-            Push current index:
-            It may act as a future PSE for upcoming bars
-            */
-            st.push(i);
+            // Bar can extend between PSE and NSE.
+            int width = NSE - PSE - 1;
+
+            int area = heights[idx] * width;
+
+            largestArea = max(largestArea, area);
         }
 
-        return maxArea;
+        // Don't push the virtual index n.
+        if (i < n) st.push(i);
     }
-};
+
+    return largestArea;
+}
 ```
 
 ### Maximum Rectangles
