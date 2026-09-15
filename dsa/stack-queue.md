@@ -1184,66 +1184,114 @@ Given a m x n binary matrix filled with 0's and 1's, find the largest rectangle 
 class Solution {
 public:
 
-    // Helper: Largest Rectangle in Histogram
-    int largestRectangleArea(vector<int> &heights) {
+    /*
+        INTUITION:
+        Convert each row into a histogram.
+
+        For every column:
+            1 → increase its height
+            0 → reset its height to 0
+
+        Example:
+
+        Matrix:
+        1 0 1 1
+        1 1 1 1
+        1 1 1 0
+
+        After row 0:
+        heights = [1,0,1,1]
+
+        After row 1:
+        heights = [2,1,2,2]
+
+        After row 2:
+        heights = [3,2,3,0]
+
+        Now the problem becomes:
+            "Find the largest rectangle in this histogram."
+
+        We solve that using a monotonic increasing stack.
+
+        Overall:
+            O(rows × cols)
+    */
+
+    // Largest Rectangle in Histogram
+    int largestRectangleArea(vector<int>& heights) {
 
         int n = heights.size();
-        stack<int> st;
+        stack<int> st;  // Stores indices of increasing heights.
         int maxArea = 0;
 
+        // Extra iteration with height 0 flushes the stack.
         for (int i = 0; i <= n; i++) {
 
-            int currHeight = (i == n ? 0 : heights[i]);
+            int currentHeight = (i == n) ? 0 : heights[i];
 
-            while (!st.empty() && currHeight < heights[st.top()]) {
+            /*
+                Current height is smaller than stack top.
+                Therefore, stack top has found its NSE.
 
-                int idx = st.top();
+                NSE = i
+                PSE = stack top after popping
+            */
+            while (!st.empty() && heights[st.top()] > currentHeight) {
+
+                int index = st.top();
                 st.pop();
 
-                int height = heights[idx];
+                int height = heights[index];
 
-                int right = i;
-                int left = st.empty() ? -1 : st.top();
+                // Previous Smaller Element.
+                int PSE = st.empty() ? -1 : st.top();
 
-                int width = right - left - 1;
+                // Next Smaller Element.
+                int NSE = i;
 
-                maxArea = max(maxArea, height * width);
+                int width = NSE - PSE - 1;
+
+                int area = height * width;
+
+                maxArea = max(maxArea, area);
             }
 
-            st.push(i);
+            // Don't store the sentinel index n.
+            if (i < n)
+                st.push(i);
         }
 
         return maxArea;
     }
 
 
-    int maximalAreaOfSubMatrixOfAll1(vector<vector<int>> &matrix) {
+    int maximalAreaOfSubMatrixOfAll1(vector<vector<int>>& matrix) {
 
-        int n = matrix.size();
-        int m = matrix[0].size();
+        int rows = matrix.size();
+        int cols = matrix[0].size();
 
-        vector<int> heights(m, 0);
-
+        vector<int> heights(cols, 0);
         int maxArea = 0;
 
-        // Build histogram row by row
-        for (int row = 0; row < n; row++) {
+        for (int row = 0; row < rows; row++) {
 
-            for (int col = 0; col < m; col++) {
-
-                // If cell = 1 → extend height
-                // If cell = 0 → reset height
+            // Build histogram for the current row.
+            for (int col = 0; col < cols; col++) {
 
                 if (matrix[row][col] == 1)
-                    heights[col] += 1;
+                    heights[col]++;
                 else
                     heights[col] = 0;
             }
 
-            /* Treat current row as histogram */
-            int area = largestRectangleArea(heights);
+            /*
+                Current heights represent consecutive 1s
+                ending at this row.
 
-            maxArea = max(maxArea, area);
+                Find the largest rectangle of 1s
+                using the histogram algorithm.
+            */
+            maxArea = max(maxArea, largestRectangleArea(heights));
         }
 
         return maxArea;
@@ -1253,52 +1301,59 @@ public:
 
 ### Stock Span
 ```cpp
-class Solution
-{
+class Solution {
 private:
-    vector<int> findPGE(vector<int> &arr) {
+
+    /*
+        INTUITION:
+        Stock span for index i = number of consecutive days ending at i
+        where the price is <= today's price.
+
+        Find the Previous Greater Element (PGE).
+
+        PGE[i] = nearest index on the left whose price > arr[i].
+
+        Everything between PGE[i] and i has price <= arr[i],
+        so:
+
+            span[i] = i - PGE[i]
+
+        If no PGE exists:
+            PGE[i] = -1
+            span[i] = i + 1
+    */
+
+    vector<int> findPGE(vector<int>& arr) {
 
         int n = arr.size();
-        vector<int> res(n);
-
-        stack<int> st;
-        // Monotonic decreasing stack (stores indices)
-        // arr[st.top()] always represents a candidate for previous greater
+        vector<int> pge(n);
+        stack<int> st;  // Stores indices
 
         for (int i = 0; i < n; i++) {
 
-            int curr = arr[i];
-
-            // Remove all elements <= current
-            // because they cannot be "previous greater" anymore
-            while (!st.empty() && arr[st.top()] <= curr) {
+            // Remove elements that cannot be the PGE.
+            while (!st.empty() && arr[st.top()] <= arr[i])
                 st.pop();
-            }
 
-            // If stack is empty → no greater element on left
-            // Else → top of stack is nearest greater element
-            res[i] = st.empty() ? -1 : st.top();
+            // Nearest greater element on the left.
+            pge[i] = st.empty() ? -1 : st.top();
 
-            // Push current index for future comparisons
             st.push(i);
         }
 
-        return res;
+        return pge;
     }
 
 public:
+
     vector<int> stockSpan(vector<int> arr, int n) {
 
-        // Step 1: Find Previous Greater Element indices
         vector<int> pge = findPGE(arr);
-
         vector<int> span(n);
 
-        // Step 2: Compute span
         for (int i = 0; i < n; i++) {
 
-            // If no greater element → span = i + 1
-            // Else → span = distance from previous greater
+            // Number of days after the previous greater element.
             span[i] = i - pge[i];
         }
 
@@ -1340,47 +1395,70 @@ public:
 ### Celebrity Problem
 A celebrity is a person who is known by everyone else at the party but does not know anyone in return. Given a square matrix M of size N x N where M[i][j] is 1 if person i knows person j, and 0 otherwise, determine if there is a celebrity at the party. Return the index of the celebrity or -1 if no such person exists.
 ```cpp
-class Solution
-{
-public:
-    int celebrity(vector<vector<int>> &M) {
+int celebrity(vector<vector<int>>& M) {
+    /*
+        INTUITION:
+        A celebrity satisfies:
 
-        int n = M.size();
+            1. Celebrity knows nobody.
+            2. Everybody knows the celebrity.
 
-        int top = 0, bottom = n - 1;
+        Eliminate candidates using two pointers.
 
-        // Step 1: Eliminate non-celebrities
-        while (top < bottom) {
+        If M[leftCandidate][rightCandidate] == 1:
+            leftCandidate knows rightCandidate
+            → leftCandidate cannot be celebrity.
 
-            // If top knows bottom → top cannot be celebrity
-            if (M[top][bottom] == 1) {
-                top++;
-            }
-            // Else → bottom cannot be celebrity
-            else {
-                bottom--;
-            }
+        Otherwise:
+            leftCandidate does not know rightCandidate
+            → rightCandidate cannot be celebrity.
+
+        Continue until only one candidate remains.
+        Then verify that candidate.
+    */
+
+    int n = M.size();
+
+    int leftCandidate = 0;
+    int rightCandidate = n - 1;
+
+    // Eliminate candidates until only one remains.
+    while (leftCandidate < rightCandidate) {
+
+        if (M[leftCandidate][rightCandidate] == 1) {
+
+            // Left candidate knows right candidate.
+            // Therefore, left candidate cannot be celebrity.
+            leftCandidate++;
+
+        } else {
+
+            // Left candidate does not know right candidate.
+            // Therefore, right candidate cannot be celebrity.
+            rightCandidate--;
         }
-
-        // Potential celebrity
-        int candidate = top;
-
-        // Step 2: Verify candidate
-
-        for (int i = 0; i < n; i++) {
-
-            if (i == candidate) continue;
-
-            // Candidate should NOT know anyone
-            if (M[candidate][i] == 1) return -1;
-
-            // Everyone should know candidate
-            if (M[i][candidate] == 0) return -1;
-        }
-
-        return candidate;
     }
-};
+
+    // Both pointers now point to the same possible celebrity.
+    int candidate = leftCandidate;
+
+    // Verify the candidate.
+    for (int person = 0; person < n; person++) {
+
+        if (person == candidate)
+            continue;
+
+        // Celebrity knows nobody.
+        // Everybody else knows the celebrity.
+        if (M[candidate][person] == 1 ||
+            M[person][candidate] == 0) {
+
+            return -1;
+        }
+    }
+
+    return candidate;
+}
 ```
 
 ```cpp
@@ -1436,9 +1514,10 @@ public:
 ### LRU Cache
 ```cpp
 class LRUCache {
-private:
+   private:
+    // Cache entry
     class Node {
-    public:
+       public:
         int key, value;
         Node* prev;
         Node* next;
@@ -1450,15 +1529,16 @@ private:
         }
     };
 
-    int capacity;  // maximum size of cache
+    int capacity;
 
-    unordered_map<int, Node*> mp;  
-    // key → pointer to node in DLL
+    // key -> node for O(1) lookup
+    unordered_map<int, Node*> mp;
 
-    Node* head; // dummy head → most recently used side
-    Node* tail; // dummy tail → least recently used side
+    // HEAD -> MRU ... LRU -> TAIL
+    Node* head;
+    Node* tail;
 
-    // Remove a node from its current position in DLL
+    // Remove node from DLL
     void removeNode(Node* node) {
         Node* prevNode = node->prev;
         Node* nextNode = node->next;
@@ -1467,7 +1547,7 @@ private:
         nextNode->prev = prevNode;
     }
 
-    // Insert node right after head → mark as most recently used
+    // Insert node at MRU position
     void insertAfterHead(Node* node) {
         node->next = head->next;
         node->prev = head;
@@ -1476,12 +1556,11 @@ private:
         head->next = node;
     }
 
-public:
-
+   public:
     LRUCache(int capacity) {
         this->capacity = capacity;
 
-        // Create dummy head and tail to simplify operations
+        // Dummy nodes simplify edge cases
         head = new Node(-1, -1);
         tail = new Node(-1, -1);
 
@@ -1490,14 +1569,14 @@ public:
     }
 
     int get(int key_) {
-
-        // If key not present → return -1
+        // Key not present
         if (mp.find(key_) == mp.end()) {
             return -1;
         }
+
         Node* node = mp[key_];
 
-        // Move accessed node to front (MRU)
+        // Accessed -> move to MRU
         removeNode(node);
         insertAfterHead(node);
 
@@ -1505,24 +1584,29 @@ public:
     }
 
     void put(int key_, int value) {
-
-        // If key already exists → update value and move to front
+        // Key already exists
         if (mp.find(key_) != mp.end()) {
             Node* node = mp[key_];
+
             node->value = value;
+
+            // Updated -> move to MRU
             removeNode(node);
             insertAfterHead(node);
         } else {
-            // If cache is full → remove least recently used node
+            // Evict LRU if cache is full
             if (mp.size() == capacity) {
-                Node* lru = tail->prev;  // last real node
+                Node* lru = tail->prev;
+
                 removeNode(lru);
                 mp.erase(lru->key);
-                delete lru;  // free memory
+
+                delete lru;
             }
 
-            // Insert new node at front (MRU position)
+            // New node -> MRU
             Node* newNode = new Node(key_, value);
+
             insertAfterHead(newNode);
             mp[key_] = newNode;
         }
