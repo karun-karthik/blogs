@@ -152,7 +152,6 @@
       "topic": "Docker",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/devops/docker.md"
     },
-    
     {
       "slug": "java-basics",
       "title": "Java: Basics",
@@ -160,6 +159,14 @@
       "domain": "Java",
       "topic": "1. Basics",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/basics.md"
+    },
+    {
+      "slug": "java-top-10",
+      "title": "Java: Top 10",
+      "date": "2026-09-21",
+      "domain": "Java",
+      "topic": "2. Top 10",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/top-10.md"
     }
   ]
 }
