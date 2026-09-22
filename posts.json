@@ -157,15 +157,15 @@
       "title": "Java: Basics",
       "date": "2026-08-11",
       "domain": "Java",
-      "topic": "1. Basics",
+      "topic": "Basics",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/basics.md"
     },
     {
       "slug": "interview-concepts-java",
-      "title": "Interview Concepts: Java",
+      "title": "Java: Interview Concepts",
       "date": "2026-09-21",
       "domain": "Java",
-      "topic": "2. Interview Concepts",
+      "topic": "Interview Concepts",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/interview-concepts.md"
     }
   ]
