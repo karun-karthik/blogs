@@ -5608,6 +5608,461 @@ API DESIGN
 → modern Java/Spring often favors unchecked to reduce boilerplate
 ```
 
+# Q7 · JDK vs JRE vs JVM — what's the difference?
+
+### Explain the difference between JDK, JRE, and JVM.
+
+### 30-Second Interview Answer
+
+**JVM** is the runtime engine/specification that executes JVM bytecode.
+
+**JRE** is the runtime environment: traditionally, **JVM + standard Java libraries**, providing what is needed to run Java applications.
+
+**JDK** is the development kit: **JRE/runtime capabilities + development tools** such as `javac`, `jdb`, `jar`, and `javadoc`, providing what is needed to build Java applications.
+
+The simplest mental model is:
+
+```text
+JDK = BUILD
+JRE = RUN
+JVM = EXECUTE BYTECODE
+```
+
+
+
+### The Basic Relationship
+
+Historically, the mental model is:
+
+```text
+JDK
+└── JRE
+    ├── JVM
+    └── Standard Java Libraries
+```
+
+The JDK contains the tools required to **develop** applications.
+
+The JRE provides the environment required to **run** them.
+
+The JVM is the component that actually **executes JVM bytecode**.
+
+### JDK — Java Development Kit
+
+The JDK is used to **build Java applications**.
+
+Important tools include:
+
+```text
+javac     → Java compiler
+jdb       → debugger
+jar       → package/archive tool
+javadoc   → documentation generator
+```
+
+For example:
+
+```text
+Hello.java
+    │
+    │ javac
+    ↓
+Hello.class
+```
+
+`javac` is a JDK tool.
+
+### JRE — Java Runtime Environment
+
+The JRE traditionally consists of:
+
+```text
+JRE
+├── JVM
+└── Standard Java class libraries
+    ├── java.lang
+    ├── java.util
+    ├── java.io
+    └── ...
+```
+
+Its purpose is to provide what is needed to **run** Java applications.
+
+The JRE does **not** compile `.java` source code.
+
+Compilation is performed by the JDK's `javac` tool.
+
+### JVM — Java Virtual Machine
+
+The JVM executes **JVM bytecode**.
+
+For example:
+
+```text
+Hello.java
+    │
+    │ javac
+    ↓
+Hello.class
+    │
+    │ JVM
+    ↓
+Program execution
+```
+
+The `.class` file contains **bytecode**, not native machine code.
+
+### JVM Is More Than "The Java Runtime"
+
+An important interview distinction:
+
+> The JVM is an **abstract specification** of a virtual machine capable of executing JVM bytecode.
+
+Concrete implementations include:
+
+```text
+HotSpot
+OpenJ9
+GraalVM
+```
+
+So don't say:
+
+> "The JVM is HotSpot."
+
+Instead:
+
+> **"HotSpot is a concrete implementation of the JVM specification."**
+
+
+
+### JVM Specification vs JVM Implementation
+
+Think of it as:
+
+```text
+              JVM Specification
+                       │
+          ┌────────────┼────────────┐
+          ↓            ↓            ↓
+       HotSpot       OpenJ9       GraalVM
+     implementation implementation implementation
+          │            │            │
+          └────────────┼────────────┘
+                       ↓
+                Executes JVM
+                   bytecode
+```
+
+Different JVM implementations can execute the same `.class` bytecode because they implement the same JVM specification.
+
+### What Happens When You Compile Java?
+
+Given:
+
+```java
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello");
+    }
+}
+```
+
+Run:
+
+```bash
+javac Hello.java
+```
+
+The flow is:
+
+```text
+Hello.java
+    │
+    │ javac — JDK
+    ↓
+Hello.class
+    │
+    │ JVM
+    ↓
+Execution
+```
+
+`Hello.class` contains JVM bytecode.
+
+### Write Once, Run Anywhere
+
+Java's WORA idea comes from compiling source code into **platform-independent JVM bytecode** rather than directly into one machine's native instructions.
+
+```text
+Java source
+     ↓
+javac
+     ↓
+JVM bytecode
+     ↓
+┌──────────────┬──────────────┐
+│   HotSpot    │    OpenJ9    │
+└──────────────┴──────────────┘
+        ↓              ↓
+      Machine        Machine
+      execution      execution
+```
+
+The JVM implementation handles the platform-specific execution.
+
+### JVM Does Not Only Run Java
+
+The JVM can execute bytecode produced by multiple languages.
+
+Examples:
+
+```text
+Kotlin ──────┐
+Scala ───────┤
+Groovy ──────┼──→ JVM bytecode → JVM
+Clojure ─────┘
+```
+
+These are **JVM languages**, not JVM implementations.
+
+For example:
+
+```text
+Kotlin source
+     ↓
+Kotlin compiler
+     ↓
+JVM bytecode
+     ↓
+JVM
+```
+
+Therefore:
+
+> **The JVM is not a Java-only machine. It executes JVM bytecode, regardless of which JVM language produced that bytecode.**
+
+
+
+### Java 11+ — The Standalone JRE Change
+
+This is an important modern-Java nuance.
+
+The traditional model was:
+
+```text
+JDK → JRE → JVM
+```
+
+But Oracle stopped shipping a standalone JRE distribution starting with **Java 11**.
+
+Today, you typically install a **JDK** rather than downloading a separate Oracle JRE.
+
+The PDF notes that `jlink` can be used to create a **slim custom runtime image** when a JRE-equivalent runtime is needed.
+
+
+
+### What Is `jlink`?
+
+`jlink` can create a custom runtime image containing only the Java modules required by an application.
+
+Conceptually:
+
+```text
+Full JDK
+   │
+   │ jlink
+   ↓
+Custom Runtime Image
+   ├── JVM
+   ├── Required Java modules
+   └── Application
+```
+
+This can produce a smaller runtime footprint.
+
+### Important Terminology
+
+| Term             | Meaning                                                             |
+| ---------------- | ------------------------------------------------------------------- |
+| **Java**         | Programming language                                                |
+| **JDK**          | Development kit used to build Java applications                     |
+| **JRE**          | Traditional runtime environment containing JVM + standard libraries |
+| **JVM**          | Specification/runtime machine that executes JVM bytecode            |
+| **HotSpot**      | Concrete JVM implementation                                         |
+| **OpenJ9**       | Concrete JVM implementation                                         |
+| **GraalVM**      | JVM/runtime implementation with additional capabilities             |
+| **OpenJDK**      | Open-source Java development platform/codebase                      |
+| **JVM bytecode** | Platform-independent instructions executed by JVM implementations   |
+
+### Common Interview Traps
+
+### Trap 1 — "JDK runs Java programs"
+
+Too imprecise.
+
+Better:
+
+> **JDK provides development tools to build applications; the JVM executes the resulting bytecode.**
+
+### Trap 2 — "JRE compiles Java"
+
+Incorrect.
+
+```text
+javac → JDK
+JVM   → executes bytecode
+```
+
+The JRE provides the runtime environment.
+
+### Trap 3 — "JVM is a Java compiler"
+
+Incorrect.
+
+Compilation:
+
+```text
+.java → javac → .class
+```
+
+Execution:
+
+```text
+.class → JVM → execution
+```
+
+### Trap 4 — "Kotlin and Scala are JVM implementations"
+
+Incorrect.
+
+They are **JVM languages** whose compilers can produce JVM bytecode.
+
+```text
+Kotlin / Scala / Groovy / Clojure
+             ↓
+        JVM bytecode
+             ↓
+            JVM
+```
+
+### Trap 5 — "JVM = HotSpot"
+
+Incorrect.
+
+HotSpot is one **implementation** of the JVM specification.
+
+Other implementations include OpenJ9 and GraalVM.
+
+### Trap 6 — "You install a JRE for Java 21"
+
+This is outdated as a general statement.
+
+For modern Java, you typically install a JDK; `jlink` can create a custom runtime image when needed.
+
+### Interview Follow-Ups
+
+### "What does `javac` actually produce?"
+
+It produces `.class` files containing **JVM bytecode**.
+
+```text
+.java
+  ↓
+javac
+  ↓
+.class
+  ↓
+JVM
+```
+
+### "Can the JVM execute Kotlin?"
+
+Yes.
+
+Kotlin can be compiled into JVM bytecode, which a JVM implementation can execute.
+
+The same applies to Scala, Groovy, and Clojure. 
+
+### "Why can HotSpot and OpenJ9 execute the same `.class` file?"
+
+Because both are implementations of the JVM specification and therefore understand JVM bytecode according to that specification.
+
+### "Is JVM platform-independent?"
+
+The **JVM specification and bytecode model** provide the portability abstraction.
+
+A concrete JVM implementation is platform-specific and handles the underlying operating system and hardware.
+
+### "What is WORA?"
+
+**Write Once, Run Anywhere.**
+
+The source is compiled into JVM bytecode, and different JVM implementations on different platforms can execute that bytecode.
+
+```text
+Source
+  ↓
+Bytecode
+  ↓
+JVM on Linux
+JVM on Windows
+JVM on macOS
+```
+
+### Final Interview Answer
+
+> **"The JDK, JRE, and JVM serve different purposes. The JDK is the development kit and contains tools such as `javac`, `jdb`, and `jar` that are used to build Java applications. The JRE is the traditional runtime environment containing the JVM and standard Java libraries needed to run applications. The JVM is the virtual machine specification/runtime engine that executes JVM bytecode.
+>
+> The flow is `.java` source → `javac` → `.class` bytecode → JVM execution. The JVM itself isn't limited to Java; Kotlin, Scala, Groovy, and Clojure can also compile to JVM bytecode. HotSpot and OpenJ9 are concrete implementations of the JVM specification.
+>
+> One modern nuance is that Oracle stopped shipping a standalone JRE starting with Java 11. Today we typically install a JDK, and `jlink` can be used to create a smaller custom runtime image."**
+
+### One-Minute Revision
+
+```text
+JDK
+→ Java Development Kit
+→ BUILD
+→ javac, jdb, jar, javadoc
+
+JRE
+→ Java Runtime Environment
+→ traditional RUN environment
+→ JVM + standard Java libraries
+
+JVM
+→ executes JVM bytecode
+→ JVM is a specification/concept
+→ HotSpot/OpenJ9/GraalVM are implementations
+
+FLOW
+.java
+ ↓
+javac (JDK)
+ ↓
+.class / JVM bytecode
+ ↓
+JVM
+ ↓
+execution
+
+WORA
+→ bytecode can run on different platforms
+  through platform-specific JVM implementations
+
+JVM ≠ Java-only
+→ Kotlin
+→ Scala
+→ Groovy
+→ Clojure
+can also produce JVM bytecode
+
+MODERN JAVA
+→ standalone Oracle JRE stopped after Java 10
+→ typically install JDK
+→ jlink can create custom runtime images
+```
 
 
 # Q11 — ConcurrentHashMap: How Is It Different from HashMap?

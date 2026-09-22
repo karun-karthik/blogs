@@ -161,12 +161,12 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/basics.md"
     },
     {
-      "slug": "java-top-10",
-      "title": "Java: Top 10",
+      "slug": "java/interview-concepts",
+      "title": "Interview Concepts: Java",
       "date": "2026-09-21",
       "domain": "Java",
-      "topic": "2. Top 10",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/top-10.md"
+      "topic": "2. Interview Concepts",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/interview-concepts.md"
     }
   ]
 }
