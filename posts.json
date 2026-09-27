@@ -161,12 +161,20 @@
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/basics.md"
     },
     {
-      "slug": "interview-concepts-java",
-      "title": "Java: Interview Concepts",
+      "slug": "important-concepts-java",
+      "title": "Java: Inportant Concepts",
       "date": "2026-09-21",
       "domain": "Java",
-      "topic": "Interview Concepts",
-      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/interview-concepts.md"
+      "topic": "Inportant Concepts",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/important.md"
+    },
+    {
+      "slug": "java-collections",
+      "title": "Java: Collections",
+      "date": "2026-09-27",
+      "domain": "Java",
+      "topic": "Collections",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/collections.md"
     }
   ]
 }

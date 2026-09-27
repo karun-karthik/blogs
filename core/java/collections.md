@@ -6064,6 +6064,2247 @@ MODERN JAVA
 → jlink can create custom runtime images
 ```
 
+# Q8 · `final` vs `finally` vs `finalize()` — Three Different Things
+
+### What's the difference between `final`, `finally`, and `finalize()`?
+
+They are completely different Java concepts:
+
+```text
+final      → keyword → restriction
+finally    → keyword → cleanup block
+finalize() → method  → legacy GC-related mechanism
+```
+
+### Core Comparison
+
+|                        | `final`                                         | `finally`                                                                         | `finalize()`                                             |
+| ---------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| What is it?            | Keyword                                         | Keyword                                                                           | Method                                                   |
+| Main purpose           | Prevent reassignment / overriding / inheritance | Execute cleanup code when leaving `try`/`catch`                                   | Historically GC-related object finalization              |
+| Used with              | Variables, methods, classes                     | `try` / `catch`                                                                   | Objects / `Object`                                       |
+| Prevents reassignment? | Yes, for a `final` variable/reference           | No                                                                                | No                                                       |
+| Handles cleanup?       | No                                              | Yes                                                                               | Historically intended for cleanup, but **do not use it** |
+| Can be overridden?     | A `final` method cannot be overridden           | Not applicable                                                                    | Historically could be overridden                         |
+| Modern recommendation  | Use normally when the restriction is desired    | Use for appropriate control-flow cleanup; prefer try-with-resources for resources | **Do not use; deprecated**                               |
+
+---
+
+### `final`
+
+`final` is a **keyword** used with:
+
+1. Variables
+2. Methods
+3. Classes
+
+### `final` variable
+
+A `final` variable cannot be **reassigned** after initialization.
+
+```java
+final int x = 10;
+
+x = 20; // ❌
+```
+
+For references, `final` prevents changing the **reference**, not necessarily mutating the object.
+
+```java
+final List<String> names = new ArrayList<>();
+
+names.add("Alice"); // ✅
+names.add("Bob");   // ✅
+
+names = new ArrayList<>(); // ❌
+```
+
+Mental model:
+
+```text
+final reference
+      │
+      ↓
+┌──────────────┐
+│  ArrayList   │
+│ Alice        │
+│ Bob          │
+└──────────────┘
+```
+
+The reference must continue pointing to that same object, but the object itself can still be mutable.
+
+### Important Trap
+
+> **`final` does NOT mean immutable.**
+
+```java
+final List<String> list = new ArrayList<>();
+```
+
+The reference is final, but the `ArrayList` is still mutable.
+
+Similarly:
+
+```java
+final String name = "Alice";
+```
+
+Here two concepts are involved:
+
+```text
+final
+→ reference cannot be reassigned
+
+String
+→ String objects themselves are immutable
+```
+
+### `final` method
+
+A `final` method cannot be overridden by a subclass.
+
+```java
+class Parent {
+    final void display() {
+        System.out.println("Parent");
+    }
+}
+
+class Child extends Parent {
+    void display() {   // ❌
+    }
+}
+```
+
+Without `final`:
+
+```java
+class Parent {
+    void display() {
+    }
+}
+
+class Child extends Parent {
+    @Override
+    void display() {   // ✅
+    }
+}
+```
+
+### `final` class
+
+A `final` class cannot be extended.
+
+```java
+final class Parent {
+}
+
+class Child extends Parent { // ❌
+}
+```
+
+But you **can instantiate** a final class:
+
+```java
+final class Parent {
+}
+
+Parent p = new Parent(); // ✅
+```
+
+### Important Trap
+
+> **`final class` does NOT automatically mean immutable.**
+
+`final` prevents inheritance. The class still needs to be designed for immutability if immutability is required.
+
+---
+
+### `finally`
+
+`finally` is a **keyword** used with exception handling.
+
+```java
+try {
+    // operation
+} catch (Exception e) {
+    // handling
+} finally {
+    // cleanup
+}
+```
+
+The `finally` block normally executes when control leaves the `try`/`catch`, whether execution is:
+
+```text
+normal
+   OR
+exceptional
+```
+
+### Normal execution
+
+```java
+try {
+    System.out.println("A");
+} finally {
+    System.out.println("B");
+}
+```
+
+Output:
+
+```text
+A
+B
+```
+
+### `return` in `try`
+
+```java
+try {
+    System.out.println("A");
+    return;
+} finally {
+    System.out.println("B");
+}
+```
+
+Output:
+
+```text
+A
+B
+```
+
+The `return` does not prevent `finally` from executing.
+
+Conceptually:
+
+```text
+execute try
+    ↓
+encounter return
+    ↓
+execute finally
+    ↓
+complete return
+```
+
+### Exception in `try`
+
+```java
+try {
+    System.out.println("A");
+    throw new RuntimeException();
+} finally {
+    System.out.println("B");
+}
+```
+
+Output before the exception propagates:
+
+```text
+A
+B
+```
+
+`finally` still executes.
+
+---
+
+### `finally` + `return` — Interview Trap
+
+Consider:
+
+```java
+static int test() {
+    try {
+        return 10;
+    } finally {
+        return 20;
+    }
+}
+```
+
+This **compiles** and returns:
+
+```text
+20
+```
+
+The `return` in `finally` overrides the pending `return 10`.
+
+### Why is this dangerous?
+
+Returning from `finally` can:
+
+* Override another return value
+* Suppress an exception
+* Make control flow difficult to understand
+
+For example:
+
+```java
+static int test() {
+    try {
+        throw new RuntimeException("Boom");
+    } finally {
+        return 20;
+    }
+}
+```
+
+The exception is effectively suppressed by the `return` from `finally`.
+
+### Interview Rule
+
+> **Avoid `return` inside `finally`.**
+
+---
+
+### `finally` vs Try-With-Resources
+
+For modern resource management, prefer **try-with-resources**.
+
+Instead of manually doing:
+
+```java
+FileInputStream input = null;
+
+try {
+    input = new FileInputStream("data.txt");
+    // use input
+} finally {
+    if (input != null) {
+        input.close();
+    }
+}
+```
+
+prefer:
+
+```java
+try (FileInputStream input =
+         new FileInputStream("data.txt")) {
+
+    // use input
+}
+```
+
+The resource implements `AutoCloseable` (directly or through `Closeable`), and Java automatically closes it when leaving the try-with-resources statement.
+
+### Important distinction
+
+If the interviewer asks:
+
+> **"Should I use `finally` or `finalize()` for cleanup?"**
+
+Answer:
+
+> **`finally`. `finalize()` is not deterministic and is deprecated. For resource management, prefer try-with-resources.**
+
+---
+
+### `finalize()`
+
+`finalize()` is a **method**, unlike `final` and `finally`.
+
+Historically, `Object` provided:
+
+```java
+protected void finalize() throws Throwable
+```
+
+It was associated with **GC-related object finalization**.
+
+The important problem was that its execution was **not deterministic**.
+
+You cannot rely on:
+
+```text
+object becomes unreachable
+        ↓
+GC runs
+        ↓
+finalize() immediately executes
+```
+
+There is no reliable timing guarantee.
+
+### Is `finalize()` deprecated?
+
+**Yes.**
+
+It is deprecated in modern Java and should not be used for resource management.
+
+### Don't use `finalize()` for:
+
+```text
+❌ File handles
+❌ Database connections
+❌ Network connections
+❌ Locks
+❌ Critical resource cleanup
+```
+
+Use explicit resource management instead.
+
+### Preferred approach
+
+```java
+try (FileInputStream input =
+         new FileInputStream("data.txt")) {
+
+    // use resource
+}
+```
+
+---
+
+### The Three in One Table
+
+| Concept               | `final`               | `finally`                           | `finalize()`            |
+| --------------------- | --------------------- | ----------------------------------- | ----------------------- |
+| Type                  | Keyword               | Keyword                             | Method                  |
+| Related to            | Restrictions          | Exception/control flow              | GC-related finalization |
+| Variables             | ✅                     | ❌                                   | ❌                       |
+| Methods               | ✅                     | ❌                                   | ❌                       |
+| Classes               | ✅                     | ❌                                   | ❌                       |
+| `try`/`catch`         | ❌                     | ✅                                   | ❌                       |
+| Prevents reassignment | ✅                     | ❌                                   | ❌                       |
+| Prevents overriding   | ✅                     | ❌                                   | ❌                       |
+| Prevents inheritance  | ✅                     | ❌                                   | ❌                       |
+| Cleanup               | ❌                     | ✅                                   | Historically intended   |
+| Deterministic         | N/A                   | Normally yes when leaving try/catch | ❌                       |
+| Modern recommendation | Use where appropriate | Use where appropriate               | **Do not use**          |
+
+---
+
+### Interview Follow-Ups
+
+### Follow-up 1 — Does `final` make an object immutable?
+
+**No.**
+
+```java
+final List<String> list = new ArrayList<>();
+
+list.add("Alice"); // ✅
+```
+
+`final` prevents reassignment of the reference.
+
+It does not make the referenced object immutable.
+
+---
+
+### Follow-up 2 — Can a final class be instantiated?
+
+**Yes.**
+
+```java
+final class User {
+}
+
+User user = new User(); // ✅
+```
+
+`final` prevents inheritance, not instantiation.
+
+---
+
+### Follow-up 3 — Can a final method be overloaded?
+
+**Yes.**
+
+`final` prevents **overriding**, not overloading.
+
+```java
+class Parent {
+
+    final void test() {
+    }
+
+    void test(int x) {
+    }
+}
+```
+
+This is valid.
+
+---
+
+### Follow-up 4 — Can a final method be overridden?
+
+**No.**
+
+```java
+class Parent {
+    final void test() {}
+}
+
+class Child extends Parent {
+    void test() {} // ❌
+}
+```
+
+---
+
+### Follow-up 5 — Does `finally` always execute?
+
+Normally, yes when control leaves the `try`/`catch`.
+
+But don't say **"always"** without qualification.
+
+For example:
+
+```java
+System.exit(0);
+```
+
+terminates the JVM, so normal `finally` execution is not guaranteed.
+
+---
+
+### Follow-up 6 — Does `finally` execute if `try` has `return`?
+
+**Yes.**
+
+```java
+try {
+    return 10;
+} finally {
+    System.out.println("cleanup");
+}
+```
+
+The `finally` block executes before the method actually returns.
+
+---
+
+### Follow-up 7 — Can `finally` have a `return`?
+
+**Yes.**
+
+```java
+finally {
+    return 20;
+}
+```
+
+But it is generally **bad practice** because it can override another return or suppress an exception.
+
+---
+
+### Follow-up 8 — Who calls `finalize()`?
+
+The historical finalization mechanism was associated with garbage collection, but its execution was **not deterministic or guaranteed**.
+
+Do not rely on it for cleanup.
+
+---
+
+### Follow-up 9 — Is `finalize()` the same as `finally`?
+
+**No.**
+
+```text
+finally
+→ control-flow block
+→ associated with try/catch
+→ cleanup code
+→ deterministic when control leaves normally
+
+finalize()
+→ method
+→ historically GC-related
+→ nondeterministic
+→ deprecated
+```
+
+---
+
+### Follow-up 10 — What should replace `finalize()`?
+
+For resources implementing `AutoCloseable`:
+
+```java
+try (Resource r = ...) {
+    // use resource
+}
+```
+
+Use **try-with-resources**.
+
+---
+
+### Final 30-Second Interview Answer
+
+> **"`final`, `finally`, and `finalize()` are three completely different things. `final` is a keyword used with variables, methods, and classes—it prevents reassignment, overriding, and inheritance respectively. `finally` is a block associated with try/catch that normally executes when control leaves the block, and it's commonly used for cleanup, although try-with-resources is preferred for resource management. `finalize()` is a method historically associated with garbage-collection-based finalization. It is nondeterministic and deprecated, so we should not use it for resource cleanup."**
+
+### One-Minute Revision
+
+```text
+final
+→ KEYWORD
+→ variable → cannot reassign
+→ method   → cannot override
+→ class    → cannot extend
+→ does NOT automatically mean immutable
+
+finally
+→ KEYWORD
+→ try/catch block
+→ normally executes when leaving try/catch
+→ executes even with return/exception
+→ avoid return inside finally
+→ try-with-resources preferred for resources
+
+finalize()
+→ METHOD
+→ historically GC-related
+→ nondeterministic
+→ deprecated
+→ DON'T use for resource cleanup
+
+RESOURCE CLEANUP
+→ AutoCloseable
+→ try-with-resources
+```
+
+### The easiest way to remember
+
+```text
+FINAL
+    ↓
+"Don't change this."
+
+FINALLY
+    ↓
+"Do this before leaving."
+
+FINALIZE()
+    ↓
+"Old GC-related mechanism — don't use it."
+```
+
+# Q9 · Singleton Pattern — 4 Ways to Implement It
+
+### What is Singleton?
+
+The **Singleton design pattern** ensures that only **one instance of a class** is created and provides a way to access that instance.
+
+Typical intent:
+
+```text
+One class
+   ↓
+One instance
+   ↓
+Global access point
+```
+
+The two important concerns in Java interviews are:
+
+* **How is the instance created?**
+* **Is creation thread-safe?**
+
+---
+
+### 1. Eager Initialization
+
+```java
+class Singleton {
+
+    private static final Singleton INSTANCE = new Singleton();
+
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+        return INSTANCE;
+    }
+}
+```
+
+### Characteristics
+
+```text
+Lazy?          ❌ No
+Thread-safe?   ✅ Yes
+```
+
+The instance is created when the class is initialized.
+
+Java class initialization is thread-safe, so no explicit synchronization is required.
+
+### Advantage
+
+* Very simple
+* Thread-safe
+* No synchronization overhead during `getInstance()`
+
+### Disadvantage
+
+The object is created **even if it is never actually used**.
+
+```text
+Class initialized
+      ↓
+Singleton created
+      ↓
+Maybe nobody ever calls getInstance()
+```
+
+### Interview line
+
+> **Eager initialization is simple and thread-safe, but the instance is created even when it isn't needed.**
+
+---
+
+### 2. Lazy Initialization
+
+```java
+class Singleton {
+
+    private static Singleton instance;
+
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+        if (instance == null) {
+            instance = new Singleton();
+        }
+
+        return instance;
+    }
+}
+```
+
+### Characteristics
+
+```text
+Lazy?          ✅ Yes
+Thread-safe?   ❌ No
+```
+
+### Why isn't it thread-safe?
+
+Two threads can simultaneously observe `null`:
+
+```text
+Thread A                         Thread B
+--------                         --------
+instance == null                instance == null
+       ↓                              ↓
+new Singleton()                 new Singleton()
+       ↓                              ↓
+instance = A                    instance = B
+```
+
+Now two different objects may have been created.
+
+### Interview line
+
+> **Basic lazy initialization is not thread-safe because the check-and-create operation is not atomic.**
+
+---
+
+### 3. Synchronized Accessor
+
+```java
+class Singleton {
+
+    private static Singleton instance;
+
+    private Singleton() {}
+
+    public static synchronized Singleton getInstance() {
+        if (instance == null) {
+            instance = new Singleton();
+        }
+
+        return instance;
+    }
+}
+```
+
+### Characteristics
+
+```text
+Lazy?          ✅ Yes
+Thread-safe?   ✅ Yes
+```
+
+The entire `getInstance()` method is synchronized.
+
+Only one thread can execute it at a time.
+
+```text
+Thread A
+   ↓
+acquires lock
+   ↓
+creates instance
+   ↓
+releases lock
+   ↓
+Thread B
+   ↓
+acquires lock
+   ↓
+sees existing instance
+```
+
+### Advantage
+
+* Simple
+* Easy to reason about
+* Thread-safe
+* Lazy
+
+### Disadvantage
+
+Every call to `getInstance()` requires synchronization:
+
+```text
+getInstance()
+     ↓
+acquire lock
+     ↓
+check instance
+     ↓
+release lock
+     ↓
+return
+```
+
+Even after the Singleton has already been created.
+
+### Interview line
+
+> **Synchronized accessor is thread-safe and lazy, but it synchronizes every access, creating unnecessary synchronization overhead after initialization.**
+
+---
+
+### 4. Double-Checked Locking
+
+```java
+class Singleton {
+
+    private static volatile Singleton instance;
+
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+
+        if (instance == null) {
+
+            synchronized (Singleton.class) {
+
+                if (instance == null) {
+                    instance = new Singleton();
+                }
+            }
+        }
+
+        return instance;
+    }
+}
+```
+
+This is called **double-checked locking** because we check `instance == null` twice.
+
+### First check
+
+```java
+if (instance == null)
+```
+
+Avoids acquiring the lock once the Singleton already exists.
+
+### Second check
+
+```java
+synchronized (Singleton.class) {
+    if (instance == null) {
+        instance = new Singleton();
+    }
+}
+```
+
+Prevents duplicate creation when multiple threads are racing.
+
+---
+
+### Why do we need the second check?
+
+Suppose:
+
+```text
+Thread A                         Thread B
+--------                         --------
+instance == null                instance == null
+      ↓                              ↓
+acquires lock                    waits
+      ↓
+creates instance
+      ↓
+releases lock
+                                acquires lock
+                                     ↓
+                              second check == null?
+                                     ↓
+                                    NO
+                                     ↓
+                              returns existing instance
+```
+
+Without the second check:
+
+```text
+Thread A
+   ↓
+creates instance
+   ↓
+releases lock
+
+Thread B
+   ↓
+gets lock
+   ↓
+creates another instance ❌
+```
+
+### Interview line
+
+> **The first check avoids unnecessary locking. The second check prevents a thread that waited for the lock from creating another instance after the first thread has already initialized it.**
+
+---
+
+### Why is `volatile` required?
+
+```java
+private static volatile Singleton instance;
+```
+
+`volatile` provides **visibility and memory-ordering guarantees**.
+
+Without it, another thread performing the first check could have insufficient visibility guarantees regarding the initialized object.
+
+Conceptually, object creation involves:
+
+```text
+Allocate memory
+      ↓
+Initialize object
+      ↓
+Publish reference
+```
+
+`volatile` ensures the publication of the reference has the required memory-ordering/visibility semantics.
+
+### Important distinction
+
+Do **not** say:
+
+> "`volatile` makes Singleton thread-safe."
+
+Instead:
+
+> **Synchronization protects the creation critical section, while `volatile` provides the visibility and memory-ordering guarantees needed when the instance is accessed outside the synchronized block.**
+
+---
+
+### `volatile` Alone Is Not Enough
+
+This is still unsafe:
+
+```java
+private static volatile Singleton instance;
+
+public static Singleton getInstance() {
+
+    if (instance == null) {
+        instance = new Singleton();
+    }
+
+    return instance;
+}
+```
+
+Why?
+
+Because `volatile` does **not** make check-and-create atomic.
+
+```text
+Thread A                         Thread B
+--------                         --------
+read volatile → null             read volatile → null
+       ↓                               ↓
+new Singleton()                  new Singleton()
+       ↓                               ↓
+instance = A                     instance = B
+```
+
+Therefore:
+
+```text
+volatile
+→ visibility + ordering
+→ NOT mutual exclusion
+→ NOT enough for check-then-act
+```
+
+---
+
+### 5. Initialization-on-Demand Holder Idiom
+
+Another important implementation:
+
+```java
+class Singleton {
+
+    private Singleton() {}
+
+    private static class Holder {
+        private static final Singleton INSTANCE = new Singleton();
+    }
+
+    public static Singleton getInstance() {
+        return Holder.INSTANCE;
+    }
+}
+```
+
+### Characteristics
+
+```text
+Lazy?          ✅ Yes
+Thread-safe?   ✅ Yes
+volatile?      ❌ No
+synchronized?  ❌ No
+```
+
+### Why is it lazy?
+
+The nested `Holder` class isn't initialized until:
+
+```java
+Holder.INSTANCE
+```
+
+is accessed.
+
+```text
+Singleton class loaded
+        ↓
+Holder NOT initialized
+        ↓
+getInstance()
+        ↓
+Holder.INSTANCE accessed
+        ↓
+Holder initialized
+        ↓
+Singleton created
+```
+
+### Why is it thread-safe?
+
+It relies on Java's **class initialization guarantees**.
+
+Class initialization is performed safely and only once, even when multiple threads access it concurrently.
+
+### Advantage
+
+* Lazy
+* Thread-safe
+* No explicit `synchronized`
+* No `volatile`
+* Simpler than double-checked locking
+
+### Disadvantage
+
+By itself, it doesn't protect against Singleton-breaking mechanisms such as reflection or serialization.
+
+---
+
+### 6. Enum Singleton
+
+```java
+public enum Singleton {
+    INSTANCE;
+
+    public void doSomething() {
+        // ...
+    }
+}
+```
+
+### Characteristics
+
+```text
+Lazy?                  ❌ No
+Thread-safe?           ✅ Yes
+Reflection resistant?  ✅ Yes
+Serialization safe?    ✅ Yes
+```
+
+The enum constant is initialized as part of enum class initialization.
+
+### Why is it strong?
+
+Java's enum machinery provides strong guarantees around:
+
+* Instance creation
+* Thread safety
+* Reflection
+* Serialization/deserialization
+
+Normal Java serialization of an enum returns the existing enum constant rather than creating another instance.
+
+### Advantage
+
+Very simple and robust.
+
+### Disadvantage
+
+It is **not lazy** in the usual Singleton sense.
+
+---
+
+### Singleton and Reflection
+
+Even with:
+
+```java
+private Singleton() {}
+```
+
+reflection can potentially access the private constructor for a normal class and create another instance.
+
+Conceptually:
+
+```java
+Constructor<Singleton> constructor =
+        Singleton.class.getDeclaredConstructor();
+
+constructor.setAccessible(true);
+
+Singleton another = constructor.newInstance();
+```
+
+Therefore:
+
+```text
+private constructor
+        ↓
+prevents normal construction
+        ↓
+does NOT provide absolute protection against reflection
+```
+
+Enum Singleton has special JVM-level enum semantics that prevent normal reflective construction of another enum constant.
+
+---
+
+### Singleton and Serialization
+
+A normal class-based Singleton can also be broken through serialization/deserialization.
+
+Conceptually:
+
+```text
+Singleton instance
+      ↓
+serialize
+      ↓
+byte stream
+      ↓
+deserialize
+      ↓
+new object
+```
+
+You can end up with:
+
+```text
+instance1 → Singleton A
+
+instance2 → Singleton B
+```
+
+### `readResolve()`
+
+For a serializable class-based Singleton, `readResolve()` can return the existing instance:
+
+```java
+private Object readResolve() {
+    return INSTANCE;
+}
+```
+
+This allows deserialization to preserve the Singleton identity.
+
+Enum Singleton has special serialization semantics and doesn't have this same problem.
+
+---
+
+### Complete Comparison
+
+| Implementation             | Lazy | Thread-safe | `volatile` | Explicit synchronization | Reflection resistant | Serialization resistant |
+| -------------------------- | ---: | ----------: | ---------: | -----------------------: | -------------------: | ----------------------: |
+| **Eager**                  |    ❌ |           ✅ |          ❌ |                        ❌ |                    ❌ |            ❌ by default |
+| **Basic Lazy**             |    ✅ |           ❌ |          ❌ |                        ❌ |                    ❌ |                       ❌ |
+| **Synchronized accessor**  |    ✅ |           ✅ |          ❌ |                        ✅ |                    ❌ |            ❌ by default |
+| **Double-checked locking** |    ✅ |           ✅ |          ✅ |  ✅ during initialization |                    ❌ |            ❌ by default |
+| **Holder idiom**           |    ✅ |           ✅ |          ❌ |                        ❌ |                    ❌ |            ❌ by default |
+| **Enum**                   |    ❌ |           ✅ |          ❌ |                        ❌ |                    ✅ |                       ✅ |
+
+---
+
+### The Four Main Implementations — Interview Focus
+
+If the interviewer specifically asks for **4 ways**, focus on these:
+
+### 1. Eager
+
+```java
+private static final Singleton INSTANCE = new Singleton();
+```
+
+```text
+Thread-safe ✅
+Lazy ❌
+Simple ✅
+```
+
+### 2. Lazy
+
+```java
+if (instance == null) {
+    instance = new Singleton();
+}
+```
+
+```text
+Thread-safe ❌
+Lazy ✅
+```
+
+### 3. Synchronized
+
+```java
+public static synchronized Singleton getInstance()
+```
+
+```text
+Thread-safe ✅
+Lazy ✅
+Lock every call
+```
+
+### 4. Double-Checked Locking
+
+```java
+private static volatile Singleton instance;
+```
+
+```text
+Thread-safe ✅
+Lazy ✅
+Lock only during initialization
+More complex
+```
+
+Then know **Holder** and **Enum** as important follow-up implementations.
+
+---
+
+# Quick Mental Model
+
+```text
+EAGER
+→ Create immediately
+→ Safe
+→ Might waste initialization
+
+
+LAZY
+→ Create when needed
+→ Race condition
+→ NOT safe
+
+
+SYNCHRONIZED
+→ Create when needed
+→ Safe
+→ Lock every call
+
+
+DOUBLE-CHECKED LOCKING
+→ Create when needed
+→ Safe
+→ volatile + lock during creation
+→ No lock on normal path
+
+
+HOLDER
+→ Create when needed
+→ Safe
+→ JVM class initialization
+→ Simple
+
+
+ENUM
+→ Create during enum initialization
+→ Safe
+→ Strong reflection/serialization protection
+→ Not lazy
+```
+
+# Final Interview Answer
+
+### "What are the different ways to implement Singleton in Java?"
+
+> **"The basic approaches are eager initialization, lazy initialization, synchronized access, and double-checked locking. Eager initialization is thread-safe but creates the instance immediately. Basic lazy initialization is not thread-safe because multiple threads can observe null and create different instances. Synchronizing the accessor makes it thread-safe but adds synchronization overhead on every call. Double-checked locking reduces that overhead by checking before and after acquiring the lock, and it requires a volatile instance for visibility and memory-ordering guarantees. Another clean approach is the initialization-on-demand Holder idiom, which relies on class initialization guarantees, and Enum Singleton provides strong protection against reflection and serialization."**
+
+# 30-Second Revision
+
+```text
+Singleton
+→ one instance + global access point
+
+Eager
+→ thread-safe
+→ not lazy
+
+Lazy
+→ lazy
+→ NOT thread-safe
+
+Synchronized
+→ lazy
+→ thread-safe
+→ lock every call
+
+Double-checked locking
+→ lazy
+→ thread-safe
+→ volatile required
+→ lock only during initialization
+
+Holder
+→ lazy
+→ thread-safe
+→ class initialization
+→ no explicit lock/volatile
+
+Enum
+→ thread-safe
+→ not lazy
+→ strong reflection + serialization protection
+```
+
+### Critical interview traps
+
+```text
+❌ volatile alone does NOT make Singleton creation atomic
+
+❌ final class does NOT automatically mean immutable
+
+❌ private constructor does NOT completely defeat reflection
+
+❌ double-checked locking without volatile is incorrect
+
+❌ synchronized accessor is NOT unsafe — it is thread-safe
+
+❌ Enum Singleton is NOT lazy
+
+✅ Holder idiom is lazy + thread-safe
+
+✅ second null check is required in DCL
+```
+
+# Q10 · Garbage Collection — Major Collectors & When to Use Each
+
+### What problem does Garbage Collection solve?
+
+Java Garbage Collection (GC) automatically cleans up **unreachable objects** so their memory can be reclaimed.
+
+The key concept is **reachability from GC roots**.
+
+An object is eligible for GC when it is no longer reachable from any GC root.
+
+```text
+GC Root
+   │
+   ↓
+Object A
+   │
+   ↓
+Object B
+```
+
+If the GC root no longer points to `A`:
+
+```text
+GC Root
+
+Object A → Object B
+```
+
+Then `A` and `B` can become unreachable and eligible for collection.
+
+### Important
+
+**"Not accessed recently" is NOT the definition of garbage.**
+
+An object created 10 years ago can still be reachable.
+
+An object created one second ago can already be unreachable.
+
+---
+
+### GC Roots
+
+Common GC roots include:
+
+* Active thread references / local variables
+* Static references
+* JNI references
+* JVM/runtime-managed references
+
+An ordinary object referenced only by another **unreachable** object is **not** a GC root.
+
+---
+
+### Cyclic References
+
+Java can collect cyclic references.
+
+```java
+class User {
+    User friend;
+}
+
+User a = new User();
+User b = new User();
+
+a.friend = b;
+b.friend = a;
+
+a = null;
+b = null;
+```
+
+Although:
+
+```text
+A → B
+↑   ↓
+└───┘
+```
+
+both objects are unreachable from GC roots.
+
+Therefore, both are eligible for GC.
+
+### Key point
+
+> **Java GC does not rely on simple reference counting, so unreachable cycles can be collected.**
+
+---
+
+### Generational Garbage Collection
+
+The heap is conceptually divided into areas such as:
+
+```text
+Young Generation
+├── Eden
+├── Survivor
+└── Survivor
+
+Old Generation
+```
+
+The key assumption is the **generational hypothesis**:
+
+> **Most objects die young, while a smaller number survive for a long time.**
+
+Therefore, the JVM can collect Young Generation frequently.
+
+```text
+New objects
+     ↓
+Young Generation
+     ↓
+Most die here
+     ↓
+Reclaimed
+
+Some survive
+     ↓
+Survive multiple collections
+     ↓
+Old Generation
+```
+
+### Important correction
+
+Don't think:
+
+> Young = frequently used
+> Old = rarely used
+
+Think:
+
+> **Young = recently allocated objects**
+> **Old = objects that have survived longer**
+
+Not every surviving Young object immediately moves to Old. Promotion depends on the collector and its policies.
+
+---
+
+### Why Frequent Young GC?
+
+Young Generation collection is useful because:
+
+* The region being collected is comparatively smaller.
+* Most objects in it are often already dead.
+* There is relatively little live data that needs to be retained/copied.
+* Surviving objects can continue to survive or eventually be promoted.
+
+```text
+Young GC
+   ↓
+Small scope
+   ↓
+Most objects dead
+   ↓
+Less live data
+   ↓
+Usually efficient collection
+```
+
+---
+
+### Stop-the-World (STW)
+
+**Stop-the-World** means application threads are paused while the JVM performs the relevant GC work.
+
+```text
+Application threads
+        ↓
+      PAUSE
+        ↓
+      GC work
+        ↓
+     RESUME
+```
+
+During the STW portion:
+
+> **Application threads do not continue normal application execution.**
+
+### Important distinction
+
+**STW does not mean that an entire GC cycle must always be STW.**
+
+Modern collectors can perform substantial work **concurrently** with application threads.
+
+---
+
+### Throughput vs Latency
+
+This is one of the most important GC trade-offs.
+
+### Throughput
+
+How much useful application work can be completed over time.
+
+Important for:
+
+* Batch processing
+* Computational workloads
+* Offline processing
+
+### Latency
+
+How long an individual operation/request has to wait.
+
+Important for:
+
+* Online APIs
+* Interactive applications
+* Latency-sensitive services
+
+```text
+Throughput
+→ "How much work can I complete?"
+
+Latency
+→ "How long does an individual request wait?"
+```
+
+---
+
+### Major Java Garbage Collectors
+
+The five collectors to know for interviews:
+
+| Collector       | Mental Model         | Main Priority                     |
+| --------------- | -------------------- | --------------------------------- |
+| **Serial GC**   | One GC worker        | Small/simple workloads            |
+| **Parallel GC** | Multiple GC workers  | Throughput                        |
+| **G1 GC**       | Region-based         | Balanced throughput + pause goals |
+| **ZGC**         | Concurrent low-pause | Very low latency                  |
+| **Shenandoah**  | Concurrent low-pause | Very low latency                  |
+
+---
+
+### 1. Serial GC
+
+Serial GC performs GC work using a **single GC worker thread**.
+
+Conceptually:
+
+```text
+Application
+    ↓
+   PAUSE
+    ↓
+One GC thread
+    ↓
+  RESUME
+```
+
+### Characteristics
+
+```text
+Simple              ✅
+One GC worker       ✅
+STW phases          ✅
+Thread-safe         N/A
+```
+
+### When?
+
+Useful for:
+
+* Small heaps
+* Simple applications
+* Environments where GC latency isn't particularly important
+* Situations where simplicity matters
+
+### Mental model
+
+> **Serial → simple/small**
+
+---
+
+### 2. Parallel GC
+
+Parallel GC uses **multiple GC worker threads**.
+
+```text
+Application
+     ↓
+   PAUSE
+     ↓
+ ┌────┬────┬────┬────┐
+ GC1  GC2  GC3  GC4
+ └────┴────┴────┴────┘
+     ↓
+   RESUME
+```
+
+### Important
+
+"Parallel" means:
+
+> **Multiple GC worker threads perform GC work in parallel.**
+
+It does **not** mean every application thread participates in GC.
+
+### Characteristics
+
+```text
+Multiple GC workers   ✅
+Throughput-oriented   ✅
+STW phases            ✅
+```
+
+### When?
+
+Good fit for:
+
+* Batch processing
+* Computational workloads
+* Throughput-oriented applications
+* Situations where longer GC pauses are acceptable
+
+### Mental model
+
+> **Parallel → throughput**
+
+---
+
+### 3. G1 GC
+
+G1 = **Garbage-First Garbage Collector**.
+
+G1 divides the heap into many **regions** rather than treating it as one large contiguous area.
+
+```text
+┌────┬────┬────┬────┬────┐
+│ R1 │ R2 │ R3 │ R4 │ R5 │
+├────┼────┼────┼────┼────┤
+│ R6 │ R7 │ R8 │ R9 │ R10│
+└────┴────┴────┴────┴────┘
+```
+
+The important idea is that G1 can select regions based on how much garbage they contain and its pause-time goals.
+
+For example:
+
+```text
+R1 → 90% garbage
+R2 → 10% garbage
+R3 → 80% garbage
+R4 → 20% garbage
+```
+
+G1 can prioritize regions such as `R1` and `R3`.
+
+Hence:
+
+> **Garbage-First**
+
+### Why regions?
+
+G1 can reason about collection work in terms of:
+
+> **"Given my pause-time goal, which regions provide the most useful reclamation?"**
+
+rather than simply collecting one enormous contiguous area.
+
+### When?
+
+G1 is useful for:
+
+* General-purpose server workloads
+* Large heaps
+* Applications requiring a balance between throughput and pause-time goals
+
+### Mental model
+
+> **G1 → balanced server workload**
+
+---
+
+### G1 Pause-Time Goal
+
+For example:
+
+```text
+-XX:MaxGCPauseMillis=200
+```
+
+This represents a **pause-time goal**.
+
+It does **not** mean:
+
+> "GC will never pause for more than 200 ms."
+
+Instead:
+
+> **G1 tries to organize its collection work around the requested pause-time target where possible.**
+
+Conceptually:
+
+```text
+MaxGCPauseMillis = 200
+          ↓
+     Pause goal
+          ↓
+Select collection work
+          ↓
+Try to fit work into target
+```
+
+A pause can still exceed the target.
+
+---
+
+### G1 Young GC
+
+A **Young GC** collects Young regions.
+
+```text
+Young regions
+      ↓
+    collect
+      ↓
+Dead objects reclaimed
+      ↓
+Survivors remain / may be promoted
+```
+
+---
+
+### G1 Mixed GC
+
+A **Mixed GC** collects:
+
+```text
+Young regions
+      +
+Selected Old regions
+```
+
+The important word is **selected**.
+
+G1 chooses Old regions containing significant reclaimable garbage while considering its pause-time goals.
+
+### Don't confuse this with promotion
+
+Mixed GC does **not** mean:
+
+> "Objects are currently moving from Young to Old."
+
+Promotion and Mixed GC are separate concepts.
+
+### Interview answer
+
+> **Young GC collects Young regions, while Mixed GC collects Young regions plus selected Old regions.**
+
+---
+
+### 4. ZGC
+
+ZGC is designed for **very low pause times**.
+
+This is especially useful for:
+
+* Large heaps
+* Latency-sensitive applications
+* Systems where long GC pauses are problematic
+
+Instead of stopping the application for all GC work:
+
+```text
+Application ───────────────────────
+       │       │       │
+GC     └──────────────────────────
+       works concurrently
+```
+
+ZGC performs substantial GC work **concurrently with application threads**.
+
+### Why?
+
+Consider a huge heap:
+
+```text
+Large heap
+    ↓
+Large amount of GC work
+    ↓
+Doing everything in one long STW pause
+    ↓
+Large latency spike
+```
+
+ZGC aims to keep these pauses extremely small.
+
+### Mental model
+
+> **ZGC → very low latency**
+
+---
+
+### 5. Shenandoah
+
+Shenandoah is another **concurrent, low-pause collector**.
+
+Its broad interview category is the same as ZGC:
+
+```text
+ZGC
+  +
+Shenandoah
+      ↓
+Low-pause / latency-oriented collectors
+```
+
+Both perform substantial GC work concurrently with application execution and aim to minimize application pauses.
+
+### Important
+
+Don't say:
+
+> "ZGC/Shenandoah are for high throughput."
+
+Their primary distinguishing characteristic here is:
+
+> **Very low GC pause / latency**
+
+---
+
+### G1 vs ZGC
+
+Both are relevant to server applications, but their priorities differ.
+
+### G1
+
+```text
+Goal:
+Balance throughput + pause-time goals
+```
+
+### ZGC
+
+```text
+Goal:
+Extremely low GC pauses / latency
+```
+
+### Mental model
+
+```text
+General server workload
+        ↓
+       G1
+
+Extreme latency requirements
+        ↓
+   ZGC / Shenandoah
+```
+
+---
+
+### Full GC
+
+A **Full GC** considers the entire heap.
+
+Conceptually:
+
+```text
+Full GC
+   ↓
+┌─────────────────────┐
+│ Young Generation    │
+├─────────────────────┤
+│ Old Generation      │
+└─────────────────────┘
+```
+
+Compared with a typical Young GC:
+
+```text
+Young GC
+→ smaller scope
+→ generally less work
+
+Full GC
+→ entire heap
+→ potentially much more work
+→ potentially longer pause
+```
+
+### Important
+
+Don't assume that every collector performs Full GC in exactly the same way. Collector implementation and JVM state matter.
+
+---
+
+### `System.gc()`
+
+Calling:
+
+```java
+System.gc();
+```
+
+does **not guarantee** immediate garbage collection.
+
+It is effectively a **request/hint to the JVM**.
+
+```text
+System.gc()
+     ↓
+Request to JVM
+     ↓
+JVM decides
+     ↓
+GC may happen
+or may not happen
+```
+
+### Interview answer
+
+> **"`System.gc()` only requests that the JVM perform garbage collection. It does not guarantee that GC will occur immediately or at all."**
+
+Don't say that the **OS** decides. The relevant decision is made by the **JVM**.
+
+---
+
+### Allocation Failure
+
+Suppose an allocation requires memory but there isn't enough immediately available space.
+
+Conceptually:
+
+```text
+Allocation request
+       ↓
+Not enough space
+       ↓
+GC attempt
+       ↓
+Reclaim unreachable objects
+       ↓
+Enough space?
+   ↙           ↘
+ YES           NO
+  ↓             ↓
+Allocate      OOM
+```
+
+If GC cannot reclaim enough memory to satisfy the allocation, the JVM may ultimately throw:
+
+```java
+OutOfMemoryError
+```
+
+### Important
+
+Don't say:
+
+> "Every allocation failure immediately triggers Full GC."
+
+The exact behavior depends on the collector and JVM state.
+
+---
+
+### Collector Selection — Interview Decision Tree
+
+### A. Small/simple application
+
+```text
+Small heap
+Simple workload
+Pause time not important
+```
+
+→ **Serial GC**
+
+---
+
+### B. Throughput-oriented application
+
+```text
+Batch processing
+Computational workload
+Maximum throughput matters
+Longer pauses acceptable
+```
+
+→ **Parallel GC**
+
+---
+
+### C. General-purpose server
+
+```text
+Large backend
+Need throughput
+Need controlled pause times
+No extreme latency requirement
+```
+
+→ **G1 GC**
+
+---
+
+### D. Extreme latency requirement
+
+```text
+Large heap
+Latency-sensitive
+Very small GC pauses required
+```
+
+→ **ZGC / Shenandoah**
+
+---
+
+### Final Collector Comparison
+
+| Requirement              | Collector       |
+| ------------------------ | --------------- |
+| Small/simple workload    | **Serial GC**   |
+| Maximum throughput       | **Parallel GC** |
+| Balanced server workload | **G1 GC**       |
+| Extremely low latency    | **ZGC**         |
+| Extremely low latency    | **Shenandoah**  |
+
+---
+
+### The Most Important Mental Model
+
+```text
+                    Application requirement
+                              │
+             ┌────────────────┼─────────────────┐
+             │                │                 │
+          Simple          Throughput          Latency
+             │                │                 │
+          Serial           Parallel        ┌────┴────┐
+                                           │         │
+                                          G1*       ZGC
+                                                     │
+                                               Shenandoah
+```
+
+`G1` is best thought of as **balanced**, rather than purely a low-latency collector.
+
+---
+
+### Common Interview Traps
+
+### ❌ "Young objects are frequently used objects."
+
+Not necessarily.
+
+> Young means **recently allocated**.
+
+---
+
+### ❌ "Old objects are unused objects."
+
+Not necessarily.
+
+> Old means they have **survived longer**.
+
+---
+
+### ❌ "Stop-the-World means the entire GC cycle is always STW."
+
+Not necessarily.
+
+Modern collectors can perform significant work concurrently.
+
+---
+
+### ❌ "Parallel GC means all CPU threads perform GC."
+
+No.
+
+> **Parallel GC uses multiple GC worker threads.**
+
+---
+
+### ❌ "`System.gc()` forces GC."
+
+No.
+
+> It is a **request/hint**, not a guarantee.
+
+---
+
+### ❌ "`MaxGCPauseMillis=200` guarantees a maximum 200 ms pause."
+
+No.
+
+> It is a **pause-time goal**.
+
+---
+
+### ❌ "Mixed GC means Young objects are being moved to Old."
+
+No.
+
+> **Mixed GC = Young regions + selected Old regions.**
+
+---
+
+### ❌ "ZGC is for high throughput."
+
+Its key characteristic is:
+
+> **Very low pause time / latency.**
+
+---
+
+### 30-Second Revision
+
+```text
+GC
+→ Reclaims unreachable objects
+
+GC eligibility
+→ No path from a GC root
+
+Generational hypothesis
+→ Most objects die young
+
+Young
+→ Recently allocated objects
+
+Old
+→ Objects that survive longer
+
+STW
+→ Application threads pause
+
+Serial
+→ One GC worker
+→ Small/simple
+
+Parallel
+→ Multiple GC workers
+→ Throughput
+
+G1
+→ Regions
+→ Garbage-First
+→ Balanced throughput + pause goals
+
+ZGC
+→ Concurrent
+→ Very low pause
+→ Large/latency-sensitive systems
+
+Shenandoah
+→ Concurrent
+→ Very low pause
+
+Young GC
+→ Young regions
+
+Mixed GC
+→ Young + selected Old regions
+
+Full GC
+→ Entire heap considered
+
+System.gc()
+→ Request, NOT guarantee
+
+Allocation failure
+→ GC may attempt reclamation
+→ If insufficient memory → OOM
+```
+
+### Final Interview Answer
+
+> **"I'd choose a garbage collector based on the application's latency requirements, throughput requirements, heap size, and available CPU resources. For a simple application with a small heap where pause time isn't important, Serial GC can be appropriate. For throughput-oriented or computational workloads, Parallel GC is a good fit. For general-purpose server workloads where I need a balance between throughput and pause times, I'd consider G1. For large, latency-sensitive applications where very low GC pauses are important, I'd consider ZGC or Shenandoah."**
+
 
 # Q11 — ConcurrentHashMap: How Is It Different from HashMap?
 
