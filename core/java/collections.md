@@ -529,3 +529,1053 @@ Key interview idea
     provides the atomic compound operation
 ```
 
+# Q12 · Fail-Fast vs Fail-Safe Iterators
+
+### Fail-Fast
+
+A **fail-fast iterator** attempts to detect structural modifications to a collection that happen outside the iterator while iteration is in progress.
+
+If detected, it may throw:
+
+```java
+ConcurrentModificationException
+```
+
+Example:
+
+```java
+List<Integer> list = new ArrayList<>();
+
+list.add(1);
+list.add(2);
+list.add(3);
+
+for (Integer value : list) {
+    if (value == 2) {
+        list.remove(value);
+    }
+}
+```
+
+`ArrayList` uses a **fail-fast iterator**.
+
+### Important
+
+Fail-fast is **best-effort**, not guaranteed.
+
+Therefore, don't say:
+
+> "Modifying an `ArrayList` during iteration always throws `ConcurrentModificationException`."
+
+For example, removing the element that causes the iterator to reach the end can result in no exception because another `next()` call may never occur.
+
+---
+
+### `Iterator.remove()`
+
+This is the correct way to remove the current element while iterating an `ArrayList`:
+
+```java
+Iterator<Integer> iterator = list.iterator();
+
+while (iterator.hasNext()) {
+    Integer value = iterator.next();
+
+    if (value == 2) {
+        iterator.remove();
+    }
+}
+```
+
+Result:
+
+```text
+[1, 3]
+```
+
+The iterator knows about its own modification and can maintain its internal state.
+
+---
+
+### Fail-Safe / Snapshot-Based
+
+"Fail-safe" is common interview terminology, but it isn't an official Java API classification.
+
+A better description for `CopyOnWriteArrayList` is:
+
+> **Snapshot-based iterator**
+
+```java
+CopyOnWriteArrayList<Integer> list =
+        new CopyOnWriteArrayList<>();
+
+list.add(1);
+list.add(2);
+list.add(3);
+
+for (Integer value : list) {
+    if (value == 2) {
+        list.remove(value);
+    }
+}
+```
+
+The iteration can continue without `ConcurrentModificationException`.
+
+Conceptually:
+
+```text
+Iterator created
+      ↓
+Snapshot = [1, 2, 3]
+
+list.remove(2)
+
+Actual list = [1, 3]
+Iterator    = [1, 2, 3]
+```
+
+The iterator continues over its original snapshot.
+
+---
+
+### CopyOnWriteArrayList — Key Properties
+
+### Reads
+
+Cheap and safe.
+
+### Writes
+
+Expensive because a structural modification creates a new underlying array.
+
+```text
+add/remove
+    ↓
+copy array
+    ↓
+modify new array
+```
+
+Therefore:
+
+> **Good for read-heavy, write-rare workloads.**
+
+### Iterator
+
+Snapshot-based.
+
+```text
+Iterator created
+      ↓
+Snapshot captured
+      ↓
+Later modifications
+      ↓
+Existing iterator doesn't see them
+```
+
+### `iterator.remove()`
+
+Not supported:
+
+```java
+iterator.remove();
+```
+
+throws:
+
+```text
+UnsupportedOperationException
+```
+
+Even though:
+
+```java
+list.remove(value);
+```
+
+is supported.
+
+---
+
+### ConcurrentHashMap
+
+`ConcurrentHashMap` uses **weakly consistent iterators**.
+
+Example:
+
+```java
+ConcurrentHashMap<Integer, String> map =
+        new ConcurrentHashMap<>();
+
+map.put(1, "A");
+map.put(2, "B");
+
+for (Integer key : map.keySet()) {
+    map.put(3, "C");
+}
+```
+
+The iteration can continue without:
+
+```text
+ConcurrentModificationException
+```
+
+### Weakly consistent means
+
+* Concurrent modifications are allowed.
+* No `ConcurrentModificationException` due to those modifications.
+* The iterator may reflect some modifications.
+* It does **not** provide a snapshot.
+* It does **not** guarantee that every modification will be observed.
+
+---
+
+### Three Iterator Models
+
+| Collection             | Iterator behavior     | Key idea                        |
+| ---------------------- | --------------------- | ------------------------------- |
+| `ArrayList`            | **Fail-fast**         | Modification may cause CME      |
+| `CopyOnWriteArrayList` | **Snapshot-based**    | Iterates over captured snapshot |
+| `ConcurrentHashMap`    | **Weakly consistent** | Allows concurrent modifications |
+
+### Memorize this
+
+```text
+ArrayList
+→ Fail-fast
+
+CopyOnWriteArrayList
+→ Snapshot-based
+
+ConcurrentHashMap
+→ Weakly consistent
+```
+
+---
+
+### Fail-Fast vs Snapshot vs Weakly Consistent
+
+```text
+                    Iterator
+                       │
+       ┌───────────────┼────────────────┐
+       │               │                │
+   ArrayList       CopyOnWrite      ConcurrentHashMap
+       │               │                │
+   Fail-fast       Snapshot       Weakly consistent
+       │               │                │
+   May throw       Stable view     Allows concurrent
+      CME          of old state       modification
+```
+
+---
+
+### Important Interview Traps
+
+### 1. CME does NOT mean multiple threads
+
+This can happen in a single thread:
+
+```java
+for (Integer x : list) {
+    list.remove(x);
+}
+```
+
+`ConcurrentModificationException` is about **unexpected structural modification during iteration**, not necessarily concurrency.
+
+---
+
+### 2. Fail-fast ≠ guaranteed exception
+
+Fail-fast detection is **best-effort**.
+
+Don't use `ConcurrentModificationException` as a correctness mechanism.
+
+---
+
+### 3. CopyOnWriteArrayList ≠ live iterator
+
+If:
+
+```java
+Iterator<Integer> iterator = list.iterator();
+
+list.add(4);
+```
+
+the existing iterator generally **does not see `4`**.
+
+It sees the snapshot captured when it was created.
+
+---
+
+### 4. ConcurrentHashMap ≠ snapshot
+
+Its iterator is **weakly consistent**, not snapshot-based.
+
+It may observe some modifications made after iteration begins.
+
+---
+
+### 5. CopyOnWriteArrayList writes are expensive
+
+```text
+Many reads + few writes
+        ↓
+CopyOnWriteArrayList ✅
+
+Many writes + few reads
+        ↓
+CopyOnWriteArrayList generally ❌
+```
+
+---
+
+### Final Interview Answer
+
+> **"A fail-fast iterator, such as the one used by ArrayList, attempts to detect structural modifications made outside the iterator and may throw ConcurrentModificationException. CopyOnWriteArrayList uses snapshot-based iterators, so modifications don't affect an existing iterator, but every structural write requires copying the underlying array. ConcurrentHashMap provides weakly consistent iterators that tolerate concurrent modifications without throwing ConcurrentModificationException and may reflect some of those modifications."**
+
+### 10-Second Revision
+
+```text
+Fail-fast
+→ ArrayList
+→ CME may occur
+→ Best-effort detection
+
+Snapshot
+→ CopyOnWriteArrayList
+→ Iterator sees old snapshot
+→ Writes are expensive
+→ Read-heavy workloads
+
+Weakly consistent
+→ ConcurrentHashMap
+→ Concurrent modifications allowed
+→ No CME
+→ May see some modifications
+```
+
+# Q13 · `CopyOnWriteArrayList` — When Is It the Right Pick?
+
+### What is `CopyOnWriteArrayList`?
+
+`CopyOnWriteArrayList` is a **thread-safe List implementation** designed primarily for:
+
+> **Read-heavy, write-rare workloads where safe, stable iteration is important.**
+
+The core idea is:
+
+```text
+Read
+→ use the existing array
+
+Write
+→ copy the underlying array
+→ apply the modification
+→ publish the new array
+```
+
+---
+
+### Why Is It Called Copy-On-Write?
+
+Suppose:
+
+```java
+CopyOnWriteArrayList<Integer> list =
+        new CopyOnWriteArrayList<>();
+
+list.add(1);
+list.add(2);
+list.add(3);
+```
+
+Conceptually:
+
+```text
+Current array
+[1, 2, 3]
+
+list.add(4)
+      ↓
+copy array
+      ↓
+New array
+[1, 2, 3, 4]
+```
+
+Therefore:
+
+```text
+Reads / iteration → cheap
+Writes             → expensive
+```
+
+---
+
+### When Should You Choose It?
+
+The most important rule is:
+
+```text
+READS >>>>>>>>>>> WRITES
+```
+
+For example:
+
+```text
+100,000 reads/sec
+        +
+2 writes/sec
+```
+
+This is a **read-heavy workload**, so `CopyOnWriteArrayList` can be a good fit.
+
+### Why?
+
+* Many threads can read concurrently.
+* Iteration uses a stable snapshot.
+* Readers don't need to coordinate with every write.
+* Writes are rare enough that the array-copy cost may be acceptable.
+
+---
+
+### The Classic Use Case — Listener Registry
+
+Suppose you maintain:
+
+```java
+List<EventListener> listeners;
+```
+
+Listeners are:
+
+* registered rarely,
+* removed rarely,
+* iterated over whenever an event occurs.
+
+Conceptually:
+
+```text
+Register listener
+      ↓
+   rare write
+
+Publish event
+      ↓
+iterate listeners
+      ↓
+frequent reads
+```
+
+This is an excellent `CopyOnWriteArrayList` use case.
+
+Other examples:
+
+* Event listener registries
+* Subscriber lists
+* Read-mostly configuration
+* Frequently iterated metadata
+
+---
+
+### The Main Trade-off
+
+The entire design revolves around this trade-off:
+
+```text
+                    CopyOnWriteArrayList
+                            │
+                 ┌──────────┴──────────┐
+                 │                     │
+               READ                  WRITE
+                 │                     │
+              Cheap                Expensive
+                 │                     │
+          Stable snapshot       Copy underlying
+                                  array
+```
+
+Therefore:
+
+```text
+Many reads + few writes
+        ↓
+       ✅
+```
+
+while:
+
+```text
+Many writes
+        ↓
+       ❌
+```
+
+---
+
+### Iterator Behavior
+
+This is one of the most important interview concepts.
+
+Consider:
+
+```java
+CopyOnWriteArrayList<Integer> list =
+        new CopyOnWriteArrayList<>();
+
+list.add(1);
+list.add(2);
+list.add(3);
+
+Iterator<Integer> iterator = list.iterator();
+
+list.add(4);
+```
+
+Now:
+
+```java
+while (iterator.hasNext()) {
+    System.out.println(iterator.next());
+}
+```
+
+prints:
+
+```text
+1
+2
+3
+```
+
+not:
+
+```text
+1
+2
+3
+4
+```
+
+### Why?
+
+The iterator was created when the list was:
+
+```text
+[1, 2, 3]
+```
+
+So it operates on that snapshot:
+
+```text
+Actual list:
+[1, 2, 3, 4]
+
+Existing iterator:
+[1, 2, 3]
+```
+
+### Key rule
+
+> **An existing `CopyOnWriteArrayList` iterator does not see modifications made after the iterator was created.**
+
+---
+
+### Modification During Iteration
+
+Consider:
+
+```java
+for (Integer value : list) {
+    if (value == 2) {
+        list.remove(value);
+    }
+
+    System.out.println(value);
+}
+```
+
+With `CopyOnWriteArrayList`, the iteration can continue safely.
+
+The iterator has:
+
+```text
+Snapshot:
+[1, 2, 3]
+```
+
+while the actual list becomes:
+
+```text
+Actual list:
+[1, 3]
+```
+
+Therefore the iteration prints:
+
+```text
+1
+2
+3
+```
+
+and the final list is:
+
+```text
+[1, 3]
+```
+
+---
+
+### `iterator.remove()` Is Different
+
+This is a common interview trap.
+
+With:
+
+```java
+Iterator<Integer> iterator = list.iterator();
+```
+
+calling:
+
+```java
+iterator.remove();
+```
+
+throws:
+
+```text
+UnsupportedOperationException
+```
+
+### Why?
+
+The iterator is **snapshot-based** and does not support mutation.
+
+Therefore:
+
+```java
+list.remove(value);
+```
+
+✅ Supported
+
+but:
+
+```java
+iterator.remove();
+```
+
+❌ Unsupported
+
+---
+
+### "Fail-Safe" Terminology
+
+You may hear:
+
+> "`CopyOnWriteArrayList` is fail-safe."
+
+This is common interview terminology, but **"fail-safe" is not an official Java API classification**.
+
+For a technically precise answer, say:
+
+> **"`CopyOnWriteArrayList` provides snapshot-based iterators."**
+
+This is preferable to simply calling it fail-safe.
+
+---
+
+### Why Is Write-Heavy Workload Bad?
+
+Suppose:
+
+```text
+10,000 writes/sec
+100 reads/sec
+```
+
+Every structural write can require copying the underlying array.
+
+Conceptually:
+
+```text
+10,000 writes
+      ↓
+10,000 array copies
+      ↓
+CPU + memory allocation
+      ↓
+potential GC pressure
+```
+
+Therefore, `CopyOnWriteArrayList` is generally a **poor choice for write-heavy workloads**.
+
+---
+
+### List Size Also Matters
+
+The cost of a write depends heavily on the size of the underlying array.
+
+Suppose:
+
+```text
+List size = 1,000,000
+```
+
+and:
+
+```java
+list.set(500_000, newValue);
+```
+
+The important consideration is that the copy-on-write mechanism can require copying the underlying array rather than simply modifying one element in place.
+
+Conceptually:
+
+```text
+1,000,000-element array
+        ↓
+      COPY
+        ↓
+new 1,000,000-element array
+        ↓
+modify element
+```
+
+Therefore, even **infrequent writes** can become expensive if the list is extremely large.
+
+---
+
+### Read-Heavy vs Write-Heavy
+
+### Read-heavy
+
+```text
+100,000 reads/sec
+2 writes/sec
+```
+
+✅ Potentially excellent fit.
+
+### Write-heavy
+
+```text
+10,000 writes/sec
+100 reads/sec
+```
+
+❌ Generally poor fit.
+
+### The important point
+
+Don't think:
+
+> "There are writes, so I cannot use `CopyOnWriteArrayList`."
+
+Instead ask:
+
+> **"Are writes rare enough, and is the cost of copying the entire array acceptable?"**
+
+---
+
+### `CopyOnWriteArrayList` vs `ArrayList`
+
+|                                    | `ArrayList`                | `CopyOnWriteArrayList`         |
+| ---------------------------------- | -------------------------- | ------------------------------ |
+| Thread-safe                        | ❌                          | ✅                              |
+| Iterator                           | Fail-fast, best-effort     | Snapshot-based                 |
+| Concurrent structural modification | May cause CME              | Existing iterator remains safe |
+| Read-heavy concurrent workload     | Not inherently thread-safe | Good fit                       |
+| Write cost                         | Relatively cheap           | Expensive                      |
+| Writes                             | In-place                   | Copy-on-write                  |
+
+### Important
+
+Don't choose `CopyOnWriteArrayList` **just because it is thread-safe**.
+
+The workload matters.
+
+---
+
+### `CopyOnWriteArrayList` vs `ConcurrentHashMap`
+
+These solve different problems.
+
+### `CopyOnWriteArrayList`
+
+```text
+List
+↓
+Read-heavy
+↓
+Snapshot-based iterator
+```
+
+### `ConcurrentHashMap`
+
+```text
+Map
+↓
+Concurrent map operations
+↓
+Weakly consistent iterator
+```
+
+The iterator behavior is especially important:
+
+```text
+CopyOnWriteArrayList
+→ snapshot
+→ doesn't see later modifications
+```
+
+versus:
+
+```text
+ConcurrentHashMap
+→ weakly consistent
+→ may observe some modifications
+```
+
+---
+
+### Common Interview Scenarios
+
+### Scenario 1
+
+```text
+100,000 reads/sec
+2 writes/sec
+```
+
+**Good candidate?**
+
+✅ Yes, assuming the list size and memory/copy cost are acceptable.
+
+---
+
+### Scenario 2
+
+```text
+10,000 writes/sec
+100 reads/sec
+```
+
+**Good candidate?**
+
+❌ Generally no.
+
+Every write can involve copying the array.
+
+---
+
+### Scenario 3
+
+```text
+Event listeners:
+Register/remove → rare
+Notify → extremely frequent
+```
+
+**Good candidate?**
+
+✅ Yes.
+
+Classic use case.
+
+---
+
+### Scenario 4
+
+```text
+Shopping cart:
+add/remove → frequent
+```
+
+**Good candidate?**
+
+❌ No.
+
+---
+
+### Scenario 5
+
+```text
+Existing iterator must see modifications
+made after iterator creation
+```
+
+**Good candidate?**
+
+❌ No.
+
+`CopyOnWriteArrayList` iterators are snapshot-based.
+
+---
+
+### Scenario 6
+
+```text
+Readers need a stable view while another
+thread modifies the list
+```
+
+**Good candidate?**
+
+✅ Yes.
+
+The iterator operates on its snapshot.
+
+---
+
+### Important Interview Traps
+
+### 1. "CopyOnWriteArrayList is always better for concurrency."
+
+❌ False.
+
+It's specifically optimized for **read-heavy, write-rare** workloads.
+
+---
+
+### 2. "CopyOnWriteArrayList makes writes cheap."
+
+❌ False.
+
+Writes are expensive because of the copy-on-write mechanism.
+
+---
+
+### 3. "The iterator sees newly added elements."
+
+❌ False.
+
+An existing iterator operates on its snapshot.
+
+---
+
+### 4. "`iterator.remove()` works."
+
+❌ False.
+
+It throws:
+
+```text
+UnsupportedOperationException
+```
+
+---
+
+### 5. "`CopyOnWriteArrayList` is fail-safe."
+
+⚠️ Common interview terminology, but technically prefer:
+
+> **Snapshot-based iterator.**
+
+---
+
+### 6. "COW is bad if there are any writes."
+
+❌ False.
+
+A workload like:
+
+```text
+100,000 reads/sec
+2 writes/sec
+```
+
+can still be an excellent fit.
+
+The question is whether the **write frequency × list size** makes copying expensive.
+
+---
+
+### Interview Decision Framework
+
+When asked:
+
+> **"Would you use `CopyOnWriteArrayList`?"**
+
+Ask yourself:
+
+### 1. Are reads much more frequent than writes?
+
+```text
+Reads >>> Writes
+```
+
+If yes → ✅
+
+### 2. Are writes relatively rare?
+
+If yes → ✅
+
+### 3. Is frequent iteration required?
+
+If yes → ✅
+
+### 4. Do readers need a stable view?
+
+If yes → ✅
+
+### 5. Is copying the entire array on writes acceptable?
+
+If yes → ✅
+
+If not → consider another collection/design.
+
+---
+
+### Final Interview Answer
+
+> **"`CopyOnWriteArrayList` is a good choice for read-heavy, write-rare workloads where safe, stable iteration is important. Its iterators operate on a snapshot, so concurrent modifications don't cause `ConcurrentModificationException` for the existing iterator. The trade-off is that structural writes are expensive because the underlying array is copied, so it is generally unsuitable for write-heavy workloads or very large lists with frequent updates."**
+
+---
+
+### 10-Second Revision
+
+```text
+CopyOnWriteArrayList
+→ Thread-safe List
+→ Read-heavy / write-rare
+
+READ
+→ Cheap
+→ Safe concurrent access
+→ Iterator uses snapshot
+
+WRITE
+→ Expensive
+→ Copies underlying array
+→ Cost increases with list size
+
+ITERATOR
+→ Snapshot-based
+→ Doesn't see later modifications
+→ No CME from concurrent modifications
+→ iterator.remove() unsupported
+
+BEST FOR
+→ Listener registries
+→ Subscriber lists
+→ Read-mostly configuration
+→ Frequently iterated, rarely modified lists
+
+BAD FOR
+→ Shopping carts
+→ Real-time order books
+→ Queues
+→ Write-heavy workloads
+
+MEMORIZE
+→ "Many reads, few writes, stable iteration."
+```
