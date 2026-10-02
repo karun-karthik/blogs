@@ -3036,3 +3036,1684 @@ class LRUCache<K, V> extends LinkedHashMap<K, V> {
 ### One-Line Memory Trick
 
 > **`LinkedHashMap + accessOrder=true + removeEldestEntry(size > capacity) = simple O(1) LRU cache.`**
+
+# Q16 · HashSet vs TreeSet vs LinkedHashSet
+
+### Interview Question
+
+> **Compare `HashSet`, `TreeSet`, and `LinkedHashSet`. When would you use each one?**
+
+### 30-Second Interview Answer
+
+> `HashSet` is backed by a `HashMap`, so it provides O(1) average `add`, `remove`, and `contains`, but does not guarantee iteration order.
+>
+> `LinkedHashSet` adds a linked structure to the hash-based implementation, maintaining **insertion order** while retaining O(1) average operations.
+>
+> `TreeSet` is backed by a `TreeMap` using a **red-black tree**. It maintains elements in sorted order and provides O(log n) `add`, `remove`, and `contains`.
+>
+> So I would use `HashSet` when I only need uniqueness, `LinkedHashSet` when I need uniqueness plus insertion order, and `TreeSet` when I need uniqueness plus sorted order or navigation operations.
+
+---
+
+### The Core Mental Model
+
+Memorize this:
+
+```text
+HashSet
+    ↓
+HashMap
+    ↓
+Hash table
+    ↓
+hashCode() + equals()
+    ↓
+O(1) average
+    ↓
+No guaranteed order
+```
+
+```text
+LinkedHashSet
+    ↓
+LinkedHashMap
+    ↓
+Hash table + linked structure
+    ↓
+hash-based lookup + insertion order
+    ↓
+O(1) average
+```
+
+```text
+TreeSet
+    ↓
+TreeMap
+    ↓
+Red-black tree
+    ↓
+Comparable / Comparator
+    ↓
+O(log n)
+    ↓
+Sorted order + navigation
+```
+
+### Memory Trick
+
+```text
+HashSet       → Fast
+LinkedHashSet → Fast + insertion order
+TreeSet       → Sorted + navigation
+```
+
+---
+
+### 1. HashSet
+
+### What is it?
+
+`HashSet` is a `Set` implementation that is implemented using a `HashMap`.
+
+Conceptually:
+
+```text
+HashSet
+    ↓
+HashMap
+
+element → dummy value
+```
+
+For example:
+
+```java
+Set<Integer> set = new HashSet<>();
+
+set.add(10);
+set.add(20);
+set.add(30);
+```
+
+Conceptually:
+
+```text
+HashMap
+
+key       value
+----------------
+10        PRESENT
+20        PRESENT
+30        PRESENT
+```
+
+The important point:
+
+> The elements of the `HashSet` are used as keys in the underlying hash-based structure.
+
+### HashSet Properties
+
+| Property       | HashSet             |
+| -------------- | ------------------- |
+| Main structure | Hash table          |
+| Backed by      | HashMap             |
+| Ordering       | No guaranteed order |
+| Duplicates     | Not allowed         |
+| `add()`        | O(1) average        |
+| `remove()`     | O(1) average        |
+| `contains()`   | O(1) average        |
+| Sorted         | No                  |
+| `null`         | One `null` allowed  |
+| Thread-safe    | No                  |
+
+### Example
+
+```java
+Set<Integer> set = new HashSet<>();
+
+set.add(30);
+set.add(10);
+set.add(20);
+set.add(10);
+
+System.out.println(set);
+```
+
+The second `10` is ignored because a `Set` cannot contain duplicates.
+
+Do **not** write code that assumes a particular iteration order.
+
+> Say **"no guaranteed iteration order"**, not "random order."
+
+---
+
+### How Does HashSet Prevent Duplicates?
+
+This is one of the most important interview follow-ups.
+
+When:
+
+```java
+set.add(object);
+```
+
+is called, the hash-based mechanism conceptually does:
+
+```text
+object
+   ↓
+hashCode()
+   ↓
+find candidate bucket
+   ↓
+compare candidate entries
+   ↓
+equals()
+   ↓
+duplicate?
+   ├── yes → don't add
+   └── no  → add
+```
+
+### Mental Model
+
+```text
+hashCode()
+    ↓
+"Where should I look?"
+```
+
+```text
+equals()
+    ↓
+"Is this actually equal to an existing element?"
+```
+
+### Important Contract
+
+If:
+
+```java
+a.equals(b) == true
+```
+
+then:
+
+```java
+a.hashCode() == b.hashCode()
+```
+
+must also be true.
+
+But the reverse is **not** guaranteed:
+
+```text
+same hashCode
+    ↓
+does NOT mean
+    ↓
+equals() == true
+```
+
+Different objects can have the same hash code.
+
+That's a **hash collision**.
+
+---
+
+### Custom Objects in HashSet
+
+Consider:
+
+```java
+class User {
+    private final int id;
+
+    User(int id) {
+        this.id = id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof User other)) {
+            return false;
+        }
+
+        return id == other.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
+    }
+}
+```
+
+Now:
+
+```java
+Set<User> users = new HashSet<>();
+
+users.add(new User(1));
+users.add(new User(1));
+
+System.out.println(users.size());
+```
+
+Output:
+
+```text
+1
+```
+
+Why?
+
+```text
+User(1)
+   ↓
+same hashCode
+   ↓
+same candidate bucket
+   ↓
+equals() returns true
+   ↓
+duplicate
+   ↓
+not inserted
+```
+
+### Without overriding `equals()` and `hashCode()`
+
+```java
+Set<User> users = new HashSet<>();
+
+users.add(new User(1));
+users.add(new User(1));
+
+System.out.println(users.size());
+```
+
+The result is:
+
+```text
+2
+```
+
+because the two `User` objects are different object instances and `Object`'s default equality is identity-based.
+
+---
+
+### 2. LinkedHashSet
+
+`LinkedHashSet` gives you:
+
+```text
+HashSet behavior
+        +
+Insertion order
+```
+
+Example:
+
+```java
+Set<Integer> set = new LinkedHashSet<>();
+
+set.add(30);
+set.add(10);
+set.add(20);
+set.add(10);
+```
+
+Iteration order:
+
+```text
+30 → 10 → 20
+```
+
+The duplicate `10` is still rejected.
+
+### Important
+
+`LinkedHashSet` does **not** mean:
+
+```text
+sorted order
+```
+
+It means:
+
+```text
+order in which elements were inserted/encountered
+```
+
+---
+
+### How Does LinkedHashSet Maintain Order?
+
+Conceptually:
+
+```text
+LinkedHashSet
+      ↓
+LinkedHashMap
+      ↓
+Hash table + linked structure
+```
+
+The two structures serve different purposes:
+
+```text
+Hash table
+    ↓
+Fast lookup
+    ↓
+O(1) average
+```
+
+```text
+Linked structure
+    ↓
+Maintains encounter/insertion order
+```
+
+Conceptually:
+
+```text
+Hash table
+   ↓
+entries
+
+Linked ordering:
+
+30 → 10 → 20
+```
+
+So:
+
+> `LinkedHashSet` does not use a separate `LinkedList` for retrieval. It maintains links between entries in addition to the hash-based structure.
+
+### LinkedHashSet Properties
+
+| Property       | LinkedHashSet                 |
+| -------------- | ----------------------------- |
+| Main structure | Hash table + linked structure |
+| Backed by      | LinkedHashMap                 |
+| Ordering       | Insertion order               |
+| Duplicates     | Not allowed                   |
+| `add()`        | O(1) average                  |
+| `remove()`     | O(1) average                  |
+| `contains()`   | O(1) average                  |
+| Sorted         | No                            |
+| `null`         | One `null` allowed            |
+| Thread-safe    | No                            |
+| Memory         | More than HashSet             |
+
+### Why Use LinkedHashSet?
+
+A very common use case:
+
+> **Remove duplicates while preserving original order.**
+
+```java
+List<Integer> numbers =
+        List.of(5, 2, 5, 1, 2, 3);
+
+Set<Integer> unique =
+        new LinkedHashSet<>(numbers);
+
+System.out.println(unique);
+```
+
+Output:
+
+```text
+[5, 2, 1, 3]
+```
+
+You get:
+
+```text
+uniqueness
+    +
+original encounter order
+```
+
+---
+
+### 3. TreeSet
+
+`TreeSet` is different from the two hash-based sets.
+
+It maintains elements in **sorted order**.
+
+```java
+Set<Integer> set = new TreeSet<>();
+
+set.add(30);
+set.add(10);
+set.add(20);
+```
+
+Iteration:
+
+```text
+10 → 20 → 30
+```
+
+Conceptually:
+
+```text
+TreeSet
+    ↓
+TreeMap
+    ↓
+Red-black tree
+```
+
+### TreeSet Properties
+
+| Property       | TreeSet                                       |
+| -------------- | --------------------------------------------- |
+| Main structure | Red-black tree                                |
+| Backed by      | TreeMap                                       |
+| Ordering       | Sorted                                        |
+| Duplicates     | Not allowed                                   |
+| `add()`        | O(log n)                                      |
+| `remove()`     | O(log n)                                      |
+| `contains()`   | O(log n)                                      |
+| `null`         | Generally not supported with natural ordering |
+| Thread-safe    | No                                            |
+| Navigation     | Yes                                           |
+
+A red-black tree is a self-balancing binary search tree whose height remains O(log n).
+
+Therefore:
+
+```text
+search → O(log n)
+insert → O(log n)
+delete → O(log n)
+```
+
+TreeSet sacrifices average O(1) hash lookup in exchange for:
+
+```text
+sorted structure
++
+efficient navigation
+```
+
+---
+
+### TreeSet's Killer Feature: Navigation
+
+`TreeSet` provides operations that a normal `HashSet` does not.
+
+```java
+TreeSet<Integer> set =
+        new TreeSet<>(List.of(10, 20, 30, 40, 50));
+```
+
+You can ask:
+
+```java
+set.first();
+set.last();
+
+set.floor(25);
+set.ceiling(25);
+
+set.lower(30);
+set.higher(30);
+```
+
+Results:
+
+```text
+first()      → 10
+last()       → 50
+
+floor(25)    → 20
+ceiling(25)  → 30
+
+lower(30)    → 20
+higher(30)   → 40
+```
+
+### Navigation Cheat Sheet
+
+```text
+lower(x)
+    largest element < x
+
+floor(x)
+    largest element <= x
+
+ceiling(x)
+    smallest element >= x
+
+higher(x)
+    smallest element > x
+```
+
+Memorize this:
+
+```text
+lower   → <
+floor   → <=
+
+ceiling → >=
+higher  → >
+```
+
+### Why This Matters
+
+If the problem asks:
+
+> "Find the closest value less than or equal to X."
+
+Think:
+
+```java
+treeSet.floor(x);
+```
+
+If it asks:
+
+> "Find the smallest value greater than or equal to X."
+
+Think:
+
+```java
+treeSet.ceiling(x);
+```
+
+This is extremely useful in coding interviews.
+
+---
+
+### TreeSet Range Operations
+
+`TreeSet` also supports sorted range views:
+
+```java
+set.headSet(30);
+set.tailSet(30);
+set.subSet(20, 40);
+```
+
+Useful when working with:
+
+* Sorted data
+* Range queries
+* Closest values
+* Predecessor/successor
+* Minimum/maximum
+* Ordered iteration
+
+---
+
+### HashSet vs LinkedHashSet vs TreeSet
+
+### Main Comparison
+
+| Feature              | HashSet      | LinkedHashSet                 | TreeSet        |
+| -------------------- | ------------ | ----------------------------- | -------------- |
+| Underlying structure | Hash table   | Hash table + linked structure | Red-black tree |
+| Backed by            | HashMap      | LinkedHashMap                 | TreeMap        |
+| Order                | No guarantee | Insertion order               | Sorted order   |
+| `add()`              | O(1) avg     | O(1) avg                      | O(log n)       |
+| `remove()`           | O(1) avg     | O(1) avg                      | O(log n)       |
+| `contains()`         | O(1) avg     | O(1) avg                      | O(log n)       |
+| Duplicates           | No           | No                            | No             |
+| `null`               | One allowed  | One allowed                   | Generally no   |
+| Navigation           | No           | No                            | Yes            |
+| Memory overhead      | Lower        | Higher                        | Higher         |
+| Thread-safe          | No           | No                            | No             |
+
+### The One Table to Memorize
+
+```text
+                  HashSet       LinkedHashSet       TreeSet
+
+Structure         Hash table    Hash + linked      Red-black tree
+
+Order             None          Insertion          Sorted
+
+Add               O(1) avg      O(1) avg           O(log n)
+
+Remove            O(1) avg      O(1) avg           O(log n)
+
+Contains          O(1) avg      O(1) avg           O(log n)
+
+Navigation        No            No                 Yes
+```
+
+---
+
+### How to Choose
+
+Always start with the **requirement**, not the collection name.
+
+### Requirement 1
+
+> "I only need unique elements."
+
+```java
+HashSet
+```
+
+Because:
+
+```text
+uniqueness
++
+fast average operations
+```
+
+---
+
+### Requirement 2
+
+> "I need unique elements and want to preserve insertion order."
+
+```java
+LinkedHashSet
+```
+
+Because:
+
+```text
+uniqueness
++
+insertion order
++
+O(1) average operations
+```
+
+---
+
+### Requirement 3
+
+> "I need unique elements in sorted order."
+
+```java
+TreeSet
+```
+
+Because:
+
+```text
+uniqueness
++
+sorted order
++
+O(log n)
+```
+
+---
+
+### Requirement 4
+
+> "I need to find the closest element to X."
+
+```java
+TreeSet
+```
+
+because of:
+
+```java
+floor()
+ceiling()
+lower()
+higher()
+```
+
+---
+
+### Requirement 5
+
+> "I need to remove duplicates from a List while preserving original order."
+
+```java
+LinkedHashSet
+```
+
+Example:
+
+```java
+List<Integer> result =
+        new ArrayList<>(
+                new LinkedHashSet<>(numbers)
+        );
+```
+
+---
+
+### The Most Important Internal Difference
+
+This is one of the most common interview follow-ups.
+
+### HashSet
+
+Uses:
+
+```text
+hashCode()
+    +
+equals()
+```
+
+Mental model:
+
+```text
+hashCode()
+    ↓
+find candidate bucket
+    ↓
+equals()
+    ↓
+same logical element?
+```
+
+### TreeSet
+
+Uses:
+
+```text
+Comparable.compareTo()
+```
+
+or:
+
+```text
+Comparator.compare()
+```
+
+Mental model:
+
+```text
+compare
+    ↓
+navigate through tree
+    ↓
+comparison == 0 ?
+    ↓
+already equivalent
+```
+
+Therefore:
+
+> **HashSet determines membership through hashing + equality. TreeSet determines membership through ordering.**
+
+---
+
+### TreeSet and Comparator Equality — Critical Trap
+
+Consider:
+
+```java
+TreeSet<String> set =
+        new TreeSet<>(
+                Comparator.comparingInt(String::length)
+        );
+
+set.add("cat");
+set.add("dog");
+set.add("elephant");
+
+System.out.println(set);
+System.out.println(set.size());
+```
+
+Lengths:
+
+```text
+cat      → 3
+dog      → 3
+elephant → 8
+```
+
+The comparator effectively does:
+
+```text
+compare("cat", "dog")
+        ↓
+3 - 3
+        ↓
+0
+```
+
+Therefore `TreeSet` considers `"cat"` and `"dog"` equivalent for set membership.
+
+Output:
+
+```text
+[cat, elephant]
+```
+
+Size:
+
+```text
+2
+```
+
+### Important
+
+It is possible for:
+
+```text
+a.equals(b) == false
+```
+
+while:
+
+```text
+comparator.compare(a, b) == 0
+```
+
+In a `TreeSet`, the latter means the elements are considered equivalent for the set's ordering.
+
+Therefore:
+
+> When using `TreeSet`, the ordering should generally be consistent with `equals()` to avoid surprising behavior.
+
+---
+
+### TreeSet With Custom Objects
+
+Suppose:
+
+```java
+class Employee {
+    int id;
+    String name;
+}
+```
+
+This will not work as expected unless `Employee` has a natural ordering or you provide a comparator:
+
+```java
+TreeSet<Employee> employees =
+        new TreeSet<>();
+```
+
+### Comparator Approach
+
+```java
+TreeSet<Employee> employees =
+        new TreeSet<>(
+                Comparator.comparingInt(e -> e.id)
+        );
+```
+
+Now employees are ordered by `id`.
+
+### Important Trap
+
+Suppose:
+
+```text
+Employee(10, "Alice")
+Employee(10, "Bob")
+```
+
+and the comparator only compares `id`.
+
+Then:
+
+```text
+compare(Alice, Bob)
+        ↓
+10 - 10
+        ↓
+0
+```
+
+So the `TreeSet` treats them as equivalent for set membership.
+
+---
+
+### Null Handling
+
+### HashSet
+
+Allows one `null`:
+
+```java
+Set<String> set = new HashSet<>();
+
+set.add(null);
+```
+
+Valid.
+
+### LinkedHashSet
+
+Also allows one `null`:
+
+```java
+Set<String> set = new LinkedHashSet<>();
+
+set.add(null);
+```
+
+Valid.
+
+### TreeSet
+
+With natural ordering, `null` is generally not supported:
+
+```java
+TreeSet<Integer> set = new TreeSet<>();
+
+set.add(null);
+```
+
+This normally results in:
+
+```text
+NullPointerException
+```
+
+because the tree needs to compare elements.
+
+A custom comparator can define special handling for `null`, but don't complicate a basic interview answer unless asked.
+
+---
+
+### Thread Safety
+
+None of these are inherently thread-safe:
+
+```text
+HashSet
+LinkedHashSet
+TreeSet
+```
+
+For concurrent hash-based sets:
+
+```java
+Set<Integer> set =
+        ConcurrentHashMap.newKeySet();
+```
+
+For concurrent sorted sets:
+
+```java
+NavigableSet<Integer> set =
+        new ConcurrentSkipListSet<>();
+```
+
+Remember:
+
+```text
+Concurrent + hash-based
+    ↓
+ConcurrentHashMap.newKeySet()
+
+Concurrent + sorted
+    ↓
+ConcurrentSkipListSet
+```
+
+---
+
+### Memory Trade-off
+
+Conceptually:
+
+```text
+HashSet
+    ↓
+Hash table
+    ↓
+Lower structural overhead
+```
+
+```text
+LinkedHashSet
+    ↓
+Hash table
++
+Linked ordering
+    ↓
+More memory
+```
+
+```text
+TreeSet
+    ↓
+Tree nodes
++
+tree pointers
+    ↓
+More structural overhead
+```
+
+So don't choose `LinkedHashSet` or `TreeSet` simply because they provide "more features."
+
+Choose them when those features are required.
+
+---
+
+### Performance Notes
+
+```text
+                    HashSet     LinkedHashSet     TreeSet
+
+add()               O(1)*       O(1)*             O(log n)
+
+remove()            O(1)*       O(1)*             O(log n)
+
+contains()          O(1)*       O(1)*             O(log n)
+
+ordering            None        Insertion         Sorted
+```
+
+`*` means average-case complexity.
+
+Hash-based collections can have collision-related degradation. Modern Java hash-map implementations can treeify sufficiently large collision chains, but the interview-level complexity remains:
+
+```text
+HashSet → O(1) average
+```
+
+---
+
+### IDE Experiments
+
+Don't just memorize this question. Run these.
+
+### Experiment 1 — Ordering
+
+```java
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+
+        Set<Integer> hash =
+                new HashSet<>();
+
+        Set<Integer> linked =
+                new LinkedHashSet<>();
+
+        Set<Integer> tree =
+                new TreeSet<>();
+
+        int[] values = {50, 10, 30, 20, 40};
+
+        for (int x : values) {
+            hash.add(x);
+            linked.add(x);
+            tree.add(x);
+        }
+
+        System.out.println("HashSet       : " + hash);
+        System.out.println("LinkedHashSet : " + linked);
+        System.out.println("TreeSet       : " + tree);
+    }
+}
+```
+
+Observe:
+
+```text
+HashSet
+→ Don't rely on ordering
+
+LinkedHashSet
+→ 50 10 30 20 40
+
+TreeSet
+→ 10 20 30 40 50
+```
+
+Do not expect a particular `HashSet` order.
+
+---
+
+### Experiment 2 — Duplicate Removal
+
+```java
+List<Integer> numbers =
+        List.of(5, 2, 5, 1, 2, 3, 1);
+
+Set<Integer> hash =
+        new HashSet<>(numbers);
+
+Set<Integer> linked =
+        new LinkedHashSet<>(numbers);
+
+Set<Integer> tree =
+        new TreeSet<>(numbers);
+
+System.out.println(hash);
+System.out.println(linked);
+System.out.println(tree);
+```
+
+Understand the three behaviors:
+
+```text
+HashSet
+→ unique
+
+LinkedHashSet
+→ unique + original order
+
+TreeSet
+→ unique + sorted
+```
+
+---
+
+### Experiment 3 — TreeSet Navigation
+
+```java
+TreeSet<Integer> set =
+        new TreeSet<>(
+                List.of(10, 20, 30, 40, 50)
+        );
+
+System.out.println(set.lower(30));
+System.out.println(set.floor(30));
+System.out.println(set.ceiling(30));
+System.out.println(set.higher(30));
+```
+
+Expected:
+
+```text
+20
+30
+30
+40
+```
+
+Now try:
+
+```java
+System.out.println(set.floor(25));
+System.out.println(set.ceiling(25));
+```
+
+Expected:
+
+```text
+20
+30
+```
+
+This is worth practicing because `floor()` and `ceiling()` are extremely useful in coding interviews.
+
+---
+
+### Experiment 4 — Custom Comparator
+
+```java
+TreeSet<Integer> descending =
+        new TreeSet<>(Comparator.reverseOrder());
+
+descending.add(10);
+descending.add(30);
+descending.add(20);
+
+System.out.println(descending);
+```
+
+Output:
+
+```text
+[30, 20, 10]
+```
+
+This demonstrates that `TreeSet` doesn't necessarily mean ascending order.
+
+It means:
+
+> **The set maintains the ordering defined by its natural ordering or supplied comparator.**
+
+---
+
+### Experiment 5 — TreeSet Comparator Equality
+
+This is the most important advanced experiment.
+
+```java
+TreeSet<String> set =
+        new TreeSet<>(
+                Comparator.comparingInt(String::length)
+        );
+
+set.add("cat");
+set.add("dog");
+set.add("elephant");
+
+System.out.println(set);
+System.out.println(set.size());
+```
+
+Expected:
+
+```text
+[cat, elephant]
+2
+```
+
+Why?
+
+```text
+"cat" → 3
+"dog" → 3
+
+compare("cat", "dog")
+        ↓
+0
+        ↓
+TreeSet considers them equivalent
+```
+
+This is an excellent interview example.
+
+---
+
+### Common Follow-Up Questions
+
+### 1. What is the difference between HashSet and LinkedHashSet?
+
+> Both provide O(1) average `add`, `remove`, and `contains`. `LinkedHashSet` additionally maintains insertion order, at the cost of additional memory for the linked structure.
+
+---
+
+### 2. What is the difference between HashSet and TreeSet?
+
+> `HashSet` is hash-based and provides O(1) average operations without an ordering guarantee. `TreeSet` uses a red-black tree, provides O(log n) operations, and maintains sorted order.
+
+---
+
+### 3. Why is TreeSet O(log n)?
+
+Because it uses a balanced red-black tree whose height remains O(log n).
+
+```text
+search → O(log n)
+insert → O(log n)
+delete → O(log n)
+```
+
+---
+
+### 4. Why would you use LinkedHashSet?
+
+When you need:
+
+```text
+uniqueness
++
+predictable insertion order
+```
+
+Classic example:
+
+> Remove duplicates from a list while preserving the order in which elements first appeared.
+
+---
+
+### 5. How does HashSet internally work?
+
+Conceptually:
+
+```text
+HashSet
+    ↓
+HashMap
+    ↓
+element → dummy value
+```
+
+It uses hashing to locate candidate entries and `equals()` to determine equality.
+
+---
+
+### 6. How does TreeSet internally work?
+
+Conceptually:
+
+```text
+TreeSet
+    ↓
+TreeMap
+    ↓
+Red-black tree
+```
+
+The tree is ordered using natural ordering or a supplied `Comparator`.
+
+---
+
+### 7. Does TreeSet use `hashCode()`?
+
+No.
+
+It uses:
+
+```java
+Comparable.compareTo()
+```
+
+or:
+
+```java
+Comparator.compare()
+```
+
+---
+
+### 8. Does LinkedHashSet guarantee insertion order?
+
+Yes.
+
+Its iteration order follows insertion/encounter order.
+
+It does **not** sort the elements.
+
+```text
+Inserted:
+
+50 10 30
+
+LinkedHashSet:
+
+50 10 30
+```
+
+Not:
+
+```text
+10 30 50
+```
+
+---
+
+### 9. Does HashSet maintain insertion order?
+
+No.
+
+If insertion order is required:
+
+```java
+LinkedHashSet
+```
+
+---
+
+### 10. Can HashSet contain duplicates?
+
+No.
+
+That's part of the `Set` contract.
+
+---
+
+### 11. Can HashSet contain `null`?
+
+Yes, one `null`.
+
+---
+
+### 12. Can LinkedHashSet contain `null`?
+
+Yes, one `null`.
+
+---
+
+### 13. Can TreeSet contain `null`?
+
+Normally not with natural ordering.
+
+---
+
+### 14. Which Set would you use for sorted unique elements?
+
+```java
+TreeSet
+```
+
+---
+
+### 15. Which Set would you use for unique elements with insertion order?
+
+```java
+LinkedHashSet
+```
+
+---
+
+### 16. Which Set would you choose by default?
+
+Usually:
+
+```java
+HashSet
+```
+
+when you only need uniqueness and don't require ordering.
+
+---
+
+### What NOT to Say
+
+### ❌ "TreeSet is faster because it's sorted."
+
+Wrong.
+
+```text
+HashSet  → O(1) average
+TreeSet  → O(log n)
+```
+
+TreeSet provides additional sorted/navigation capabilities.
+
+---
+
+### ❌ "LinkedHashSet allows duplicates."
+
+Wrong.
+
+All three are Sets:
+
+```text
+HashSet       → no duplicates
+LinkedHashSet → no duplicates
+TreeSet       → no duplicates
+```
+
+---
+
+### ❌ "LinkedHashSet stores the elements in a LinkedList."
+
+Too simplistic and potentially misleading.
+
+Better:
+
+> `LinkedHashSet` maintains a linked structure between entries in addition to its hash-based structure.
+
+---
+
+### ❌ "HashSet is randomly ordered."
+
+Better:
+
+> `HashSet` does not guarantee an iteration order, so application code should not depend on the order.
+
+---
+
+### ❌ "TreeSet uses HashMap."
+
+Wrong.
+
+```text
+HashSet       → HashMap
+LinkedHashSet → LinkedHashMap
+TreeSet       → TreeMap
+```
+
+---
+
+### ❌ "TreeSet uses equals() to determine duplicates."
+
+Incomplete/wrong as an implementation explanation.
+
+TreeSet uses:
+
+```text
+compareTo()
+```
+
+or:
+
+```text
+Comparator.compare()
+```
+
+If the comparison returns `0`, the elements are considered equivalent for set membership.
+
+---
+
+### Interview Decision Tree
+
+```text
+Need uniqueness?
+       │
+       ├── No
+       │
+       └── Yes
+            │
+            ▼
+      Need ordering?
+            │
+       ┌────┴────┐
+       │         │
+      No        Yes
+       │         │
+       ▼         ▼
+   HashSet    What type?
+                 │
+           ┌─────┴─────┐
+           │           │
+       Insertion     Sorted /
+         order       navigation
+           │           │
+           ▼           ▼
+    LinkedHashSet    TreeSet
+```
+
+---
+
+### The Comparison You Should Memorize
+
+```text
+HashSet
+    ↓
+HashMap
+    ↓
+Hashing
+    ↓
+O(1) average
+    ↓
+No guaranteed order
+```
+
+```text
+LinkedHashSet
+    ↓
+LinkedHashMap
+    ↓
+Hashing + linked ordering
+    ↓
+O(1) average
+    ↓
+Insertion order
+```
+
+```text
+TreeSet
+    ↓
+TreeMap
+    ↓
+Red-black tree
+    ↓
+O(log n)
+    ↓
+Sorted order
+    ↓
+floor / ceiling / lower / higher
+```
+
+---
+
+### Interview-Ready Final Answer
+
+If the interviewer asks:
+
+> **"HashSet vs LinkedHashSet vs TreeSet?"**
+
+Say:
+
+> **"`HashSet`, `LinkedHashSet`, and `TreeSet` all enforce uniqueness, but they optimize for different requirements. `HashSet` is backed by a `HashMap` and gives O(1) average `add`, `remove`, and `contains`, with no ordering guarantee. `LinkedHashSet` adds a linked structure to maintain insertion order while retaining O(1) average operations. `TreeSet` is backed by a `TreeMap` using a red-black tree, so operations are O(log n), but elements remain sorted and I get navigation methods such as `floor`, `ceiling`, `lower`, and `higher`. So I'd choose HashSet for uniqueness, LinkedHashSet for uniqueness plus insertion order, and TreeSet for uniqueness plus sorted or range-based operations."**
+
+---
+
+### 10-Second Revision
+
+```text
+HashSet
+→ HashMap
+→ O(1) average
+→ no guaranteed order
+→ hashCode() + equals()
+
+
+LinkedHashSet
+→ LinkedHashMap
+→ O(1) average
+→ insertion order
+→ hash-based + linked structure
+
+
+TreeSet
+→ TreeMap
+→ Red-black tree
+→ O(log n)
+→ sorted order
+→ compareTo() / Comparator
+→ floor / ceiling / lower / higher
+```
+
+### One-Line Memory Trick
+
+> **HashSet = Fast, LinkedHashSet = Fast + insertion order, TreeSet = Sorted + navigation.**
+
+### Most Important Interview Trap
+
+```text
+HashSet
+    → hashCode() + equals()
+
+TreeSet
+    → compareTo() / Comparator
+```
+
+And remember:
+
+```text
+HashSet       → no guaranteed order
+LinkedHashSet → insertion order
+TreeSet       → sorted order
+```
+
+> **All three enforce uniqueness.**
