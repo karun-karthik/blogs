@@ -1579,3 +1579,1460 @@ BAD FOR
 MEMORIZE
 → "Many reads, few writes, stable iteration."
 ```
+
+# Q14 · TreeMap and Red-Black Trees
+
+> **"What's the underlying data structure of TreeMap, and what guarantees does it give you over HashMap?"**
+
+### What is TreeMap?
+
+`TreeMap` is a `Map` implementation backed by a **self-balancing red-black tree**.
+
+Unlike `HashMap`, which is optimized for fast key lookup using hashing, `TreeMap` keeps its keys **sorted**.
+
+```java
+TreeMap<Integer, String> map = new TreeMap<>();
+
+map.put(30, "C");
+map.put(10, "A");
+map.put(20, "B");
+```
+
+Iteration gives:
+
+```text
+10
+20
+30
+```
+
+The key trade-off is:
+
+```text
+HashMap → O(1) average lookup
+TreeMap → O(log n) operations + sorted keys
+```
+
+TreeMap is useful when you need **ordering, navigation, or range queries**.
+
+### Underlying Data Structure
+
+TreeMap uses a **red-black tree**, which is a self-balancing Binary Search Tree.
+
+```text
+TreeMap
+   ↓
+Red-Black Tree
+   ↓
+Self-Balancing BST
+   ↓
+Sorted keys
++
+O(log n) operations
+```
+
+Because it is a BST:
+
+```text
+left subtree < current node < right subtree
+```
+
+TreeMap uses **key comparison**, not hashing.
+
+The keys are ordered using:
+
+* `Comparable` → natural ordering
+* `Comparator` → custom ordering
+
+### Why Does TreeMap Need Balancing?
+
+A normal BST can become skewed.
+
+For example, inserting:
+
+```text
+10 → 20 → 30 → 40 → 50
+```
+
+can produce:
+
+```text
+10
+  \
+   20
+     \
+      30
+        \
+         40
+           \
+            50
+```
+
+This effectively behaves like a linked list.
+
+Searching can therefore degrade to:
+
+```text
+O(n)
+```
+
+A red-black tree maintains balancing invariants so that its height remains:
+
+```text
+O(log n)
+```
+
+Therefore:
+
+```text
+get()    → O(log n)
+put()    → O(log n)
+remove() → O(log n)
+```
+
+### Red-Black Tree
+
+Each node is either:
+
+```text
+🔴 RED
+⚫ BLACK
+```
+
+Important invariants:
+
+### 1. No red node has a red parent
+
+Invalid:
+
+```text
+    20⚫
+    /
+  10🔴
+  /
+ 5🔴
+```
+
+because `5` has a red parent.
+
+### 2. Every root-to-null path has the same number of black nodes
+
+This prevents paths from becoming arbitrarily unbalanced.
+
+Together, these rules keep the tree approximately balanced.
+
+### How Does Balancing Happen?
+
+When insertion or deletion violates a red-black invariant, the tree can repair itself using:
+
+* **Recoloring**
+* **Rotations**
+
+### Recoloring
+
+Changes node colors:
+
+```text
+🔴 → ⚫
+⚫ → 🔴
+```
+
+For example, when a red parent and red uncle cause a violation, recoloring can restore the local invariant and push the balancing problem upward.
+
+### Rotation
+
+A rotation changes the **shape** of the tree while preserving BST ordering.
+
+Example:
+
+```text
+Before:
+
+    20
+   /
+ 10
+ /
+5
+```
+
+Right rotation around `20`:
+
+```text
+    10
+   /  \
+  5   20
+```
+
+The ordering is still:
+
+```text
+5 < 10 < 20
+```
+
+Remember:
+
+```text
+Recoloring → changes colors
+Rotation   → changes tree shape
+```
+
+### TreeMap vs HashMap
+
+|                        | HashMap                   | TreeMap                     |
+| ---------------------- | ------------------------- | --------------------------- |
+| Data structure         | Hash table                | Red-black tree              |
+| Key mechanism          | `hashCode()` + `equals()` | `Comparable` / `Comparator` |
+| Average lookup         | O(1)                      | O(log n)                    |
+| Ordering               | No ordering guarantee     | Sorted                      |
+| Range queries          | Not naturally supported   | Supported                   |
+| Nearest-key operations | No                        | Yes                         |
+| `floorKey()`           | No                        | Yes                         |
+| `ceilingKey()`         | No                        | Yes                         |
+| `subMap()`             | No                        | Yes                         |
+
+**Important:** Don't say TreeMap is simply "faster" than HashMap.
+
+The distinction is:
+
+```text
+HashMap
+→ faster average plain lookup
+
+TreeMap
+→ sorted keys
+→ navigation
+→ range queries
+→ O(log n) operations
+```
+
+### Comparable vs Comparator
+
+TreeMap needs to know how keys should be ordered.
+
+### Natural ordering
+
+```java
+TreeMap<Integer, String> map = new TreeMap<>();
+```
+
+`Integer` provides its natural ordering through `Comparable`.
+
+### Custom ordering
+
+```java
+TreeMap<String, Integer> map =
+    new TreeMap<>(Comparator.reverseOrder());
+```
+
+Here the supplied `Comparator` determines the ordering.
+
+### Navigation Methods
+
+### `firstKey()`
+
+Returns the smallest key.
+
+```java
+map.firstKey();
+```
+
+### `lastKey()`
+
+Returns the largest key.
+
+```java
+map.lastKey();
+```
+
+### `floorKey(k)`
+
+Returns the **largest key ≤ k**.
+
+```java
+map.floorKey(35);
+```
+
+For:
+
+```text
+10 20 30 40 50
+```
+
+result:
+
+```text
+30
+```
+
+### `ceilingKey(k)`
+
+Returns the **smallest key ≥ k**.
+
+```java
+map.ceilingKey(35);
+```
+
+Result:
+
+```text
+40
+```
+
+### Range Operations
+
+### `headMap(k)`
+
+Returns entries with keys `< k`.
+
+```java
+map.headMap(40);
+```
+
+### `tailMap(k)`
+
+Returns entries with keys `>= k`.
+
+```java
+map.tailMap(40);
+```
+
+### `subMap(...)`
+
+Returns entries within a key range.
+
+For an inclusive range from `20` through `40`:
+
+```java
+map.subMap(20, true, 40, true);
+```
+
+Signature:
+
+```text
+subMap(fromKey, includeFrom, toKey, includeTo)
+```
+
+### Common Use Cases
+
+Use TreeMap when you need:
+
+* Sorted iteration
+* Range queries
+* Closest/nearest key lookup
+* `floorKey()`
+* `ceilingKey()`
+* `firstKey()` / `lastKey()`
+* `headMap()`
+* `tailMap()`
+* `subMap()`
+
+### Common Interview Follow-Ups
+
+### Why use TreeMap if HashMap has O(1) average lookup?
+
+Because the requirement may be **ordering or navigation**, not just lookup.
+
+For example:
+
+```java
+floorKey()
+ceilingKey()
+firstKey()
+lastKey()
+subMap()
+headMap()
+tailMap()
+```
+
+### How would you find all entries between X and Y?
+
+For an inclusive range:
+
+```java
+map.subMap(X, true, Y, true);
+```
+
+### What happens if a normal BST is used instead?
+
+It can become skewed:
+
+```text
+10
+  \
+   20
+     \
+      30
+```
+
+and operations can degrade to:
+
+```text
+O(n)
+```
+
+The red-black tree's balancing maintains logarithmic height.
+
+### What happens during red-black balancing?
+
+### Red parent + red uncle
+
+Typically handled through **recoloring**, pushing the balancing problem upward.
+
+### Red parent + no red uncle / shape imbalance
+
+May require **rotation + recoloring**.
+
+Example of an LL configuration:
+
+```text
+    20
+   /
+ 10
+ /
+5
+```
+
+Right rotation:
+
+```text
+   10
+  /  \
+ 5   20
+```
+
+### Edge Cases
+
+### Null Keys
+
+TreeMap does not allow null keys because keys participate in ordering/comparison.
+
+TreeMap allows null values.
+
+### Duplicate Keys
+
+Like any `Map`, keys are unique.
+
+Putting an existing key replaces its value:
+
+```java
+map.put(10, "A");
+map.put(10, "B");
+```
+
+Result:
+
+```text
+10 → B
+```
+
+### Comparator
+
+If a custom `Comparator` is supplied, **that comparator controls the ordering of the tree**.
+
+### Concurrent Equivalent
+
+For a concurrent sorted map:
+
+```java
+ConcurrentSkipListMap
+```
+
+It provides a concurrent sorted-map structure with `O(log n)` operations.
+
+### Common Interview Traps
+
+### Trap 1 — "TreeMap uses hashing"
+
+❌ Wrong.
+
+TreeMap uses:
+
+```text
+Comparable / Comparator
+```
+
+### Trap 2 — "TreeMap is faster than HashMap"
+
+❌ Too broad.
+
+HashMap has average `O(1)` lookup.
+
+TreeMap has `O(log n)` operations but provides sorted ordering and navigation.
+
+### Trap 3 — "TreeMap is a B-tree"
+
+❌ Wrong.
+
+TreeMap uses a **red-black tree**.
+
+### Trap 4 — "Red-black trees are perfectly balanced"
+
+❌ Wrong.
+
+Say:
+
+> **Red-black trees are self-balancing and maintain invariants that guarantee logarithmic height.**
+
+### Trap 5 — "Rotation changes BST ordering"
+
+❌ Wrong.
+
+Rotation changes the **shape** while preserving BST ordering.
+
+### Trap 6 — "TreeMap prevents all imbalance"
+
+Avoid this wording.
+
+Better:
+
+> **The red-black invariants prevent the tree from degenerating into a linear-height tree and guarantee O(log n) height.**
+
+### Decision Framework
+
+```text
+Need only fast key lookup?
+        ↓
+     HashMap
+
+Need sorted keys?
+        ↓
+     TreeMap
+
+Need nearest key?
+        ↓
+     TreeMap
+ floorKey / ceilingKey
+
+Need key range?
+        ↓
+     TreeMap
+ headMap / tailMap / subMap
+
+Need concurrent + sorted map?
+        ↓
+ ConcurrentSkipListMap
+```
+
+### Final Interview Answer
+
+> **"TreeMap is backed by a self-balancing red-black tree. It maintains keys in sorted order using their natural ordering or a Comparator, giving O(log n) `get`, `put`, and `remove` operations. Compared with HashMap's average O(1) lookup, TreeMap trades some lookup performance for ordered iteration and useful navigation and range operations such as `floorKey`, `ceilingKey`, and `subMap`. I'd use TreeMap when sorted data, nearest-key lookup, or range queries are required."**
+
+### 10-Second Revision
+
+```text
+TreeMap
+   ↓
+Red-Black Tree
+   ↓
+Self-balancing BST
+   ↓
+O(log n)
+   ↓
+Sorted keys
+   ↓
+floor / ceiling / first / last
+   ↓
+headMap / tailMap / subMap
+```
+
+**Memory hook:**
+
+> **HashMap = fast lookup**
+> **TreeMap = sorted lookup + navigation**
+
+
+# Q15 — LinkedHashMap and LRU Cache
+
+### Interview Question
+
+**How would you implement an LRU cache in Java in 10 lines?**
+
+### 30-Second Interview Answer
+
+> I would use `LinkedHashMap` with `accessOrder=true` and override `removeEldestEntry()`. `LinkedHashMap` combines hash-table lookup with a doubly-linked ordering of entries. With access order enabled, every access moves the entry to the tail, making the head the least recently used entry. When the cache exceeds its capacity, `removeEldestEntry()` automatically removes the LRU entry. This gives O(1) average `get`, `put`, and eviction operations.
+
+---
+
+### What is `LinkedHashMap`?
+
+`LinkedHashMap` combines:
+
+1. **Hash-table lookup** → fast access by key.
+2. **Doubly-linked entry ordering** → maintains a predictable iteration order.
+
+By default, the ordering is **insertion order**.
+
+```java
+LinkedHashMap<Integer, String> map = new LinkedHashMap<>();
+
+map.put(1, "A");
+map.put(2, "B");
+map.put(3, "C");
+```
+
+Iteration order:
+
+```text
+1 → 2 → 3
+```
+
+---
+
+### Insertion Order vs Access Order
+
+The constructor is:
+
+```java
+LinkedHashMap(
+    int initialCapacity,
+    float loadFactor,
+    boolean accessOrder
+)
+```
+
+The important parameter is:
+
+```java
+accessOrder
+```
+
+### `accessOrder = false`
+
+Default behavior:
+
+```text
+Insertion order
+```
+
+```java
+new LinkedHashMap<>(16, 0.75f, false);
+```
+
+### `accessOrder = true`
+
+```text
+Access order
+```
+
+```java
+new LinkedHashMap<>(16, 0.75f, true);
+```
+
+Now accessing an entry moves it toward the **tail**.
+
+---
+
+### Why `accessOrder=true` Is Important for LRU
+
+Suppose:
+
+```java
+LinkedHashMap<Integer, String> map =
+    new LinkedHashMap<>(16, 0.75f, true);
+
+map.put(1, "A");
+map.put(2, "B");
+map.put(3, "C");
+```
+
+Current order:
+
+```text
+1 → 2 → 3
+```
+
+Now:
+
+```java
+map.get(1);
+```
+
+The accessed entry moves to the tail:
+
+```text
+2 → 3 → 1
+```
+
+Therefore:
+
+```text
+Head = LRU
+Tail = MRU
+```
+
+Where:
+
+* **LRU** = Least Recently Used
+* **MRU** = Most Recently Used
+
+---
+
+### Why Does `get()` Change the Map?
+
+Normally, we think of `get()` as a read operation.
+
+But with:
+
+```java
+accessOrder = true
+```
+
+a `get()` also updates the access ordering.
+
+Example:
+
+```text
+Before:
+
+2 → 3 → 1
+↑         ↑
+LRU       MRU
+```
+
+Execute:
+
+```java
+cache.get(2);
+```
+
+After:
+
+```text
+3 → 1 → 2
+         ↑
+        MRU
+```
+
+`2` became the most recently accessed entry, so it moves to the tail.
+
+---
+
+### How LRU Eviction Works
+
+Assume:
+
+```text
+capacity = 3
+```
+
+Operations:
+
+```java
+put(1, "A");
+put(2, "B");
+put(3, "C");
+```
+
+Order:
+
+```text
+1 → 2 → 3
+```
+
+Access `1`:
+
+```java
+get(1);
+```
+
+Order becomes:
+
+```text
+2 → 3 → 1
+```
+
+Now insert `4`:
+
+```java
+put(4, "D");
+```
+
+Temporarily:
+
+```text
+2 → 3 → 1 → 4
+↑
+LRU
+```
+
+Capacity is `3`, but size is now `4`.
+
+Therefore the eldest/LRU entry `2` is removed:
+
+```text
+3 → 1 → 4
+```
+
+Final entries:
+
+```text
+3, 1, 4
+```
+
+---
+
+### `removeEldestEntry()`
+
+`LinkedHashMap` provides:
+
+```java
+protected boolean removeEldestEntry(Map.Entry<K, V> eldest)
+```
+
+By default, it returns `false`.
+
+For an LRU cache, override it:
+
+```java
+@Override
+protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+    return size() > capacity;
+}
+```
+
+The method is checked **after a `put`**.
+
+---
+
+### Why `size() > capacity` and Not `>=`?
+
+Suppose:
+
+```text
+capacity = 3
+```
+
+We want:
+
+```text
+put(1) → size = 1 → keep
+put(2) → size = 2 → keep
+put(3) → size = 3 → keep
+put(4) → size = 4 → evict
+```
+
+Therefore:
+
+```java
+return size() > capacity;
+```
+
+is correct.
+
+If we used:
+
+```java
+return size() >= capacity;
+```
+
+then:
+
+```text
+put(3)
+size = 3
+```
+
+would already trigger eviction.
+
+The cache would never actually be allowed to contain `3` entries.
+
+---
+
+### Complete LRU Cache Implementation
+
+```java
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+class LRUCache<K, V> extends LinkedHashMap<K, V> {
+
+    private final int capacity;
+
+    LRUCache(int capacity) {
+        super(capacity, 0.75f, true);
+        this.capacity = capacity;
+    }
+
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+        return size() > capacity;
+    }
+}
+```
+
+### Usage
+
+```java
+LRUCache<Integer, String> cache = new LRUCache<>(3);
+
+cache.put(1, "A");
+cache.put(2, "B");
+cache.put(3, "C");
+
+cache.get(1);
+
+cache.put(4, "D");
+```
+
+The ordering evolves as:
+
+```text
+put(1)       → 1
+put(2)       → 1 2
+put(3)       → 1 2 3
+
+get(1)       → 2 3 1
+
+put(4)       → 2 3 1 4
+                ↑
+               LRU
+
+evict(2)     → 3 1 4
+```
+
+---
+
+### Why Is LRU O(1)?
+
+An LRU cache needs two things:
+
+### 1. Fast key lookup
+
+The hash-table portion allows us to find an entry by key in:
+
+```text
+O(1) average
+```
+
+### 2. Fast ordering updates
+
+The doubly-linked structure allows us to:
+
+* Move an accessed entry to the tail.
+* Remove the LRU entry from the head.
+
+Both are:
+
+```text
+O(1)
+```
+
+Therefore:
+
+| Operation         |   Complexity |
+| ----------------- | -----------: |
+| `get()`           | O(1) average |
+| `put()`           | O(1) average |
+| Move entry to MRU |         O(1) |
+| Remove LRU        |         O(1) |
+
+### Mental Model
+
+```text
+             Hash Table
+                 │
+                 ▼
+              Entry
+                 │
+                 ▼
+LRU ←──────── Doubly-linked ────────→ MRU
+ ↑                                     ↑
+Head                                  Tail
+```
+
+---
+
+### Why Not `HashMap + LinkedList`?
+
+You could implement an LRU cache using:
+
+```text
+HashMap + Doubly Linked List
+```
+
+The idea would be:
+
+```text
+HashMap
+key → node
+
+Doubly Linked List
+LRU ← nodes → MRU
+```
+
+This works, but you would have to manually maintain both structures.
+
+For example, every `get()` would need to:
+
+1. Find the node in the `HashMap`.
+2. Remove it from its current position.
+3. Move it to the tail.
+4. Keep the `HashMap` pointing to the same node.
+
+`LinkedHashMap` already provides this mechanism.
+
+For this interview question, `LinkedHashMap` is therefore the concise Java-specific solution.
+
+---
+
+### What Happens When `put()` Updates an Existing Key?
+
+This is an important follow-up.
+
+With:
+
+```java
+accessOrder = true
+```
+
+an access to an existing entry can update its position.
+
+For example:
+
+```text
+Before:
+
+1 → 2 → 3
+```
+
+Then:
+
+```java
+map.put(1, "Updated");
+```
+
+The existing entry `1` is treated as accessed and moves toward the tail:
+
+```text
+2 → 3 → 1
+```
+
+So don't think only `get()` matters when reasoning about access ordering.
+
+---
+
+### Thread Safety
+
+`LinkedHashMap` is **not thread-safe by default**.
+
+This is especially important for an LRU cache because:
+
+```java
+cache.get(key);
+```
+
+can modify the internal ordering when:
+
+```java
+accessOrder = true;
+```
+
+So a `get()` can itself cause a structural modification.
+
+For simple synchronization, a synchronized map can be considered:
+
+```java
+Collections.synchronizedMap(...);
+```
+
+However, for a concurrent production cache, a dedicated caching library such as **Caffeine** is generally more appropriate.
+
+---
+
+### LRU vs TTL
+
+LRU and TTL solve different problems.
+
+| Mechanism     | Based on           |
+| ------------- | ------------------ |
+| **LRU**       | Recent usage       |
+| **TTL**       | Time elapsed       |
+| **LRU + TTL** | Usage + expiration |
+
+### Why Do We Need TTL?
+
+Suppose:
+
+```text
+Capacity = 100
+```
+
+An entry may remain in the cache for a very long time if the cache doesn't become full.
+
+TTL allows an entry to expire after a configured amount of time.
+
+For example:
+
+```text
+TTL = 10 minutes
+```
+
+An entry can expire after 10 minutes even if the cache still has plenty of capacity.
+
+`LinkedHashMap` gives you the LRU mechanism, but it does **not** provide built-in TTL expiration.
+
+For requirements involving both eviction and expiration, a dedicated cache implementation such as Caffeine is more suitable.
+
+---
+
+### Production Considerations
+
+The `LinkedHashMap` implementation is excellent for:
+
+* Interview implementations
+* Simple in-memory caches
+* Small/single-threaded use cases
+* Understanding the LRU mechanism
+
+For production caching, requirements may include:
+
+* Concurrent access
+* TTL expiration
+* Maximum size
+* Maximum weight
+* Statistics
+* Refresh
+* More sophisticated eviction policies
+
+A dedicated cache library such as **Caffeine** can handle these requirements.
+
+The key interview distinction is:
+
+```text
+LinkedHashMap
+    ↓
+Simple LRU implementation
+
+Caffeine
+    ↓
+Production-oriented caching
+```
+
+---
+
+### Common Interview Traps
+
+### Trap 1 — Forgetting `accessOrder=true`
+
+```java
+new LinkedHashMap<>(16, 0.75f, true);
+```
+
+The third parameter must be `true` for access-order behavior.
+
+Without it:
+
+```text
+Insertion order
+```
+
+With it:
+
+```text
+Access order
+```
+
+---
+
+### Trap 2 — Using `>=`
+
+Wrong:
+
+```java
+return size() >= capacity;
+```
+
+Correct:
+
+```java
+return size() > capacity;
+```
+
+The cache should be allowed to reach its maximum capacity.
+
+---
+
+### Trap 3 — Saying `get()` is always read-only
+
+With:
+
+```java
+accessOrder = true
+```
+
+`get()` changes the ordering.
+
+---
+
+### Trap 4 — Saying `LinkedHashMap` is thread-safe
+
+It isn't.
+
+---
+
+### Trap 5 — Saying LRU provides TTL
+
+It doesn't.
+
+```text
+LRU → usage-based eviction
+TTL → time-based expiration
+```
+
+---
+
+### Trap 6 — Saying "LinkedHashMap is just HashMap + LinkedList"
+
+A better explanation is:
+
+> `LinkedHashMap` combines hash-table lookup with linked entry ordering.
+
+---
+
+### Trap 7 — Saying "Just use Redis"
+
+For this interview question, the interviewer is testing the **Java implementation of an LRU cache**. Redis is a separate distributed-cache discussion.
+
+---
+
+### Common Follow-Up Questions
+
+### Why does `get()` move an entry?
+
+Because `accessOrder=true` tracks recent accesses. The accessed entry becomes the MRU entry and moves to the tail.
+
+### Which entry is evicted?
+
+The **eldest entry**, which is the LRU entry when access-order mode is enabled.
+
+### Why is eviction O(1)?
+
+The LRU entry is at the head of the linked structure, so removing it is constant time.
+
+### Why is lookup O(1)?
+
+The hash-table portion provides O(1) average key lookup.
+
+### Why use `LinkedHashMap` instead of `HashMap`?
+
+`HashMap` provides lookup but doesn't maintain the access ordering required to identify the LRU entry efficiently.
+
+### What if you need TTL?
+
+Use a cache implementation that supports expiration, such as Caffeine.
+
+### Is the implementation thread-safe?
+
+No. `LinkedHashMap` is not thread-safe by default.
+
+### What would you use in production?
+
+For a concurrent cache with expiration and more advanced requirements, consider Caffeine.
+
+### What if the interviewer says "don't use `LinkedHashMap`"?
+
+Then implement the classic:
+
+```text
+HashMap<K, Node>
+        +
+Doubly Linked List
+```
+
+The `HashMap` gives O(1) lookup, while the doubly-linked list maintains LRU → MRU ordering.
+
+---
+
+### Alternative Interview Implementation: HashMap + Doubly Linked List
+
+If the interviewer wants you to implement the data structure yourself, this is the standard approach.
+
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+class LRUCache<K, V> {
+
+    private static class Node<K, V> {
+        K key;
+        V value;
+        Node<K, V> prev;
+        Node<K, V> next;
+
+        Node(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    private final int capacity;
+    private final Map<K, Node<K, V>> map = new HashMap<>();
+
+    // Dummy nodes
+    private final Node<K, V> head = new Node<>(null, null);
+    private final Node<K, V> tail = new Node<>(null, null);
+
+    LRUCache(int capacity) {
+        this.capacity = capacity;
+
+        head.next = tail;
+        tail.prev = head;
+    }
+
+    public V get(K key) {
+        Node<K, V> node = map.get(key);
+
+        if (node == null) {
+            return null;
+        }
+
+        remove(node);
+        addToTail(node);
+
+        return node.value;
+    }
+
+    public void put(K key, V value) {
+        if (map.containsKey(key)) {
+            Node<K, V> node = map.get(key);
+
+            node.value = value;
+
+            remove(node);
+            addToTail(node);
+
+            return;
+        }
+
+        Node<K, V> node = new Node<>(key, value);
+
+        map.put(key, node);
+        addToTail(node);
+
+        if (map.size() > capacity) {
+            Node<K, V> lru = head.next;
+
+            remove(lru);
+            map.remove(lru.key);
+        }
+    }
+
+    private void remove(Node<K, V> node) {
+        node.prev.next = node.next;
+        node.next.prev = node.prev;
+    }
+
+    private void addToTail(Node<K, V> node) {
+        node.prev = tail.prev;
+        node.next = tail;
+
+        tail.prev.next = node;
+        tail.prev = node;
+    }
+}
+```
+
+### Why this works
+
+```text
+HashMap
+key → Node
+```
+
+gives:
+
+```text
+O(1) average lookup
+```
+
+The doubly-linked list gives:
+
+```text
+Head → LRU
+Tail → MRU
+```
+
+Therefore:
+
+```text
+get()
+  → HashMap lookup
+  → remove node
+  → add node to tail
+
+put()
+  → HashMap lookup/insert
+  → move to tail
+  → if capacity exceeded
+       remove head
+```
+
+All core operations remain:
+
+```text
+O(1) average
+```
+
+---
+
+### LinkedHashMap vs Manual LRU Implementation
+
+|                                    | `LinkedHashMap`         | Manual implementation                  |
+| ---------------------------------- | ----------------------- | -------------------------------------- |
+| Lookup                             | O(1) average            | O(1) average                           |
+| LRU ordering                       | Built in                | Implement yourself                     |
+| Eviction                           | `removeEldestEntry()`   | Implement yourself                     |
+| Code size                          | Very small              | Larger                                 |
+| Interview "implement from scratch" | Usually not enough      | Appropriate                            |
+| Risk of bugs                       | Low                     | Higher                                 |
+| Best use                           | Java-specific interview | Data-structure/system-design follow-up |
+
+---
+
+### Final Interview Answer
+
+> "For a simple Java LRU cache, I'd extend `LinkedHashMap` and enable access order with `accessOrder=true`. That gives me hash-table lookup plus a doubly-linked ordering of entries. Every access moves the entry to the tail, so the head represents the least recently used entry. I override `removeEldestEntry()` and return `size() > capacity`, which automatically evicts the LRU entry after an insertion exceeds capacity. `get`, `put`, and eviction are O(1) on average. The basic implementation isn't thread-safe, and if I need concurrency, TTL, or more advanced eviction behavior in production, I'd consider a dedicated cache such as Caffeine."
+
+---
+
+### 10-Second Revision
+
+```text
+LinkedHashMap
+     +
+accessOrder = true
+     ↓
+Head = LRU
+Tail = MRU
+     ↓
+get() → move accessed entry to tail
+     ↓
+put() → if size > capacity
+     ↓
+remove eldest
+     ↓
+O(1) average get / put / eviction
+```
+
+### Code to Memorize
+
+```java
+class LRUCache<K, V> extends LinkedHashMap<K, V> {
+
+    private final int capacity;
+
+    LRUCache(int capacity) {
+        super(capacity, 0.75f, true);
+        this.capacity = capacity;
+    }
+
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+        return size() > capacity;
+    }
+}
+```
+
+### One-Line Memory Trick
+
+> **`LinkedHashMap + accessOrder=true + removeEldestEntry(size > capacity) = simple O(1) LRU cache.`**
