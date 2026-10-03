@@ -4717,3 +4717,2197 @@ TreeSet       → sorted order
 ```
 
 > **All three enforce uniqueness.**
+
+# Q17 · Comparable vs Comparator
+
+### Question
+
+**What's the difference between `Comparable` and `Comparator`? When would you use each?**
+
+### 30-Second Interview Answer
+
+`Comparable` is implemented **by the class itself** and defines its **natural/default ordering** using `compareTo()`.
+
+`Comparator` is a **separate/external comparison strategy** that defines an ordering using `compare()`. It is useful when I don't own the class, or when I need **multiple different orderings** for the same class.
+
+For example, `Student` could implement `Comparable<Student>` to define its natural ordering by age, while separate `Comparator<Student>` objects could sort students by name, marks, or age descending.
+
+---
+
+### Comparable
+
+### What is Comparable?
+
+`Comparable<T>` is an interface used when a class wants to define its **natural ordering**.
+
+```java
+public interface Comparable<T> {
+    int compareTo(T other);
+}
+```
+
+The class itself implements it:
+
+```java
+class Student implements Comparable<Student> {
+
+    int age;
+
+    @Override
+    public int compareTo(Student other) {
+        return Integer.compare(this.age, other.age);
+    }
+}
+```
+
+Here, age becomes the natural ordering of `Student`.
+
+### `compareTo()` return value
+
+`compareTo()` returns an `int`, not a `boolean`.
+
+```text
+negative → this comes before other
+0        → this and other are equivalent according to the ordering
+positive → this comes after other
+```
+
+Example:
+
+```text
+Student A → age = 20
+Student B → age = 25
+
+A.compareTo(B) → negative
+B.compareTo(A) → positive
+A.compareTo(A) → 0
+```
+
+The exact negative/positive number is not important. The **sign** is what matters.
+
+---
+
+### Comparator
+
+### What is Comparator?
+
+`Comparator<T>` is an external strategy for comparing two objects.
+
+```java
+public interface Comparator<T> {
+    int compare(T a, T b);
+}
+```
+
+Example:
+
+```java
+Comparator<Student> byAge = new Comparator<Student>() {
+    @Override
+    public int compare(Student a, Student b) {
+        return Integer.compare(a.age, b.age);
+    }
+};
+```
+
+The comparison logic does not have to be inside `Student`.
+
+### Modern Java
+
+Java 8+ provides convenient factory and chaining methods:
+
+```java
+Comparator<Student> byAge =
+        Comparator.comparingInt(s -> s.age);
+```
+
+---
+
+### Comparable vs Comparator
+
+| Feature             | Comparable                         | Comparator                      |
+| ------------------- | ---------------------------------- | ------------------------------- |
+| Package             | `java.lang`                        | `java.util`                     |
+| Method              | `compareTo(T other)`               | `compare(T a, T b)`             |
+| Defined by          | The class itself                   | External object                 |
+| Purpose             | Natural/default ordering           | Alternative/custom ordering     |
+| Number of orderings | One natural ordering               | Many possible orderings         |
+| Modifies class?     | Yes                                | No                              |
+| Useful when         | Class has an obvious natural order | Multiple orderings are required |
+| Example             | Student by age                     | Student by name, marks, etc.    |
+
+### Mental Model
+
+```text
+Comparable
+    ↓
+"What is the natural/default ordering of this object?"
+    ↓
+Defined by the class
+    ↓
+compareTo(other)
+```
+
+```text
+Comparator
+    ↓
+"How do I want to order these objects for this use case?"
+    ↓
+Defined externally
+    ↓
+compare(a, b)
+```
+
+---
+
+### When should I use Comparable?
+
+Use `Comparable` when the class has a clear **natural/default ordering**.
+
+For example:
+
+```java
+class Student implements Comparable<Student> {
+
+    int age;
+
+    @Override
+    public int compareTo(Student other) {
+        return Integer.compare(this.age, other.age);
+    }
+}
+```
+
+Now:
+
+```java
+Collections.sort(students);
+```
+
+uses:
+
+```java
+Student.compareTo()
+```
+
+The class itself owns the definition of its natural ordering.
+
+---
+
+### When should I use Comparator?
+
+Use `Comparator` when:
+
+### 1. You need multiple orderings
+
+A `Student` might need to be sorted by:
+
+* age
+* name
+* marks
+* age descending
+* name + marks
+
+You don't want to change the `Student` class every time.
+
+```java
+Comparator<Student> byName =
+        Comparator.comparing(s -> s.name);
+
+Comparator<Student> byMarks =
+        Comparator.comparingInt(s -> s.marks);
+
+Comparator<Student> byAgeDescending =
+        Comparator.comparingInt((Student s) -> s.age)
+                  .reversed();
+```
+
+### 2. You don't own the class
+
+For example, you cannot modify a third-party class to make it implement `Comparable`.
+
+You can still define:
+
+```java
+Comparator<SomeThirdPartyClass> comparator = ...;
+```
+
+### 3. The ordering is specific to a particular operation
+
+You may want one particular sort to use name while another uses marks.
+
+```java
+students.sort(byName);
+
+students.sort(byMarks);
+```
+
+---
+
+### Collections.sort()
+
+If no Comparator is supplied:
+
+```java
+Collections.sort(students);
+```
+
+Java uses the elements' **natural ordering**:
+
+```text
+Collections.sort(students)
+            ↓
+Student.compareTo()
+```
+
+If a Comparator is supplied:
+
+```java
+Collections.sort(students, comparator);
+```
+
+Java uses:
+
+```text
+comparator.compare(student1, student2)
+```
+
+The supplied Comparator determines the ordering for that operation.
+
+### Important
+
+The Comparator takes precedence for that particular sort.
+
+Even if:
+
+```java
+class Student implements Comparable<Student>
+```
+
+defines age as the natural ordering, this:
+
+```java
+Collections.sort(
+    students,
+    Comparator.comparing(s -> s.name)
+);
+```
+
+sorts by name instead.
+
+---
+
+### One Comparable vs Many Comparators
+
+A class can implement `Comparable` and also have many `Comparator` objects.
+
+```java
+class Student implements Comparable<Student> {
+
+    @Override
+    public int compareTo(Student other) {
+        return Integer.compare(this.age, other.age);
+    }
+}
+```
+
+Natural ordering:
+
+```java
+Collections.sort(students);
+```
+
+uses age.
+
+Alternative orderings:
+
+```java
+Comparator<Student> byName =
+        Comparator.comparing(s -> s.name);
+
+Comparator<Student> byMarks =
+        Comparator.comparingInt(s -> s.marks);
+
+Comparator<Student> byAgeDescending =
+        Comparator.comparingInt((Student s) -> s.age)
+                  .reversed();
+```
+
+### Mental model
+
+```text
+                    Student
+                       │
+             ┌─────────┴─────────┐
+             │                   │
+        Comparable          Comparators
+             │                   │
+       ONE natural          MANY strategies
+        ordering                 │
+             │              ┌────┼────┐
+        compareTo()       name marks age...
+```
+
+---
+
+### `compareTo() == 0` Does NOT Necessarily Mean `equals() == true`
+
+This is a very important interview concept.
+
+Suppose:
+
+```java
+class Student implements Comparable<Student> {
+
+    int age;
+    String name;
+
+    @Override
+    public int compareTo(Student other) {
+        return Integer.compare(this.age, other.age);
+    }
+}
+```
+
+Consider:
+
+```text
+Student A → age = 20, name = "Alice"
+Student B → age = 20, name = "Bob"
+```
+
+Then:
+
+```java
+A.compareTo(B) == 0
+```
+
+because both have age 20.
+
+But they can still be different objects:
+
+```java
+A != B
+```
+
+and `equals()` could return:
+
+```java
+A.equals(B) == false
+```
+
+Therefore:
+
+> `compareTo() == 0` means the objects are equivalent **according to that ordering**. It does not necessarily mean that they are the same object or that `equals()` returns `true`.
+
+---
+
+### TreeSet / TreeMap Trap
+
+`TreeSet` and `TreeMap` use their ordering mechanism to determine element/key equivalence.
+
+### TreeSet with Comparable
+
+```java
+TreeSet<Student> students = new TreeSet<>();
+
+students.add(new Student(20, "Alice"));
+students.add(new Student(20, "Bob"));
+```
+
+If `compareTo()` compares only age:
+
+```text
+Alice.compareTo(Bob)
+        ↓
+      20 vs 20
+        ↓
+        0
+```
+
+The `TreeSet` considers the second student equivalent for set purposes.
+
+Therefore:
+
+```java
+students.size(); // 1
+```
+
+even though Alice and Bob are different objects.
+
+### Important interview statement
+
+> `TreeSet` determines uniqueness using its ordering mechanism (`compareTo()` or `Comparator.compare()`), not necessarily `equals()`.
+
+The same principle applies to keys in `TreeMap`.
+
+---
+
+### Comparator and TreeSet
+
+A class does **not** need to implement `Comparable` if the `TreeSet` receives a Comparator.
+
+```java
+class Student {
+    int age;
+    String name;
+}
+```
+
+This is valid:
+
+```java
+TreeSet<Student> students =
+    new TreeSet<>(
+        Comparator.comparingInt(s -> s.age)
+    );
+```
+
+The TreeSet now knows how to order Students through the supplied Comparator.
+
+Conceptually:
+
+```text
+Student implements Comparable
+        ↓
+TreeSet can use compareTo()
+```
+
+or:
+
+```text
+Student doesn't implement Comparable
+        ↓
+TreeSet receives Comparator
+        ↓
+TreeSet uses Comparator.compare()
+```
+
+Without either:
+
+```java
+TreeSet<Student> students = new TreeSet<>();
+```
+
+Java has no ordering strategy for `Student`, so inserting a Student can result in a runtime failure.
+
+---
+
+### Comparator Chaining
+
+Java provides methods for creating complex orderings.
+
+Suppose:
+
+```java
+class Student {
+    String name;
+    int age;
+    int marks;
+}
+```
+
+Requirement:
+
+1. Name ascending
+2. If names are equal → marks descending
+3. If marks are equal → age ascending
+
+Use:
+
+```java
+Comparator<Student> comparator =
+    Comparator.comparing((Student s) -> s.name)
+        .thenComparing(
+            Comparator.comparingInt((Student s) -> s.marks)
+                      .reversed()
+        )
+        .thenComparingInt(s -> s.age);
+```
+
+### How the comparison works
+
+```text
+Compare names
+    │
+    ├── different → name ascending
+    │
+    └── same
+         ↓
+      Compare marks
+         │
+         ├── different → marks descending
+         │
+         └── same
+              ↓
+           Compare age
+              ↓
+           age ascending
+```
+
+---
+
+### Important `reversed()` Trap
+
+This:
+
+```java
+A.thenComparing(B).reversed()
+```
+
+reverses the **entire comparator built so far**.
+
+Whereas:
+
+```java
+A.thenComparing(B.reversed())
+```
+
+keeps `A` unchanged and reverses only `B`.
+
+Example:
+
+```java
+Comparator<Student> comparator =
+    Comparator.comparing((Student s) -> s.name)
+        .thenComparing(
+            Comparator.comparingInt((Student s) -> s.marks)
+                      .reversed()
+        );
+```
+
+Here:
+
+```text
+name  → ascending
+marks → descending
+```
+
+Only marks is reversed.
+
+---
+
+### Comparator Return Contract
+
+Both `compareTo()` and `Comparator.compare()` follow the same basic sign convention.
+
+```text
+negative → first object comes before second
+0        → equivalent according to ordering
+positive → first object comes after second
+```
+
+For:
+
+```java
+Comparator<Student> byAge =
+    Comparator.comparingInt(s -> s.age);
+```
+
+```text
+A = 20, B = 25
+compare(A, B) → negative
+
+A = 25, B = 20
+compare(A, B) → positive
+
+A = 20, B = 20
+compare(A, B) → 0
+```
+
+The exact magnitude is generally irrelevant.
+
+---
+
+### Don't Compare Using Subtraction
+
+Avoid:
+
+```java
+return this.age - other.age;
+```
+
+Prefer:
+
+```java
+return Integer.compare(this.age, other.age);
+```
+
+### Why?
+
+Subtraction can overflow.
+
+For example, with values near the limits of `int`, the subtraction can produce an incorrect sign.
+
+`Integer.compare()` safely expresses the intended comparison.
+
+### Interview answer
+
+> I avoid subtraction because integer overflow can produce an incorrect comparison result. `Integer.compare(a, b)` safely returns a negative value, zero, or a positive value.
+
+---
+
+### Anonymous Comparator vs Modern Comparator
+
+### Traditional implementation
+
+```java
+Comparator<Student> byAge = new Comparator<Student>() {
+    @Override
+    public int compare(Student a, Student b) {
+        return Integer.compare(a.age, b.age);
+    }
+};
+```
+
+### Modern Java
+
+```java
+Comparator<Student> byAge =
+        Comparator.comparingInt(s -> s.age);
+```
+
+Modern Java also supports:
+
+```java
+Comparator<Student> byName =
+        Comparator.comparing(s -> s.name);
+```
+
+```java
+Comparator<Student> byAgeDescending =
+        Comparator.comparingInt((Student s) -> s.age)
+                  .reversed();
+```
+
+---
+
+### Common Interview Traps
+
+### Trap 1 — `compareTo()` returns boolean
+
+❌ Wrong:
+
+```java
+boolean compareTo(...)
+```
+
+✅ Correct:
+
+```java
+int compareTo(...)
+```
+
+---
+
+### Trap 2 — Comparable supports multiple natural orderings
+
+A class has **one natural ordering** through its single `compareTo()` implementation.
+
+For multiple orderings, use multiple Comparators.
+
+---
+
+### Trap 3 — Comparator must be inside the class
+
+❌ Not required.
+
+Comparator is an external strategy.
+
+---
+
+### Trap 4 — `compareTo() == 0` means same object
+
+❌ Wrong.
+
+```java
+a.compareTo(b) == 0
+```
+
+only means they are equivalent according to the ordering.
+
+---
+
+### Trap 5 — TreeSet always uses `equals()`
+
+❌ Wrong.
+
+`TreeSet` uses:
+
+```text
+Comparable.compareTo()
+```
+
+or:
+
+```text
+Comparator.compare()
+```
+
+to determine ordering/equivalence.
+
+---
+
+### Trap 6 — `reversed()` only reverses the last field
+
+Not necessarily.
+
+```java
+A.thenComparing(B).reversed()
+```
+
+reverses the entire comparator constructed so far.
+
+---
+
+### Trap 7 — Subtract values to compare them
+
+Avoid:
+
+```java
+return a.age - b.age;
+```
+
+Prefer:
+
+```java
+return Integer.compare(a.age, b.age);
+```
+
+---
+
+### IDE Experiments
+
+These are worth actually running because they make the behavior stick.
+
+### Experiment 1 — Comparable natural ordering
+
+```java
+import java.util.*;
+
+class Student implements Comparable<Student> {
+    int age;
+    String name;
+
+    Student(int age, String name) {
+        this.age = age;
+        this.name = name;
+    }
+
+    @Override
+    public int compareTo(Student other) {
+        return Integer.compare(this.age, other.age);
+    }
+
+    @Override
+    public String toString() {
+        return name + " - " + age;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+
+        List<Student> students = new ArrayList<>();
+
+        students.add(new Student(25, "Alice"));
+        students.add(new Student(20, "Bob"));
+        students.add(new Student(22, "Charlie"));
+
+        Collections.sort(students);
+
+        System.out.println(students);
+    }
+}
+```
+
+Observe that `Collections.sort(students)` uses `compareTo()`.
+
+---
+
+### Experiment 2 — Comparator overrides natural ordering
+
+Keep the same `Student` class.
+
+```java
+students.sort(
+    Comparator.comparing(s -> s.name)
+);
+```
+
+Now the list is sorted by name instead of age.
+
+This demonstrates:
+
+```text
+Comparable → default ordering
+Comparator → ordering for this particular operation
+```
+
+---
+
+### Experiment 3 — TreeSet comparison trap
+
+```java
+TreeSet<Student> students = new TreeSet<>();
+
+students.add(new Student(20, "Alice"));
+students.add(new Student(20, "Bob"));
+students.add(new Student(25, "Charlie"));
+
+System.out.println(students);
+System.out.println(students.size());
+```
+
+Expected size:
+
+```text
+2
+```
+
+Why?
+
+```text
+Alice(20)
+Bob(20)      → compareTo() == 0 → treated as equivalent
+
+Charlie(25)
+```
+
+---
+
+### Experiment 4 — TreeSet with Comparator
+
+```java
+TreeSet<Student> students =
+    new TreeSet<>(
+        Comparator.comparing(s -> s.name)
+    );
+
+students.add(new Student(20, "Alice"));
+students.add(new Student(20, "Bob"));
+students.add(new Student(25, "Charlie"));
+
+System.out.println(students);
+```
+
+Now the TreeSet's ordering is based on `name`.
+
+---
+
+### Experiment 5 — Comparator chaining
+
+```java
+Comparator<Student> comparator =
+    Comparator.comparing((Student s) -> s.name)
+        .thenComparing(
+            Comparator.comparingInt((Student s) -> s.age)
+                      .reversed()
+        );
+
+students.sort(comparator);
+```
+
+Create students with the same name but different ages and observe the secondary ordering.
+
+---
+
+### Quick Revision
+
+```text
+Comparable
+    → implemented by the class
+    → compareTo(T other)
+    → one natural/default ordering
+
+Comparator
+    → external object
+    → compare(T a, T b)
+    → multiple/custom orderings
+
+Collections.sort(list)
+    → Comparable / compareTo()
+
+Collections.sort(list, comparator)
+    → Comparator / compare()
+
+TreeSet / TreeMap
+    → use compareTo() or Comparator
+    → compare == 0 means equivalent for sorted collection purposes
+
+Comparator.comparing(...)
+    → convenient Java 8+ comparator creation
+
+thenComparing(...)
+    → secondary/tertiary ordering
+
+reversed()
+    → reverses the comparator it is called on
+
+Integer.compare(a, b)
+    → preferred over a - b
+    → avoids integer overflow
+```
+
+### One-Line Memory Trick
+
+> **Comparable = "I know my natural order."**
+> **Comparator = "You tell me how you want me ordered."**
+
+
+# Q18 · Queue vs Deque vs Stack
+
+### Exact question from the source
+
+**When would you use a Deque vs a Queue vs a Stack in Java? Are Stack and Vector still relevant?**
+
+**Asked at:** Common in mid-level rounds
+**Difficulty:** Medium
+**Topic:** Collections
+
+### 30-second interview answer
+
+`Stack` and `Vector` are legacy Java classes. `Stack` extends `Vector` and has the older synchronized design.
+
+For **LIFO / stack semantics**, prefer:
+
+```java
+Deque<Integer> stack = new ArrayDeque<>();
+```
+
+and use `push()`, `pop()`, and `peek()`.
+
+For **FIFO / queue semantics**, use the `Queue` interface, commonly with:
+
+```java
+Queue<Integer> queue = new ArrayDeque<>();
+```
+
+For **concurrent producer-consumer systems**, use `BlockingQueue` implementations such as `ArrayBlockingQueue` or `LinkedBlockingQueue`.
+
+For **non-blocking concurrent queues**, `ConcurrentLinkedQueue` is an option.
+
+---
+
+### Queue vs Deque vs Stack
+
+### Queue
+
+A `Queue` normally represents **FIFO** behavior:
+
+```text
+FIRST → 10 → 20 → 30 ← LAST
+
+poll()
+ ↓
+10
+```
+
+Typical methods:
+
+```java
+offer()
+poll()
+peek()
+```
+
+Example:
+
+```java
+Queue<Integer> queue = new ArrayDeque<>();
+
+queue.offer(10);
+queue.offer(20);
+queue.offer(30);
+
+queue.poll(); // 10
+```
+
+Use a queue when elements should generally be processed in the order they were inserted.
+
+Examples:
+
+* BFS
+* Work queues
+* Request processing
+* Task scheduling
+
+---
+
+### Deque
+
+`Deque` means **double-ended queue**.
+
+It supports insertion and removal from **both ends**:
+
+```text
+FIRST → [10] [20] [30] ← LAST
+```
+
+Common methods:
+
+```java
+addFirst()
+addLast()
+
+removeFirst()
+removeLast()
+
+peekFirst()
+peekLast()
+```
+
+Example:
+
+```java
+Deque<Integer> deque = new ArrayDeque<>();
+
+deque.addFirst(10);
+deque.addLast(20);
+deque.addLast(30);
+
+deque.removeFirst(); // 10
+deque.removeLast();  // 30
+```
+
+A `Deque` can also provide both **queue semantics** and **stack semantics**.
+
+---
+
+### Using Deque as a Stack
+
+Modern Java code should generally prefer `Deque` over the legacy `Stack` class.
+
+```java
+Deque<Integer> stack = new ArrayDeque<>();
+
+stack.push(10);
+stack.push(20);
+stack.push(30);
+
+stack.pop();   // 30
+stack.peek();  // 20
+```
+
+The behavior is LIFO:
+
+```text
+TOP
+ ↓
+30
+20
+10
+```
+
+Remember:
+
+```text
+push() → insert at stack top
+pop()  → remove from stack top
+peek() → inspect stack top
+```
+
+### Why is this LIFO?
+
+The last element pushed is the first element popped:
+
+```text
+push(10)
+push(20)
+push(30)
+
+pop() → 30
+pop() → 20
+pop() → 10
+```
+
+---
+
+### Why Can ArrayDeque Be Both Queue and Stack?
+
+The hierarchy is important:
+
+```text
+Queue
+  ↑
+Deque
+  ↑
+ArrayDeque implements Deque
+```
+
+More precisely:
+
+```text
+Deque extends Queue
+ArrayDeque implements Deque
+```
+
+Therefore:
+
+```java
+Queue<Integer> q = new ArrayDeque<>();
+```
+
+can be used with queue operations:
+
+```java
+q.offer(10);
+q.offer(20);
+q.poll(); // 10
+```
+
+While:
+
+```java
+Deque<Integer> stack = new ArrayDeque<>();
+```
+
+can be used with stack operations:
+
+```java
+stack.push(10);
+stack.push(20);
+stack.pop(); // 20
+```
+
+The same underlying deque data structure can provide different semantics depending on the operations you choose.
+
+### Important interview phrase
+
+> "`ArrayDeque` implements `Deque`, and `Deque` extends `Queue`. Therefore an `ArrayDeque` can be used as either a FIFO queue or a LIFO stack."
+
+---
+
+### Queue API — add vs offer, remove vs poll, element vs peek
+
+This is a common interview follow-up.
+
+| Operation   | Successful behavior      | Failure / empty behavior |
+| ----------- | ------------------------ | ------------------------ |
+| `add(e)`    | Adds element             | Throws exception         |
+| `offer(e)`  | Adds element             | Returns `false`          |
+| `remove()`  | Removes and returns head | Throws exception         |
+| `poll()`    | Removes and returns head | Returns `null`           |
+| `element()` | Returns head             | Throws exception         |
+| `peek()`    | Returns head             | Returns `null`           |
+
+The easiest way to memorize it:
+
+```text
+                 Exception       Special value
+                 ─────────        ─────────────
+Insert           add()            offer()
+Remove           remove()         poll()
+Inspect          element()        peek()
+```
+
+### Example
+
+```java
+Queue<Integer> queue = new ArrayDeque<>();
+
+queue.add(10);
+queue.offer(20);
+
+queue.remove();  // removes 10
+queue.poll();    // removes 20
+```
+
+If the queue is empty:
+
+```java
+queue.remove();  // exception
+queue.poll();    // null
+
+queue.element(); // exception
+queue.peek();    // null
+```
+
+---
+
+### Why Does ArrayDeque Reject null?
+
+```java
+Queue<Integer> queue = new ArrayDeque<>();
+
+queue.add(null); // NullPointerException
+```
+
+This is important because:
+
+```java
+queue.poll();
+```
+
+returns `null` when the queue is empty.
+
+If `null` elements were allowed, we couldn't distinguish:
+
+```text
+poll() == null
+
+Was the queue empty?
+        OR
+Was null actually stored?
+```
+
+By prohibiting `null`, `ArrayDeque` can safely use `null` as the "nothing available" result for methods such as `poll()` and `peek()`.
+
+---
+
+### ArrayDeque Internal Implementation
+
+`ArrayDeque` is backed by a **resizable circular array**.
+
+Conceptually:
+
+```text
+[ _ ][ _ ][ A ][ B ][ C ][ _ ]
+        ↑           ↑
+       head        tail
+```
+
+The important idea is that the elements don't have to be physically shifted whenever we remove from an end.
+
+Remove `A`:
+
+```text
+[ _ ][ _ ][ _ ][ B ][ C ][ _ ]
+              ↑       ↑
+             head    tail
+```
+
+Add `D`:
+
+```text
+[ _ ][ _ ][ _ ][ B ][ C ][ D ]
+              ↑           ↑
+             head        tail
+```
+
+The logical boundaries move.
+
+### Circular behavior
+
+When the head or tail reaches the physical end of the array, it can wrap around to the beginning.
+
+Conceptually:
+
+```text
+[ D ][ E ][ _ ][ _ ][ A ][ B ][ C ]
+  ↑                       ↑
+ tail                    head
+```
+
+This avoids repeatedly shifting every element.
+
+---
+
+### Why ArrayDeque Is Generally Faster Than LinkedList
+
+Both can support deque operations at the ends in O(1), but their implementations differ.
+
+### ArrayDeque
+
+```text
+Resizable circular array
+        ↓
+No per-element Node object
+        ↓
+Better memory locality
+        ↓
+Less pointer/reference chasing
+```
+
+### LinkedList
+
+```text
+Node ↔ Node ↔ Node ↔ Node
+ ↓       ↓       ↓
+data    data    data
+```
+
+Every element is represented by a linked node.
+
+That introduces:
+
+* Node allocation
+* Additional references
+* Pointer chasing
+* Worse CPU cache locality
+
+Therefore, `ArrayDeque` generally performs better for typical queue/stack/deque operations.
+
+### Interview-ready answer
+
+> "`ArrayDeque` is generally preferred over `LinkedList` because it uses a resizable circular array instead of allocating a node for every element. This reduces memory overhead and improves cache locality, so end operations generally have better performance in practice."
+
+---
+
+### Important: Array-Backed Does Not Mean Random Access
+
+A common misconception:
+
+> "ArrayDeque uses an array, so accessing the 5th element should be O(1)."
+
+Not true.
+
+`ArrayDeque` does **not** expose indexed access like:
+
+```java
+deque.get(5);
+```
+
+Unlike:
+
+```java
+ArrayList
+```
+
+which supports:
+
+```java
+list.get(5); // O(1)
+```
+
+For `ArrayDeque`, if you need to locate an arbitrary element, you generally have to traverse/iterate:
+
+```text
+ArrayDeque
+
+head → A → B → C → D → E
+             ↑
+          traverse
+```
+
+So arbitrary positional access is not its purpose.
+
+### Key interview phrase
+
+> **Array-backed does not automatically mean random-access.**
+
+`ArrayDeque` is optimized for **operations at the two ends**.
+
+---
+
+### ArrayDeque Complexity
+
+Typical end operations:
+
+| Operation       |     Complexity |
+| --------------- | -------------: |
+| `addFirst()`    | Amortized O(1) |
+| `addLast()`     | Amortized O(1) |
+| `removeFirst()` |           O(1) |
+| `removeLast()`  |           O(1) |
+| `peekFirst()`   |           O(1) |
+| `peekLast()`    |           O(1) |
+
+### Why amortized O(1)?
+
+Most insertions are constant time:
+
+```text
+addLast()
+   ↓
+put element
+move tail
+   ↓
+O(1)
+```
+
+Occasionally, the backing array must grow:
+
+```text
+old array
+   ↓
+allocate larger array
+   ↓
+copy elements
+   ↓
+O(n)
+```
+
+But resizing happens only occasionally, so insertion remains **amortized O(1)**.
+
+### Interview trap
+
+Don't say:
+
+> "`addLast()` is always O(1)."
+
+Prefer:
+
+> "`addLast()` is amortized O(1); an individual operation can take O(n) if the backing array needs to resize."
+
+---
+
+### Stack vs Vector
+
+`Stack` is a legacy Java class.
+
+The relationship is:
+
+```text
+Stack extends Vector
+```
+
+Both originate from the early Java collections APIs.
+
+The source describes them as legacy/synchronized and recommends `Deque` for modern stack semantics.
+
+Instead of:
+
+```java
+Stack<Integer> stack = new Stack<>();
+```
+
+prefer:
+
+```java
+Deque<Integer> stack = new ArrayDeque<>();
+```
+
+Then:
+
+```java
+stack.push(10);
+stack.push(20);
+
+stack.pop();  // 20
+stack.peek(); // 10
+```
+
+### Interview-ready answer
+
+> "`Stack` is a legacy class that extends `Vector`. For modern stack semantics, I would use the `Deque` interface with an `ArrayDeque` implementation and use `push`, `pop`, and `peek`."
+
+---
+
+### BlockingQueue
+
+`BlockingQueue` is useful for **producer-consumer systems**.
+
+Conceptually:
+
+```text
+Producer Threads
+       │
+       ▼
+┌─────────────────┐
+│ BlockingQueue   │
+└─────────────────┘
+       │
+       ▼
+Consumer Threads
+```
+
+The important behavior is **blocking based on queue state**.
+
+If the queue is full:
+
+```text
+producer
+   ↓
+put()
+   ↓
+WAIT
+```
+
+If the queue is empty:
+
+```text
+consumer
+   ↓
+take()
+   ↓
+WAIT
+```
+
+This allows producers and consumers to coordinate without manually implementing the waiting mechanism.
+
+---
+
+### BlockingQueue — put vs offer
+
+For a bounded queue that is currently full:
+
+```java
+blockingQueue.put(10);
+```
+
+will **block until space becomes available**.
+
+Whereas:
+
+```java
+blockingQueue.offer(10);
+```
+
+does **not wait** and returns:
+
+```java
+false
+```
+
+if the queue cannot accept the element.
+
+There is also a timed version:
+
+```java
+blockingQueue.offer(
+    10,
+    5,
+    TimeUnit.SECONDS
+);
+```
+
+It waits up to five seconds for space and returns `false` if space does not become available.
+
+### Remember
+
+```text
+Queue full:
+
+put()              → WAIT
+offer()             → false
+offer(e, timeout)   → WAIT up to timeout
+```
+
+---
+
+### BlockingQueue — take vs poll
+
+For an empty queue:
+
+```java
+blockingQueue.take();
+```
+
+blocks until an element becomes available.
+
+```java
+blockingQueue.poll();
+```
+
+immediately returns `null`.
+
+Timed:
+
+```java
+blockingQueue.poll(5, TimeUnit.SECONDS);
+```
+
+waits for up to five seconds.
+
+### Remember
+
+```text
+Queue empty:
+
+take()              → WAIT
+poll()              → null
+poll(timeout)       → WAIT up to timeout
+```
+
+---
+
+### Backpressure
+
+One of the most important real-world reasons to use a **bounded** `BlockingQueue` is **backpressure**.
+
+Suppose:
+
+```text
+100 Producers
+       ↓
+Queue(capacity = 1000)
+       ↓
+20 Consumers
+```
+
+If producers generate work faster than consumers process it, the queue eventually fills.
+
+```text
+Queue fills
+    ↓
+Queue reaches capacity
+    ↓
+producer calls put()
+    ↓
+producer waits
+    ↓
+consumer removes work
+    ↓
+space becomes available
+    ↓
+producer continues
+```
+
+This prevents work from accumulating without bound.
+
+### Why bounded instead of unbounded?
+
+An unbounded queue can continuously accumulate work:
+
+```text
+Producers >>> Consumers
+
+Queue
+ ↓
+ ↓
+ ↓
+ ↓
+keeps growing
+ ↓
+memory pressure
+ ↓
+potential OOM
+```
+
+A bounded queue provides **backpressure**.
+
+### Interview-ready answer
+
+> "I would use a bounded `BlockingQueue` when producers can generate work faster than consumers can process it. Once the queue reaches capacity, producers are forced to wait, providing backpressure and preventing unbounded accumulation of work."
+
+---
+
+### ArrayBlockingQueue vs LinkedBlockingQueue
+
+The source mentions both as `BlockingQueue` implementations.
+
+### ArrayBlockingQueue
+
+```java
+BlockingQueue<Integer> q =
+    new ArrayBlockingQueue<>(100);
+```
+
+* Array-backed
+* Bounded
+* Capacity specified at construction
+
+### LinkedBlockingQueue
+
+```java
+BlockingQueue<Integer> q =
+    new LinkedBlockingQueue<>(100);
+```
+
+* Linked-node-based
+* Can be bounded by specifying capacity
+* Implements blocking producer-consumer behavior
+
+Important:
+
+> `LinkedBlockingQueue` is not simply a `LinkedList`; it is a dedicated `BlockingQueue` implementation using linked nodes and concurrency controls.
+
+---
+
+### ConcurrentLinkedQueue
+
+For concurrent access where you don't need blocking behavior:
+
+```java
+Queue<Integer> queue =
+    new ConcurrentLinkedQueue<>();
+```
+
+It is designed for **thread-safe, non-blocking concurrent queue operations**.
+
+Unlike a bounded `BlockingQueue`, it does not provide producer-consumer blocking/backpressure.
+
+Conceptually:
+
+```text
+BlockingQueue
+
+full  → producer may BLOCK
+empty → consumer may BLOCK
+
+
+ConcurrentLinkedQueue
+
+empty → poll() returns null
+no blocking
+no bounded-capacity backpressure
+```
+
+### Comparison
+
+|                     | `BlockingQueue`   | `ConcurrentLinkedQueue`       |
+| ------------------- | ----------------- | ----------------------------- |
+| Thread-safe         | Yes               | Yes                           |
+| Blocking operations | Yes               | No                            |
+| Bounded option      | Yes               | No                            |
+| Backpressure        | Yes               | No                            |
+| Empty `poll()`      | `null`            | `null`                        |
+| Typical use         | Producer-consumer | Concurrent non-blocking queue |
+
+---
+
+### Concurrent Queue Trap: Check-Then-Act
+
+Avoid:
+
+```java
+if (!queue.isEmpty()) {
+    Integer value = queue.poll();
+}
+```
+
+when multiple threads are consuming.
+
+Why?
+
+Because another thread can remove the element between `isEmpty()` and `poll()`.
+
+```text
+Queue: [10]
+
+Thread A                 Thread B
+
+isEmpty() → false
+                         isEmpty() → false
+
+                         poll() → 10
+
+poll() → null
+```
+
+Therefore, the result of `isEmpty()` is not guaranteed to remain true/false by the time the next operation occurs.
+
+Prefer:
+
+```java
+Integer value = queue.poll();
+
+if (value != null) {
+    // successfully consumed an element
+}
+```
+
+For a `BlockingQueue`, if you actually want to wait for work:
+
+```java
+Integer value = blockingQueue.take();
+```
+
+### General concurrency principle
+
+> **Avoid separate check-then-act operations when the check and action need to be atomic.**
+
+---
+
+### Choosing the Right Queue
+
+### A. Single-threaded BFS
+
+```java
+Queue<Integer> queue = new ArrayDeque<>();
+```
+
+Why?
+
+* FIFO
+* No concurrency required
+* Efficient end operations
+
+### B. Producer-consumer + bounded capacity
+
+```java
+BlockingQueue<Integer> queue =
+    new ArrayBlockingQueue<>(100);
+```
+
+Why?
+
+* Thread-safe
+* Blocking
+* Bounded
+* Backpressure
+
+### C. Multiple threads + non-blocking queue
+
+```java
+Queue<Integer> queue =
+    new ConcurrentLinkedQueue<>();
+```
+
+Why?
+
+* Thread-safe
+* Non-blocking
+* Designed for concurrent access
+* No blocking/backpressure requirement
+
+---
+
+### Common Interview Traps
+
+### Trap 1 — Using Stack for modern LIFO
+
+❌
+
+```java
+Stack<Integer> stack = new Stack<>();
+```
+
+Prefer:
+
+```java
+Deque<Integer> stack = new ArrayDeque<>();
+```
+
+---
+
+### Trap 2 — Saying Queue always means FIFO
+
+`Queue` is an abstraction; implementations can have different ordering behavior.
+
+For example:
+
+```java
+PriorityQueue<Integer>
+```
+
+does **not** behave as a normal FIFO queue.
+
+It is heap-based and orders elements according to their ordering/comparator.
+
+---
+
+### Trap 3 — Saying LinkedList is always the best Deque
+
+Both:
+
+```java
+Deque<Integer> a = new ArrayDeque<>();
+Deque<Integer> b = new LinkedList<>();
+```
+
+support deque operations.
+
+But `ArrayDeque` is generally preferred for typical stack/queue usage because of better cache locality and lower per-element overhead.
+
+---
+
+### Trap 4 — Saying ArrayDeque provides indexed access
+
+It doesn't behave like `ArrayList`.
+
+```text
+ArrayList → random access
+ArrayDeque → efficient access at ends
+```
+
+---
+
+### Trap 5 — Saying BlockingQueue locks the queue while processing
+
+Incorrect mental model.
+
+Blocking occurs because of **queue state**:
+
+```text
+full  → put() can wait
+empty → take() can wait
+```
+
+It does not mean the queue is blocked while a consumer is processing an element.
+
+---
+
+### Trap 6 — Check then act
+
+Avoid:
+
+```java
+if (!queue.isEmpty()) {
+    queue.poll();
+}
+```
+
+in concurrent consumer code.
+
+Prefer:
+
+```java
+Integer value = queue.poll();
+```
+
+and inspect the result.
+
+---
+
+### Quick Revision Cheat Sheet
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ Queue                                               │
+│ FIFO                                                │
+│ offer / poll / peek                                │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ Deque                                               │
+│ Double-ended queue                                  │
+│ addFirst / addLast                                 │
+│ removeFirst / removeLast                           │
+│ Can implement Queue + Stack semantics              │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ Stack                                               │
+│ LIFO                                                │
+│ Legacy                                              │
+│ Prefer Deque + ArrayDeque                           │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ ArrayDeque                                          │
+│ Resizable circular array                            │
+│ Efficient at both ends                              │
+│ Amortized O(1) insertion at ends                    │
+│ No null elements                                    │
+│ Good default for Stack/Queue                        │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ BlockingQueue                                       │
+│ Thread-safe producer-consumer                      │
+│ put()   → waits if full                            │
+│ take()  → waits if empty                           │
+│ Bounded queues → backpressure                      │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ ConcurrentLinkedQueue                               │
+│ Thread-safe                                         │
+│ Non-blocking                                        │
+│ No backpressure                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+### Interview Decision Tree
+
+```text
+Need a queue/deque in a single-threaded context?
+                │
+                ▼
+            ArrayDeque
+                │
+                ├── FIFO → Queue interface
+                │
+                └── LIFO → Deque interface
+
+
+Need concurrent producer-consumer coordination?
+                │
+                ▼
+          BlockingQueue
+                │
+                ├── Need fixed capacity?
+                │       ↓
+                │  ArrayBlockingQueue
+                │
+                └── Linked-node based?
+                        ↓
+                  LinkedBlockingQueue
+
+
+Need concurrent + non-blocking?
+                │
+                ▼
+       ConcurrentLinkedQueue
+```
+
+---
+
+### IDE Experiments
+
+These are worth running yourself because they make the API behavior much easier to retain.
+
+### Experiment 1 — Queue vs Stack
+
+```java
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+
+        // Queue → FIFO
+        Queue<Integer> queue = new ArrayDeque<>();
+
+        queue.offer(10);
+        queue.offer(20);
+        queue.offer(30);
+
+        System.out.println(queue.poll()); // 10
+        System.out.println(queue.peek()); // 20
+
+
+        // Stack → LIFO
+        Deque<Integer> stack = new ArrayDeque<>();
+
+        stack.push(10);
+        stack.push(20);
+        stack.push(30);
+
+        System.out.println(stack.pop());  // 30
+        System.out.println(stack.peek()); // 20
+    }
+}
+```
+
+---
+
+### Experiment 2 — All six Queue methods
+
+```java
+Queue<Integer> queue = new ArrayDeque<>();
+
+System.out.println(queue.poll());   // null
+System.out.println(queue.peek());   // null
+
+// System.out.println(queue.remove());  // NoSuchElementException
+// System.out.println(queue.element()); // NoSuchElementException
+
+System.out.println(queue.offer(10)); // true
+System.out.println(queue.add(20));   // true
+
+System.out.println(queue.poll());    // 10
+System.out.println(queue.remove());  // 20
+```
+
+---
+
+### Experiment 3 — ArrayDeque rejects null
+
+```java
+Deque<Integer> deque = new ArrayDeque<>();
+
+deque.add(10);
+
+// Throws NullPointerException
+deque.add(null);
+```
+
+Then ask yourself:
+
+> Why does Java prohibit null here?
+
+Because:
+
+```java
+deque.poll()
+```
+
+needs `null` to unambiguously mean:
+
+```text
+"No element available"
+```
+
+---
+
+### Experiment 4 — BlockingQueue
+
+```java
+import java.util.concurrent.*;
+
+public class Main {
+    public static void main(String[] args)
+            throws InterruptedException {
+
+        BlockingQueue<Integer> queue =
+                new ArrayBlockingQueue<>(2);
+
+        queue.put(10);
+        queue.put(20);
+
+        System.out.println(queue.poll()); // 10
+        System.out.println(queue.poll()); // 20
+        System.out.println(queue.poll()); // null
+    }
+}
+```
+
+To actually observe blocking, fill the queue and call `put()` from one thread while another thread eventually removes an element.
+
+---
+
+### Experiment 5 — ConcurrentLinkedQueue
+
+```java
+import java.util.concurrent.*;
+
+public class Main {
+    public static void main(String[] args) {
+
+        Queue<Integer> queue =
+                new ConcurrentLinkedQueue<>();
+
+        queue.offer(10);
+        queue.offer(20);
+        queue.offer(30);
+
+        System.out.println(queue.poll()); // 10
+        System.out.println(queue.poll()); // 20
+        System.out.println(queue.poll()); // 30
+        System.out.println(queue.poll()); // null
+    }
+}
+```
+
+---
+
+### Final Mental Model
+
+If you remember only this:
+
+```text
+FIFO?
+ ↓
+Queue
+ ↓
+ArrayDeque
+
+
+LIFO?
+ ↓
+Deque
+ ↓
+ArrayDeque
+
+
+Both ends?
+ ↓
+Deque
+ ↓
+ArrayDeque
+
+
+Producer-consumer + blocking/backpressure?
+ ↓
+BlockingQueue
+
+
+Concurrent + non-blocking?
+ ↓
+ConcurrentLinkedQueue
+
+
+Legacy Stack?
+ ↓
+Don't reach for it
+ ↓
+Deque + ArrayDeque
+```
+
+### One-line interview summary
+
+> **"For normal FIFO or LIFO operations I generally use `ArrayDeque`; for producer-consumer coordination with blocking and backpressure I use `BlockingQueue`; for concurrent non-blocking queue operations I can use `ConcurrentLinkedQueue`; and I prefer `Deque` over the legacy `Stack` class."**
