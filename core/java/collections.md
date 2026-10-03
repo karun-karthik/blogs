@@ -6911,3 +6911,2002 @@ Deque + ArrayDeque
 ### One-line interview summary
 
 > **"For normal FIFO or LIFO operations I generally use `ArrayDeque`; for producer-consumer coordination with blocking and backpressure I use `BlockingQueue`; for concurrent non-blocking queue operations I can use `ConcurrentLinkedQueue`; and I prefer `Deque` over the legacy `Stack` class."**
+
+# Q19 · Iterator vs ListIterator vs Spliterator
+
+### Exact question
+
+**"What's a Spliterator, and how is it different from a regular Iterator?"**
+
+**Asked at:** Mid-level rounds
+**Difficulty:** Medium
+**Topic:** Iterators
+
+### 30-second answer
+
+`Iterator` provides sequential, forward-only traversal with `hasNext()` and `next()`, and optionally `remove()`.
+
+`ListIterator` is specifically for `List` implementations and adds bidirectional traversal, modification operations such as `add()` and `set()`, and index information.
+
+`Spliterator`, introduced in Java 8, is designed for traversal and splitting of a data source. `tryAdvance()` processes one element, while `trySplit()` divides the remaining source into portions that can potentially be processed independently, making it useful for parallel streams. It also exposes source characteristics such as `ORDERED`, `SIZED`, and `IMMUTABLE`, which the Streams API can use for optimization.
+
+### 1. Iterator
+
+An `Iterator` provides a standard way to traverse a collection sequentially without depending on the underlying collection implementation.
+
+The core methods are:
+
+```java
+hasNext()
+next()
+remove() // optional operation
+```
+
+Example:
+
+```java
+List<Integer> list = List.of(10, 20, 30);
+
+Iterator<Integer> it = list.iterator();
+
+while (it.hasNext()) {
+    System.out.println(it.next());
+}
+```
+
+Output:
+
+```text
+10
+20
+30
+```
+
+### Why use Iterator?
+
+The important reason is **standardized traversal**, not simply avoiding structural modification problems.
+
+An `Iterator` gives the caller a consistent traversal mechanism regardless of whether the collection is backed by an array, linked structure, or another implementation.
+
+It is also what enables the enhanced `for` loop to work with iterable collections.
+
+### Iterator and modification
+
+This is unsafe:
+
+```java
+List<Integer> list = new ArrayList<>(
+    List.of(10, 20, 30, 40)
+);
+
+Iterator<Integer> it = list.iterator();
+
+while (it.hasNext()) {
+    Integer value = it.next();
+
+    if (value == 20) {
+        list.remove(value);
+    }
+}
+```
+
+The collection is modified directly while the iterator is traversing it.
+
+For an `ArrayList`, this can result in:
+
+```text
+ConcurrentModificationException
+```
+
+The iterator maintains internal state describing the collection's expected modification state. Direct structural modification can make that state inconsistent.
+
+### Iterator.remove()
+
+Instead, use the iterator's supported removal operation:
+
+```java
+Iterator<Integer> it = list.iterator();
+
+while (it.hasNext()) {
+    Integer value = it.next();
+
+    if (value == 20) {
+        it.remove();
+    }
+}
+```
+
+`Iterator.remove()` removes the **last element returned by the iterator** and updates the iterator's internal state accordingly.
+
+Important:
+
+`remove()` is an **optional Iterator operation**. An iterator that does not support it may throw:
+
+```java
+UnsupportedOperationException
+```
+
+### Important ConcurrentModificationException point
+
+`ConcurrentModificationException` does **not** mean that `Iterator` makes collection modification thread-safe.
+
+It is generally a **fail-fast mechanism** used by many collection implementations.
+
+Do not say:
+
+> "Iterator prevents ConcurrentModificationException."
+
+Instead say:
+
+> "Modifying a collection directly while traversing it can cause ConcurrentModificationException; Iterator.remove() provides a supported way to remove the element currently being traversed."
+
+### 2. ListIterator
+
+`ListIterator` is a specialized iterator for `List` implementations.
+
+Unlike `Iterator`, it supports **bidirectional traversal**.
+
+Important methods include:
+
+```java
+hasPrevious()
+previous()
+add(E)
+set(E)
+nextIndex()
+previousIndex()
+```
+
+It also retains the normal iterator operations such as:
+
+```java
+hasNext()
+next()
+remove()
+```
+
+### Iterator vs ListIterator
+
+```text
+Iterator
+    ↓
+Forward-only traversal
+    ↓
+hasNext()
+next()
+optional remove()
+
+
+ListIterator
+    ↓
+Bidirectional traversal
+    ↓
+hasNext()
+next()
+hasPrevious()
+previous()
+    ↓
+Additional list modification
+    ↓
+add()
+set()
+remove()
+    ↓
+Index information
+    ↓
+nextIndex()
+previousIndex()
+```
+
+### ListIterator cursor model
+
+A useful mental model is that the cursor sits **between elements**.
+
+For:
+
+```text
+10 | 20 | 30
+   ^
+ cursor
+```
+
+`next()` moves the cursor to the right and returns the element it crosses.
+
+`previous()` moves the cursor to the left and returns the element it crosses.
+
+### ListIterator traversal example
+
+```java
+List<Integer> list = new ArrayList<>(
+    List.of(10, 20, 30)
+);
+
+ListIterator<Integer> it = list.listIterator();
+
+System.out.println(it.next());     // 10
+System.out.println(it.next());     // 20
+System.out.println(it.previous()); // 20
+System.out.println(it.previous()); // 10
+```
+
+Output:
+
+```text
+10
+20
+20
+10
+```
+
+### ListIterator.add()
+
+Consider:
+
+```java
+List<Integer> list = new ArrayList<>(
+    List.of(10, 20, 30)
+);
+
+ListIterator<Integer> it = list.listIterator();
+
+it.next();      // 10
+it.next();      // 20
+
+it.add(15);
+
+System.out.println(list);
+System.out.println(it.next());
+```
+
+Result:
+
+```text
+[10, 20, 15, 30]
+30
+```
+
+After the two `next()` calls:
+
+```text
+10   20 | 30
+         ^
+       cursor
+```
+
+`add(15)` inserts the new element at the cursor position:
+
+```text
+10   20   15 | 30
+```
+
+The cursor moves past the newly inserted element.
+
+Therefore the next `next()` returns:
+
+```text
+30
+```
+
+### ListIterator.set()
+
+`set(E)` replaces the **last element returned by `next()` or `previous()`**.
+
+Example:
+
+```java
+List<Integer> list = new ArrayList<>(
+    List.of(10, 20, 30)
+);
+
+ListIterator<Integer> it = list.listIterator();
+
+System.out.println(it.next()); // 10
+
+it.set(99);
+
+System.out.println(list);
+
+System.out.println(it.next());
+```
+
+Output:
+
+```text
+10
+[99, 20, 30]
+20
+```
+
+`set()` does not move the cursor.
+
+### set() restriction
+
+`set()` requires that the iterator has previously returned an element through `next()` or `previous()`.
+
+This is invalid:
+
+```java
+ListIterator<Integer> it = list.listIterator();
+
+it.set(99);
+```
+
+It can result in:
+
+```text
+IllegalStateException
+```
+
+### 3. Spliterator
+
+`Spliterator` stands for **splitable iterator** and is designed for efficient traversal and splitting of data sources.
+
+It was introduced with Java 8 and is heavily used by the Streams API.
+
+The two most important methods are:
+
+```java
+tryAdvance()
+trySplit()
+```
+
+### tryAdvance()
+
+`tryAdvance()` processes **one element**.
+
+Conceptually:
+
+```java
+spliterator.tryAdvance(element -> {
+    System.out.println(element);
+});
+```
+
+It is useful for sequential traversal.
+
+Important:
+
+> `tryAdvance()` itself does not mean parallel processing.
+
+### trySplit()
+
+`trySplit()` is the key operation that enables a source to be divided.
+
+Suppose:
+
+```text
+[1 2 3 4 5 6 7 8]
+```
+
+Calling:
+
+```java
+Spliterator<Integer> s2 = s1.trySplit();
+```
+
+can conceptually produce:
+
+```text
+s2 → [1 2 3 4]
+
+s1 → [5 6 7 8]
+```
+
+The exact partition is controlled by the Spliterator implementation; the important contract is that the returned Spliterator covers one portion while the original covers the remaining portion.
+
+### Why trySplit() matters
+
+The two Spliterators can now traverse their respective portions independently.
+
+For example:
+
+```text
+             Original source
+                   |
+               trySplit()
+              /          \
+             /            \
+        portion A       portion B
+            |               |
+        Thread A         Thread B
+```
+
+This gives the Streams API a mechanism for distributing work when processing a parallel stream.
+
+Important distinction:
+
+> A `Spliterator` does not automatically make processing parallel.
+
+It **provides the ability to split the source**, which a parallel stream can use to perform parallel processing.
+
+### estimateSize()
+
+`estimateSize()` returns an estimate of the number of remaining elements.
+
+For a `SIZED` Spliterator, the size is known exactly.
+
+Example:
+
+```java
+List<Integer> list =
+    List.of(1, 2, 3, 4, 5, 6);
+
+Spliterator<Integer> s1 = list.spliterator();
+
+System.out.println(s1.estimateSize());
+
+Spliterator<Integer> s2 = s1.trySplit();
+
+System.out.println(s1.estimateSize());
+System.out.println(s2.estimateSize());
+```
+
+For this `ArrayList` example, a typical result is:
+
+```text
+6
+3
+3
+```
+
+The important concept is:
+
+```text
+Before split:
+
+s1 → 6 elements
+
+After split:
+
+s1 → remaining portion
+s2 → split-off portion
+```
+
+There is no duplication of elements between the two traversal portions.
+
+### Spliterator characteristics()
+
+A Spliterator can describe properties of its source using:
+
+```java
+characteristics()
+```
+
+Important characteristics include:
+
+```text
+ORDERED
+SIZED
+SUBSIZED
+IMMUTABLE
+CONCURRENT
+NONNULL
+DISTINCT
+SORTED
+```
+
+These characteristics give the Streams API information about the source that can help it choose appropriate processing strategies and optimizations.
+
+### Important characteristics
+
+`ORDERED`
+
+The source has a defined **encounter order**.
+
+For example:
+
+```text
+1 → 2 → 3 → 4
+```
+
+The stream can know that this order is meaningful.
+
+`SIZED`
+
+The Spliterator knows the exact number of remaining elements.
+
+Think:
+
+```text
+SIZED
+  ↓
+"How many elements remain?"
+  ↓
+Exact answer available
+```
+
+`SUBSIZED`
+
+The Spliterators produced by splitting are themselves sized.
+
+`IMMUTABLE`
+
+The underlying source cannot be structurally modified.
+
+`CONCURRENT`
+
+The source can support concurrent modification in the manner specified by the Spliterator.
+
+`NONNULL`
+
+The source is known not to contain null elements.
+
+`DISTINCT`
+
+No two encountered elements are equal.
+
+`SORTED`
+
+The source's elements have a defined sorted encounter order.
+
+### Why characteristics matter
+
+Characteristics allow the Stream implementation to know more about its source.
+
+Conceptually:
+
+```text
+Data source
+    ↓
+Spliterator
+    ↓
+characteristics()
+    ↓
+"Here are properties of my data"
+    ↓
+Stream pipeline can make informed decisions
+```
+
+Do not describe characteristics as simply:
+
+> "They tell the stream how to process the result."
+
+A more precise statement is:
+
+> "They describe properties of the source that the Streams API can use when choosing processing strategies and optimizations."
+
+### Spliterator and Streams
+
+A collection's stream is built around its Spliterator.
+
+Conceptually:
+
+```text
+Collection
+    ↓
+spliterator()
+    ↓
+Spliterator
+    ↓
+Stream pipeline
+```
+
+For a sequential stream, the Spliterator provides the traversal mechanism.
+
+For a parallel stream, its splitting capability becomes particularly important:
+
+```text
+Collection
+    ↓
+Spliterator
+    ↓
+trySplit()
+   /   \
+  /     \
+part A  part B
+  ↓       ↓
+worker  worker
+```
+
+### stream() vs parallelStream()
+
+A sequential stream:
+
+```java
+numbers.stream()
+```
+
+normally processes the pipeline sequentially.
+
+A parallel stream:
+
+```java
+numbers.parallelStream()
+```
+
+can divide the source and process portions concurrently.
+
+However:
+
+> `parallelStream()` is not automatically faster.
+
+Parallel processing introduces overhead such as:
+
+```text
+splitting
+task scheduling
+coordination
+combining results
+parallel execution
+```
+
+For small workloads, this overhead can outweigh the useful computation.
+
+### When can parallelStream() help?
+
+Parallel streams are more likely to be beneficial when:
+
+* The dataset is sufficiently large.
+* The computation is CPU-intensive.
+* Individual element operations are largely independent.
+* The source can be split effectively.
+* The amount of useful computation is large enough to justify parallelism overhead.
+
+Example:
+
+```java
+List<Integer> numbers = /* millions of elements */;
+
+numbers.parallelStream()
+       .map(x -> performExpensiveCpuComputation(x))
+       .toList();
+```
+
+Here, expensive independent computation provides enough useful work for parallelism to potentially pay off.
+
+### When can parallelStream() hurt?
+
+For a small workload:
+
+```java
+List<Integer> numbers =
+    List.of(1, 2, 3, 4, 5);
+
+numbers.parallelStream()
+       .map(x -> x * 2)
+       .toList();
+```
+
+The actual computation is extremely cheap.
+
+The overhead of parallel processing can therefore exceed the computation itself.
+
+A normal sequential stream may be faster.
+
+### Interview trap: "Always use parallel streams"
+
+Do **not** say:
+
+> "Parallel streams are faster because multiple threads are used."
+
+Better:
+
+> "Parallel streams can outperform sequential streams when there is enough independent work to justify the overhead of splitting and coordinating parallel execution. For small or unsuitable workloads, the overhead can make them slower."
+
+### 4. Iterator vs ListIterator vs Spliterator
+
+| Feature                     | Iterator | ListIterator            | Spliterator             |
+| --------------------------- | -------- | ----------------------- | ----------------------- |
+| Direction                   | Forward  | Forward + backward      | Traversal               |
+| Main traversal              | `next()` | `next()` / `previous()` | `tryAdvance()`          |
+| Remove                      | Optional | Yes, optional           | Not its primary purpose |
+| Add                         | No       | Yes                     | No                      |
+| Set                         | No       | Yes                     | No                      |
+| Index information           | No       | Yes                     | No                      |
+| Splitting                   | No       | No                      | Yes                     |
+| Parallel processing support | No       | No                      | Yes                     |
+| Source characteristics      | No       | No                      | Yes                     |
+| Introduced with Java 8      | No       | No                      | Yes                     |
+
+### Simple mental model
+
+```text
+Iterator
+    ↓
+"Give me the next element."
+
+ListIterator
+    ↓
+"Let me move forward/backward through a List
+ and modify it while I traverse."
+
+Spliterator
+    ↓
+"Let me traverse this source,
+ describe its properties,
+ and split it into portions when useful."
+```
+
+### Common interview mistakes
+
+Do not say:
+
+> "Spliterator is just a parallel Iterator."
+
+Why it's incomplete:
+
+`Spliterator` also exposes source characteristics and provides a structured way for streams to traverse and split data.
+
+Do not say:
+
+> "`tryAdvance()` performs parallel processing."
+
+Incorrect.
+
+`tryAdvance()` processes one element. `trySplit()` provides the splitting capability used for parallel processing.
+
+Do not say:
+
+> "`SIZED` means the partition is known."
+
+More precise:
+
+> "`SIZED` means the exact number of remaining elements is known."
+
+Do not say:
+
+> "`parallelStream()` is always faster."
+
+Parallelism has overhead and can be slower for small or unsuitable workloads.
+
+### 30-second final interview answer
+
+> **"`Iterator` provides sequential, forward-only traversal with `hasNext()` and `next()`, plus an optional `remove()`. `ListIterator` is specifically for Lists and adds bidirectional traversal, modification operations such as `add()` and `set()`, and index information. `Spliterator`, introduced in Java 8, is designed for traversal and splitting. `tryAdvance()` processes one element, while `trySplit()` divides the source into portions that can be processed independently, making it useful for parallel streams. It also exposes characteristics such as `ORDERED`, `SIZED`, and `IMMUTABLE`, which the Streams API can use for optimization."**
+
+### IDE Experiment 1 — Iterator removal
+
+Create an `ArrayList` and compare:
+
+```java
+List<Integer> list = new ArrayList<>(
+    List.of(10, 20, 30)
+);
+
+Iterator<Integer> it = list.iterator();
+
+while (it.hasNext()) {
+    Integer value = it.next();
+
+    if (value == 20) {
+        list.remove(value);
+    }
+}
+```
+
+Observe the exception.
+
+Then change:
+
+```java
+list.remove(value);
+```
+
+to:
+
+```java
+it.remove();
+```
+
+Observe the difference.
+
+### IDE Experiment 2 — ListIterator direction
+
+Run:
+
+```java
+List<Integer> list =
+    new ArrayList<>(List.of(10, 20, 30));
+
+ListIterator<Integer> it = list.listIterator();
+
+System.out.println(it.next());
+System.out.println(it.next());
+
+System.out.println(it.previous());
+System.out.println(it.previous());
+```
+
+Verify:
+
+```text
+10
+20
+20
+10
+```
+
+Then experiment with:
+
+```java
+it.add(15);
+it.set(99);
+```
+
+and observe how the list and cursor change.
+
+### IDE Experiment 3 — Spliterator splitting
+
+Run:
+
+```java
+List<Integer> list =
+    new ArrayList<>(List.of(1, 2, 3, 4, 5, 6));
+
+Spliterator<Integer> s1 = list.spliterator();
+
+System.out.println("s1 size: " + s1.estimateSize());
+
+Spliterator<Integer> s2 = s1.trySplit();
+
+System.out.println("s1 size: " + s1.estimateSize());
+System.out.println("s2 size: " + s2.estimateSize());
+
+System.out.print("s1: ");
+s1.forEachRemaining(x -> System.out.print(x + " "));
+
+System.out.println();
+
+System.out.print("s2: ");
+s2.forEachRemaining(x -> System.out.print(x + " "));
+```
+
+Verify that the two Spliterators collectively process the source without processing the same element twice.
+
+### IDE Experiment 4 — Characteristics
+
+Run:
+
+```java
+List<Integer> list =
+    List.of(1, 2, 3, 4, 5);
+
+Spliterator<Integer> spliterator =
+    list.spliterator();
+
+System.out.println(
+    spliterator.characteristics()
+);
+```
+
+Then test individual characteristics:
+
+```java
+System.out.println(
+    spliterator.hasCharacteristics(
+        Spliterator.ORDERED
+    )
+);
+
+System.out.println(
+    spliterator.hasCharacteristics(
+        Spliterator.SIZED
+    )
+);
+
+System.out.println(
+    spliterator.hasCharacteristics(
+        Spliterator.SUBSIZED
+    )
+);
+```
+
+The goal is to understand that `characteristics()` is a **bitmask**, while `hasCharacteristics()` provides a convenient way to test individual properties.
+
+### IDE Experiment 5 — Sequential vs parallel stream
+
+Start with:
+
+```java
+List<Integer> numbers =
+    IntStream.rangeClosed(1, 10)
+             .boxed()
+             .toList();
+
+numbers.stream()
+       .map(x -> x * 2)
+       .forEach(System.out::println);
+```
+
+Then:
+
+```java
+numbers.parallelStream()
+       .map(x -> x * 2)
+       .forEach(System.out::println);
+```
+
+Observe that parallel processing does not necessarily produce output in encounter order when using an unordered terminal operation such as `forEach()`.
+
+Then compare with:
+
+```java
+numbers.parallelStream()
+       .map(x -> x * 2)
+       .forEachOrdered(System.out::println);
+```
+
+This helps demonstrate the distinction between **parallel execution** and **encounter order**.
+
+### Source-derived core to retain
+
+The source's core distinction is:
+
+```text
+Iterator
+    → sequential, forward-only
+    → hasNext(), next(), optional remove()
+
+ListIterator
+    → bidirectional
+    → add(), set(), remove()
+    → index information
+
+Spliterator
+    → Java 8+
+    → tryAdvance()
+    → trySplit()
+    → parallel processing
+    → source characteristics
+    → used internally by streams
+```
+
+### Final retention rule
+
+Remember the three in one sentence:
+
+> **Iterator traverses, ListIterator traverses and modifies a List in both directions, and Spliterator traverses, describes, and splits a data source for stream processing.**
+
+
+Absolutely. I’ve updated the **Q20 Revision Markdown** to incorporate the actual interview discussion, including your answers, corrections, traps, concurrency distinction, and IDE experiments. Same structure: `#` title and `###` subheadings only.
+
+# Q20 — Map.Entry, computeIfAbsent, and Java 8 Map Enhancements
+
+### Interview Question
+
+**What new methods were added to `Map` in Java 8, and when would you use `computeIfAbsent` over `putIfAbsent`?**
+
+### 30-Second Interview Answer
+
+Java 8 added several useful methods to `Map`, including:
+
+```java
+getOrDefault()
+putIfAbsent()
+compute()
+computeIfAbsent()
+computeIfPresent()
+merge()
+replace()
+replaceAll()
+forEach()
+```
+
+The key difference between `computeIfAbsent()` and `putIfAbsent()` is **lazy computation**.
+
+With `putIfAbsent()`, the value is already computed:
+
+```java
+map.putIfAbsent(key, expensiveCompute(key));
+```
+
+The `expensiveCompute()` call happens before `putIfAbsent()` is invoked.
+
+With `computeIfAbsent()`, the computation happens only when the key is absent:
+
+```java
+map.computeIfAbsent(key, k -> expensiveCompute(k));
+```
+
+So:
+
+```text
+putIfAbsent      → value already computed
+computeIfAbsent  → compute only if needed
+```
+
+On `ConcurrentHashMap`, `computeIfAbsent()`, `compute()`, and `merge()` are also atomic compound operations.
+
+### Map.Entry
+
+`Map.Entry<K, V>` is an **interface representing one key-value mapping**.
+
+It is **not an array**.
+
+```java
+for (Map.Entry<String, Integer> entry : map.entrySet()) {
+    System.out.println(entry.getKey());
+    System.out.println(entry.getValue());
+}
+```
+
+Here:
+
+```text
+Map.Entry → one key-value mapping
+entrySet() → view of the map's mappings
+getKey() → key
+getValue() → value
+```
+
+Avoid describing `entrySet()` as a "snapshot." It is a view of the map's mappings.
+
+Java 8 also provides a more concise way to iterate:
+
+```java
+map.forEach((key, value) ->
+    System.out.println(key + " " + value)
+);
+```
+
+### getOrDefault()
+
+`getOrDefault()` simplifies the common pattern:
+
+```java
+if (map.containsKey(key)) {
+    return map.get(key);
+} else {
+    return defaultValue;
+}
+```
+
+into:
+
+```java
+return map.getOrDefault(key, defaultValue);
+```
+
+Example:
+
+```java
+Map<String, Integer> scores = new HashMap<>();
+
+scores.put("Alice", 10);
+
+int score = scores.getOrDefault("Bob", 0);
+```
+
+Result:
+
+```text
+score = 0
+```
+
+Its main benefit is **reduced boilerplate**.
+
+Do not describe `getOrDefault()` as an atomic compound operation.
+
+### putIfAbsent()
+
+`putIfAbsent()` inserts a value only when the key is absent.
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+map.put("Alice", 10);
+
+Integer result = map.putIfAbsent("Alice", 20);
+```
+
+The result is:
+
+```text
+Alice → 10
+result → 10
+```
+
+The existing value remains unchanged.
+
+For an absent key:
+
+```java
+Integer result = map.putIfAbsent("Bob", 20);
+```
+
+The result is:
+
+```text
+Bob → 20
+result → null
+```
+
+### putIfAbsent() Mental Model
+
+Remember:
+
+```text
+Key exists
+    → don't put
+    → return existing value
+
+Key absent
+    → put new value
+    → return null
+```
+
+### computeIfAbsent()
+
+`computeIfAbsent()` is similar in purpose to `putIfAbsent()`, but instead of receiving an already-created value, it receives a function that can create the value.
+
+```java
+map.computeIfAbsent(
+    "Alice",
+    key -> expensiveCompute(key)
+);
+```
+
+The function executes only when the mapping is absent.
+
+This is the **primary interview distinction** between the two methods.
+
+### Eager vs Lazy Computation
+
+Consider:
+
+```java
+map.putIfAbsent(
+    "Alice",
+    expensiveCompute("Alice")
+);
+```
+
+Java must first evaluate:
+
+```java
+expensiveCompute("Alice")
+```
+
+and then call:
+
+```java
+putIfAbsent()
+```
+
+Therefore, the expensive computation happens even if Alice already exists.
+
+With:
+
+```java
+map.computeIfAbsent(
+    "Alice",
+    key -> expensiveCompute(key)
+);
+```
+
+the function is evaluated only when necessary.
+
+Mental model:
+
+```text
+putIfAbsent
+    → I already have the value
+
+computeIfAbsent
+    → compute the value only if needed
+```
+
+### compute()
+
+`compute()` invokes a remapping function to calculate the new value.
+
+A common example is a frequency counter:
+
+```java
+map.compute(
+    word,
+    (key, value) -> value == null ? 1 : value + 1
+);
+```
+
+Important:
+
+`compute()` does **not inherently mean "increment."**
+
+The lambda determines what happens.
+
+For example:
+
+```java
+map.compute("Alice", (key, value) -> 100);
+```
+
+sets Alice's value to `100`.
+
+Therefore:
+
+```text
+compute()
+    → execute the remapping function to calculate the mapping
+```
+
+### computeIfAbsent() vs compute()
+
+Do not memorize:
+
+```text
+computeIfAbsent → happens only once
+```
+
+That is too broad.
+
+The better distinction is:
+
+```text
+computeIfAbsent
+    → function executes when the mapping is absent
+
+compute
+    → remapping function executes for the mapping update
+```
+
+If a mapping is removed and the key becomes absent again, `computeIfAbsent()` can execute again.
+
+### computeIfPresent()
+
+`computeIfPresent()` performs the computation only when the key is present.
+
+Example:
+
+```java
+map.computeIfPresent(
+    "Alice",
+    (key, value) -> value + 10
+);
+```
+
+Mental model:
+
+```text
+compute()
+    → compute/update the mapping
+
+computeIfAbsent()
+    → compute when absent
+
+computeIfPresent()
+    → compute when present
+```
+
+### merge()
+
+`merge()` is particularly useful for counters.
+
+```java
+Map<String, Integer> counts = new HashMap<>();
+
+counts.merge("java", 1, Integer::sum);
+counts.merge("java", 1, Integer::sum);
+counts.merge("java", 1, Integer::sum);
+```
+
+Final result:
+
+```text
+java → 3
+```
+
+### How merge() Works
+
+For an absent key:
+
+```java
+counts.merge("java", 1, Integer::sum);
+```
+
+there is no existing value, so:
+
+```text
+java → 1
+```
+
+For a present key:
+
+```text
+oldValue = 1
+newValue = 1
+```
+
+and:
+
+```java
+Integer::sum
+```
+
+produces:
+
+```text
+1 + 1 = 2
+```
+
+The next call produces:
+
+```text
+2 + 1 = 3
+```
+
+Mental model:
+
+```text
+merge(key, value, function)
+
+key absent
+    → insert value
+
+key present
+    → function(oldValue, value)
+```
+
+### One-Line Word Count
+
+A classic interview use case:
+
+```java
+counts.merge(word, 1, Integer::sum);
+```
+
+Instead of manually doing:
+
+```java
+if (counts.containsKey(word)) {
+    counts.put(word, counts.get(word) + 1);
+} else {
+    counts.put(word, 1);
+}
+```
+
+`merge()` expresses the operation directly.
+
+### merge() Returning null
+
+Important interview trap.
+
+Consider:
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+map.put("java", 10);
+
+map.merge(
+    "java",
+    5,
+    (oldValue, newValue) -> null
+);
+```
+
+The result is:
+
+```text
+{}
+```
+
+It does **not** become:
+
+```text
+{java=null}
+```
+
+When the remapping function in `merge()` returns `null`, the mapping is removed.
+
+### compute() Returning null
+
+The same important rule applies to `compute()`.
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+map.put("A", 10);
+
+map.compute(
+    "A",
+    (key, value) -> null
+);
+```
+
+Result:
+
+```text
+{}
+```
+
+Interview rule:
+
+```text
+compute() returning null
+    → remove mapping
+
+merge() returning null
+    → remove mapping
+```
+
+### replace()
+
+`put()` can both insert and update:
+
+```java
+map.put("Bob", 20);
+```
+
+If Bob does not exist:
+
+```text
+Bob → 20
+```
+
+If Bob exists:
+
+```text
+old value → 20
+```
+
+`replace()` only updates an existing mapping:
+
+```java
+map.replace("Bob", 20);
+```
+
+If Bob does not exist, nothing is inserted.
+
+Mental model:
+
+```text
+put()
+    → insert OR update
+
+replace()
+    → update only if present
+```
+
+### Conditional replace()
+
+There is also:
+
+```java
+map.replace("Alice", 10, 20);
+```
+
+This means:
+
+> Replace Alice's value from `10` to `20`, but only if the current value is `10`.
+
+Example:
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+map.put("Alice", 10);
+
+boolean result = map.replace("Alice", 10, 20);
+
+System.out.println(result);
+System.out.println(map);
+```
+
+Output:
+
+```text
+true
+{Alice=20}
+```
+
+If the current value is not `10`:
+
+```java
+map.replace("Alice", 99, 20);
+```
+
+the replacement does not happen:
+
+```text
+false
+{Alice=10}
+```
+
+### replaceAll()
+
+`replaceAll()` applies a function to every mapping.
+
+```java
+Map<String, Integer> scores = new HashMap<>();
+
+scores.put("Alice", 10);
+scores.put("Bob", 20);
+scores.put("Charlie", 30);
+
+scores.replaceAll((name, score) -> score * 2);
+```
+
+Result:
+
+```text
+{Alice=20, Bob=40, Charlie=60}
+```
+
+Mental model:
+
+```text
+replace()
+    → one mapping
+
+replaceAll()
+    → every mapping
+```
+
+### forEach()
+
+Java 8 provides a concise way to iterate over key-value mappings:
+
+```java
+map.forEach((key, value) ->
+    System.out.println(key + " " + value)
+);
+```
+
+This is often more concise than:
+
+```java
+for (Map.Entry<String, Integer> entry : map.entrySet()) {
+    System.out.println(
+        entry.getKey() + " " + entry.getValue()
+    );
+}
+```
+
+The source specifically highlights `forEach((k, v) -> ...)` as a replacement for the verbose `entrySet().iterator()` style.
+
+Do not say:
+
+> "`forEach()` is always better."
+
+A better interview statement is:
+
+> Java 8's `Map.forEach()` provides a concise way to iterate over key-value mappings when I simply need to perform an action for each entry.
+
+### computeIfAbsent() with Map<K, List<V>>
+
+One of the most useful real-world patterns:
+
+```java
+Map<String, List<String>> groups = new HashMap<>();
+
+groups.computeIfAbsent(
+    "java",
+    k -> new ArrayList<>()
+).add("Alice");
+
+groups.computeIfAbsent(
+    "java",
+    k -> new ArrayList<>()
+).add("Bob");
+
+groups.computeIfAbsent(
+    "python",
+    k -> new ArrayList<>()
+).add("Charlie");
+```
+
+Final result:
+
+```text
+{
+    java=[Alice, Bob],
+    python=[Charlie]
+}
+```
+
+The second `"java"` call reuses the existing list.
+
+Without `computeIfAbsent()`:
+
+```java
+if (!map.containsKey(key)) {
+    map.put(key, new ArrayList<>());
+}
+
+map.get(key).add(value);
+```
+
+With `computeIfAbsent()`:
+
+```java
+map.computeIfAbsent(
+    key,
+    k -> new ArrayList<>()
+).add(value);
+```
+
+This reduces the repetitive check-create-get-update sequence.
+
+### ConcurrentHashMap Connection
+
+This is an important senior-level follow-up.
+
+Consider:
+
+```java
+Map<String, Integer> map = new ConcurrentHashMap<>();
+
+if (!map.containsKey("java")) {
+    map.put("java", 1);
+}
+```
+
+`ConcurrentHashMap` makes its individual operations thread-safe, but the **sequence**:
+
+```text
+containsKey()
+    ↓
+put()
+```
+
+is not automatically atomic.
+
+Two threads can both observe:
+
+```text
+containsKey("java") → false
+```
+
+and both proceed to `put()`.
+
+This is a classic **check-then-act race**.
+
+### Atomic Compound Operations
+
+For `ConcurrentHashMap`, use compound operations such as:
+
+```java
+computeIfAbsent()
+compute()
+merge()
+```
+
+For example:
+
+```java
+map.computeIfAbsent(
+    "java",
+    key -> 1
+);
+```
+
+The source explicitly identifies these as atomic compound operations on `ConcurrentHashMap`.
+
+Important interview distinction:
+
+> Do not say that `ConcurrentHashMap` makes arbitrary sequences of operations atomic.
+
+Instead:
+
+> Individual operations are thread-safe, but a sequence such as `containsKey()` followed by `put()` is not automatically atomic. Use the appropriate compound operation such as `computeIfAbsent()` when the operation needs to be atomic.
+
+### ConcurrentHashMap and computeIfAbsent()
+
+The source specifically notes that `computeIfAbsent()` is atomic on `ConcurrentHashMap`, with the mapping function invoked at most once per key.
+
+Therefore, this:
+
+```java
+if (!map.containsKey(key)) {
+    map.put(key, createValue());
+}
+```
+
+can be replaced with:
+
+```java
+map.computeIfAbsent(
+    key,
+    k -> createValue()
+);
+```
+
+This provides two important benefits:
+
+```text
+1. Lazy value creation
+2. Appropriate atomic compound operation on ConcurrentHashMap
+```
+
+### Java 8 Map Methods — Quick Revision
+
+| Method               | Core purpose             |
+| -------------------- | ------------------------ |
+| `getOrDefault()`     | Get value or fallback    |
+| `putIfAbsent()`      | Put only when absent     |
+| `compute()`          | Compute/update mapping   |
+| `computeIfAbsent()`  | Compute when absent      |
+| `computeIfPresent()` | Compute when present     |
+| `merge()`            | Insert or combine        |
+| `replace()`          | Replace existing mapping |
+| `replaceAll()`       | Transform every mapping  |
+| `forEach()`          | Iterate over mappings    |
+
+### Most Important Comparisons
+
+```text
+put()
+    → insert OR update
+
+putIfAbsent()
+    → insert only if absent
+    → value is already computed
+
+computeIfAbsent()
+    → compute value only if absent
+
+compute()
+    → calculate the new mapping
+
+computeIfPresent()
+    → calculate/update only when present
+
+merge()
+    → absent → insert supplied value
+    → present → combine old + supplied value
+
+replace()
+    → update only if key exists
+
+replaceAll()
+    → transform every mapping
+
+forEach()
+    → iterate over mappings
+```
+
+### Common Interview Mistakes
+
+### Mistake 1 — `putIfAbsent()` and `computeIfAbsent()` are the same
+
+Wrong.
+
+The critical difference is:
+
+```text
+putIfAbsent()
+    → eager value construction
+
+computeIfAbsent()
+    → lazy value construction
+```
+
+### Mistake 2 — `getOrDefault()` is atomic
+
+Wrong.
+
+`getOrDefault()` is primarily a convenience/read operation.
+
+### Mistake 3 — ConcurrentHashMap makes `containsKey() + put()` atomic
+
+Wrong.
+
+The two calls are separate operations.
+
+Use:
+
+```java
+computeIfAbsent()
+```
+
+when the compound operation requires atomicity.
+
+### Mistake 4 — `computeIfAbsent()` runs only once
+
+Too broad.
+
+It runs when the mapping is absent. If the mapping is later removed, it can execute again.
+
+### Mistake 5 — `compute()` returning null stores null
+
+Wrong.
+
+A `null` result removes the mapping.
+
+### Mistake 6 — `merge()` returning null stores null
+
+Wrong.
+
+A `null` remapping result removes the mapping.
+
+### Mistake 7 — `compute()` automatically increments
+
+Wrong.
+
+The lambda determines the computation:
+
+```java
+map.compute(
+    word,
+    (key, value) -> value == null ? 1 : value + 1
+);
+```
+
+### IDE Experiment 1 — Eager vs Lazy Computation
+
+```java
+static int expensiveCompute(String key) {
+    System.out.println("Computing " + key);
+    return 100;
+}
+
+Map<String, Integer> map = new HashMap<>();
+
+map.put("Alice", 10);
+
+map.putIfAbsent(
+    "Alice",
+    expensiveCompute("Alice")
+);
+
+map.computeIfAbsent(
+    "Alice",
+    key -> expensiveCompute(key)
+);
+```
+
+Observe the output.
+
+The first call prints:
+
+```text
+Computing Alice
+```
+
+The second call does not.
+
+This demonstrates:
+
+```text
+putIfAbsent()
+    → argument evaluated before method call
+
+computeIfAbsent()
+    → function evaluated only when needed
+```
+
+### IDE Experiment 2 — merge()
+
+```java
+Map<String, Integer> counts = new HashMap<>();
+
+counts.merge("java", 1, Integer::sum);
+counts.merge("java", 1, Integer::sum);
+counts.merge("java", 1, Integer::sum);
+
+System.out.println(counts);
+```
+
+Expected:
+
+```text
+{java=3}
+```
+
+### IDE Experiment 3 — compute() Returning null
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+map.put("A", 10);
+
+map.compute(
+    "A",
+    (key, value) -> null
+);
+
+System.out.println(map);
+```
+
+Expected:
+
+```text
+{}
+```
+
+### IDE Experiment 4 — replace()
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+map.put("Alice", 10);
+
+System.out.println(
+    map.replace("Alice", 10, 20)
+);
+
+System.out.println(map);
+```
+
+Expected:
+
+```text
+true
+{Alice=20}
+```
+
+### IDE Experiment 5 — computeIfAbsent() with Lists
+
+```java
+Map<String, List<String>> groups = new HashMap<>();
+
+groups.computeIfAbsent(
+    "java",
+    k -> new ArrayList<>()
+).add("Alice");
+
+groups.computeIfAbsent(
+    "java",
+    k -> new ArrayList<>()
+).add("Bob");
+
+groups.computeIfAbsent(
+    "python",
+    k -> new ArrayList<>()
+).add("Charlie");
+
+System.out.println(groups);
+```
+
+Expected:
+
+```text
+{
+    java=[Alice, Bob],
+    python=[Charlie]
+}
+```
+
+### Final Interview Answer
+
+If the interviewer asks:
+
+> **"What new methods were added to Map in Java 8, and when would you use computeIfAbsent over putIfAbsent?"**
+
+Answer:
+
+> Java 8 added methods such as `getOrDefault`, `putIfAbsent`, `compute`, `computeIfAbsent`, `computeIfPresent`, `merge`, `replace`, `replaceAll`, and `forEach`.
+>
+> The important difference between `putIfAbsent` and `computeIfAbsent` is lazy computation. With `putIfAbsent`, I already have the value, so that value is computed before the method call. With `computeIfAbsent`, I provide a function and the value is computed only when the key is absent. This avoids unnecessary expensive work.
+>
+> A common example is `Map<K, List<V>>`, where I can use `computeIfAbsent(key, k -> new ArrayList<>()).add(value)` instead of manually checking, creating, putting, getting, and updating.
+>
+> On `ConcurrentHashMap`, `computeIfAbsent`, `compute`, and `merge` are also atomic compound operations, which avoids check-then-act races such as `containsKey()` followed by `put()`.
+
+### Retention Mnemonic
+
+```text
+GET
+    getOrDefault()
+
+PUT
+    putIfAbsent()
+
+COMPUTE
+    compute()
+    computeIfAbsent()
+    computeIfPresent()
+
+MERGE
+    merge()
+
+REPLACE
+    replace()
+    replaceAll()
+
+ITERATE
+    forEach()
+```
+
+The three distinctions to remember most strongly:
+
+```text
+putIfAbsent
+    → I already have the value
+
+computeIfAbsent
+    → compute the value only if needed
+
+merge
+    → combine existing value with incoming value
+```
