@@ -152,7 +152,6 @@
       "topic": "Docker",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/devops/docker.md"
     },
-    
     {
       "slug": "java-basics",
       "title": "Java: Basics",
@@ -160,6 +159,14 @@
       "domain": "Java",
       "topic": "1. Basics",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/java/basics.md"
+    },
+    {
+      "slug": "booking-management",
+      "title": "LLD: Booking management",
+      "date": "2026-10-20",
+      "domain": "LLD",
+      "topic": "1. Booking Management",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/core/lld/booking-management.md"
     }
   ]
 }
