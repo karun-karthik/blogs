@@ -539,86 +539,92 @@ vector<int> asteroidCollision(vector<int>& asteroids) {
 ### Sum of subarray minimums
 ```cpp
 class Solution {
-public:
-
+   public:
     /*
-    Next Smaller Element (Strictly Smaller)
-    ---------------------------------------
-    Find next index where element < current
-    If none → n
+        INTUITION:
+        For each arr[i], count how many subarrays have arr[i] as the
+       minimum.
 
-    Use >= to ensure duplicates handled correctly
+        leftChoices  = i - previousSmallerOrEqual
+        rightChoices = nextSmaller - i
+
+        So:
+        contribution = arr[i] * leftChoices * rightChoices
+
+        We use:
+        - PSEE → Previous Smaller or Equal
+        - NSE  → Next Smaller
+
+        One side is strict and the other is non-strict
+        to handle duplicate values without double counting.
+
+        // Minimum → PSEE + NSE
+        // PSEE → pop >
+        // NSE  → pop >=
+        //
+        // Contribution = value × leftChoices × rightChoices
+        // leftChoices  = i - previousBoundary
+        // rightChoices = nextBoundary - i
     */
-    vector<int> findNextSmaller(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> next(n);
-        stack<int> st;  // stores indices
 
+    vector<int> findNSE(vector<int>& arr) {
+        int n = arr.size();
+        vector<int> nextSmaller(n);
+        stack<int> st;  // Stores indices
+
+        // Find the next STRICTLY smaller element.
         for (int i = n - 1; i >= 0; i--) {
+            // Remove elements that are >= current.
+            while (!st.empty() && arr[st.top()] >= arr[i]) st.pop();
 
-            while (!st.empty() && arr[st.top()] >= arr[i]) {
-                st.pop();
-            }
-
-            next[i] = st.empty() ? n : st.top();
+            // No smaller element on the right → use n as boundary.
+            nextSmaller[i] = st.empty() ? n : st.top();
 
             st.push(i);
         }
-        return next;
+
+        return nextSmaller;
     }
 
-    /*
-    Previous Smaller or Equal Element
-    --------------------------------
-    Find previous index where element <= current
-    If none → -1
-
-    Use > to break tie and avoid double counting
-    */
-    vector<int> findPrevSmallerEqual(vector<int>& arr) {
+    vector<int> findPSEE(vector<int>& arr) {
         int n = arr.size();
-        vector<int> prev(n);
-        stack<int> st;
+        vector<int> prevSmallerEqual(n);
+        stack<int> st;  // Stores indices
 
+        // Find the previous smaller OR equal element.
         for (int i = 0; i < n; i++) {
+            // Remove elements that are strictly greater.
+            while (!st.empty() && arr[st.top()] > arr[i]) st.pop();
 
-            while (!st.empty() && arr[st.top()] > arr[i]) {
-                st.pop();
-            }
-
-            prev[i] = st.empty() ? -1 : st.top();
+            // No smaller/equal element on the left → use -1.
+            prevSmallerEqual[i] = st.empty() ? -1 : st.top();
 
             st.push(i);
         }
-        return prev;
+
+        return prevSmallerEqual;
     }
 
-    int sumSubarrayMins(vector<int> &arr) {
-
+    int sumSubarrayMins(vector<int>& arr) {
+        const long long MOD = 1e9 + 7;
         int n = arr.size();
-        const int MOD = 1e9 + 7;
 
-        vector<int> next = findNextSmaller(arr);
-        vector<int> prev = findPrevSmallerEqual(arr);
+        vector<int> nextSmaller = findNSE(arr);
+        vector<int> prevSmallerEqual = findPSEE(arr);
 
         long long total = 0;
 
         for (int i = 0; i < n; i++) {
+            // Number of possible starting positions.
+            long long leftChoices = i - prevSmallerEqual[i];
 
-            /*
-            Contribution logic:
-            -------------------
-            arr[i] is minimum in:
-            left choices  = i - prev[i]
-            right choices = next[i] - i
+            // Number of possible ending positions.
+            long long rightChoices = nextSmaller[i] - i;
 
-            total subarrays = left * right
-            */
+            // arr[i] is the minimum in leftChoices * rightChoices
+            // subarrays.
+            long long contribution = (leftChoices * rightChoices) % MOD;
 
-            long long left = i - prev[i];
-            long long right = next[i] - i;
-
-            long long contribution = (left * right) % MOD;
             contribution = (contribution * arr[i]) % MOD;
 
             total = (total + contribution) % MOD;
@@ -633,114 +639,161 @@ public:
 ```cpp
 class Solution {
 public:
+    // Contribution = value × left choices × right choices
+    // left  = i - previous boundary
+    // right = next boundary - i
 
-    // ---------- MINIMUM CONTRIBUTION ----------
+    // Next Smaller: strictly smaller element on the right.
+    vector<int> nse(vector<int>& nums) {
 
-    vector<int> nextSmaller(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+        int n = nums.size();
+        vector<int> nextSmaller(n);
         stack<int> st;
 
         for (int i = n - 1; i >= 0; i--) {
-            while (!st.empty() && arr[st.top()] >= arr[i]) {
+
+            // Remove elements that cannot be smaller than nums[i].
+            while (!st.empty() && nums[st.top()] >= nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? n : st.top();
+
+            // No smaller element → boundary is outside the array.
+            nextSmaller[i] = st.empty() ? n : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return nextSmaller;
     }
 
-    vector<int> prevSmallerEqual(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+    // Previous Smaller or Equal: element on the left.
+    vector<int> psee(vector<int>& nums) {
+
+        int n = nums.size();
+        vector<int> prevSmallerEqual(n);
         stack<int> st;
 
         for (int i = 0; i < n; i++) {
-            while (!st.empty() && arr[st.top()] > arr[i]) {
+
+            // Remove elements strictly greater than nums[i].
+            while (!st.empty() && nums[st.top()] > nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? -1 : st.top();
+
+            // No smaller/equal element → boundary before index 0.
+            prevSmallerEqual[i] = st.empty() ? -1 : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return prevSmallerEqual;
     }
 
-    long long sumSubarrayMins(vector<int>& arr) {
-        int n = arr.size();
+    // Sum of all subarray minimums.
+    long long subArrayMin(vector<int>& nums) {
 
-        vector<int> next = nextSmaller(arr);
-        vector<int> prev = prevSmallerEqual(arr);
+        int n = nums.size();
 
-        long long sum = 0;
+        vector<int> nextSmaller = nse(nums);
+        vector<int> prevSmallerEqual = psee(nums);
+
+        long long total = 0;
 
         for (int i = 0; i < n; i++) {
-            long long left = i - prev[i];
-            long long right = next[i] - i;
 
-            sum += left * right * arr[i];
+            // Number of possible starts and ends where nums[i]
+            // remains the minimum.
+            long long left = i - prevSmallerEqual[i];
+            long long right = nextSmaller[i] - i;
+
+            // Contribution of nums[i].
+            total += nums[i] * left * right;
         }
 
-        return sum;
+        return total;
     }
 
-    // ---------- MAXIMUM CONTRIBUTION ----------
 
-    vector<int> nextGreater(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+    // Next Greater: strictly greater element on the right.
+    vector<int> nge(vector<int>& nums) {
+
+        int n = nums.size();
+        vector<int> nextGreater(n);
         stack<int> st;
 
         for (int i = n - 1; i >= 0; i--) {
-            while (!st.empty() && arr[st.top()] <= arr[i]) {
+
+            // Remove elements that cannot be greater than nums[i].
+            while (!st.empty() && nums[st.top()] <= nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? n : st.top();
+
+            // No greater element → boundary is outside the array.
+            nextGreater[i] = st.empty() ? n : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return nextGreater;
     }
 
-    vector<int> prevGreaterEqual(vector<int>& arr) {
-        int n = arr.size();
-        vector<int> ans(n);
+    // Previous Greater or Equal: element on the left.
+    vector<int> pgee(vector<int>& nums) {
+
+        int n = nums.size();
+        vector<int> prevGreaterEqual(n);
         stack<int> st;
 
         for (int i = 0; i < n; i++) {
-            while (!st.empty() && arr[st.top()] < arr[i]) {
+
+            // Remove elements strictly smaller than nums[i].
+            while (!st.empty() && nums[st.top()] < nums[i])
                 st.pop();
-            }
-            ans[i] = st.empty() ? -1 : st.top();
+
+            // No greater/equal element → boundary before index 0.
+            prevGreaterEqual[i] = st.empty() ? -1 : st.top();
+
             st.push(i);
         }
-        return ans;
+
+        return prevGreaterEqual;
     }
 
-    long long sumSubarrayMaxs(vector<int>& arr) {
-        int n = arr.size();
+    // Sum of all subarray maximums.
+    long long subArrayMax(vector<int>& nums) {
 
-        vector<int> next = nextGreater(arr);
-        vector<int> prev = prevGreaterEqual(arr);
+        int n = nums.size();
 
-        long long sum = 0;
+        vector<int> nextGreater = nge(nums);
+        vector<int> prevGreaterEqual = pgee(nums);
+
+        long long total = 0;
 
         for (int i = 0; i < n; i++) {
-            long long left = i - prev[i];
-            long long right = next[i] - i;
 
-            sum += left * right * arr[i];
+            // Number of possible starts and ends where nums[i]
+            // remains the maximum.
+            long long left = i - prevGreaterEqual[i];
+            long long right = nextGreater[i] - i;
+
+            // Contribution of nums[i].
+            total += nums[i] * left * right;
         }
 
-        return sum;
+        return total;
     }
 
-    // ---------- FINAL ANSWER ----------
-    long long subArrayRanges(vector<int> &nums) {
 
-        long long maxSum = sumSubarrayMaxs(nums);
-        long long minSum = sumSubarrayMins(nums);
+    long long subArrayRanges(vector<int>& nums) {
 
-        return maxSum - minSum;
+        /*
+            INTUITION:
+            Range = maximum - minimum.
+
+            Therefore:
+            Sum of ranges
+            = Sum of subarray maximums
+            - Sum of subarray minimums.
+        */
+
+        return subArrayMax(nums) - subArrayMin(nums);
     }
 };
 ```
@@ -748,12 +801,30 @@ public:
 ### Remove K digits
 ```cpp
 string removeKdigits(string nums, int k) {
-    string st;  // acts like a stack
+
+    /*
+        INTUITION:
+        To make the number smallest, remove a larger digit when
+        a smaller digit appears after it.
+
+        Maintain an increasing stack of digits.
+
+        Example:
+        1432
+         ↑
+        When 2 arrives, remove 4 because 4 > 2.
+
+        If removals are still left after processing all digits,
+        remove them from the end.
+
+        Finally, remove leading zeros.
+    */
+
+    string st;
 
     for (char digit : nums) {
 
-        /*  Remove previous digits if they are larger than current
-            This helps in making number smaller */
+        // Remove larger previous digits.
         while (!st.empty() && k > 0 && st.back() > digit) {
             st.pop_back();
             k--;
@@ -762,22 +833,19 @@ string removeKdigits(string nums, int k) {
         st.push_back(digit);
     }
 
-    /*
-    If still k > 0 → remove from end
-    (number is already increasing)
-    */
+    // If k removals remain, remove from the end.
     while (k > 0 && !st.empty()) {
         st.pop_back();
         k--;
     }
 
-    /* Remove leading zeros */
-    int i = 0;
-    while (i < st.size() && st[i] == '0') {
-        i++;
-    }
+    // Remove leading zeros.
+    int firstNonZero = 0;
 
-    string result = st.substr(i);
+    while (firstNonZero < st.size() && st[firstNonZero] == '0')
+        firstNonZero++;
+
+    string result = st.substr(firstNonZero);
 
     return result.empty() ? "0" : result;
 }
@@ -787,95 +855,200 @@ string removeKdigits(string nums, int k) {
 ### Implement a Min-Stack
 ```cpp
 class MinStack {
-private:
+   private:
     stack<long long> st;
-    long long mini;
+    long long minValue;
 
-public:
-    MinStack() {
-        mini = LLONG_MAX;
-    }
+   public:
+    MinStack() {}
 
     void push(int value) {
-
+        // First element: it is both the value and the minimum.
         if (st.empty()) {
             st.push(value);
-            mini = value;
+            minValue = value;
+            return;
         }
-        else {
-            if (value >= mini) {
-                st.push(value);
-            }
-            else {
-                /* Encode value: store a smaller number to track previous min */
-                st.push(2LL * value - mini);
-                mini = value;
-            }
+
+        // If value is not a new minimum, store it normally.
+        if (value >= minValue) {
+            st.push(value);
+            return;
         }
+
+        /*
+            value is a NEW minimum.
+
+            Problem:
+            We are only keeping one extra variable (minValue).
+            If we later pop this new minimum, we need to recover
+            the previous minimum.
+
+            So instead of storing 'value' directly, encode the
+            previous minimum inside the stack value.
+
+                encoded = 2 * value - previousMin
+
+            After this:
+                minValue = value
+
+            Since encoded < value, we can later recognize that
+            this stack value is encoded rather than a normal value.
+        */
+        long long encoded = 2LL * value - minValue;
+
+        st.push(encoded);
+        minValue = value;
     }
 
     void pop() {
+        /*
+            Normally, the top is just the value we should remove.
 
-        if (st.empty()) return;
+            But if:
+                st.top() < minValue
 
-        long long topVal = st.top();
-        st.pop();
+            then this is an encoded value. It means the current
+            minimum was created when this element was pushed.
 
-        if (topVal < mini) {
-            /* Encoded value detected; Recover previous minimum */
-            mini = 2LL * mini - topVal;
+            Encoding was:
+                encoded = 2 * newMin - oldMin
+
+            At this point:
+                newMin = minValue
+
+            So we can recover:
+                oldMin = 2 * minValue - encoded
+        */
+        if (st.top() < minValue) {
+            minValue = 2LL * minValue - st.top();
         }
+
+        st.pop();
     }
 
     int top() {
+        /*
+            If top < minValue, top is an encoded value.
+            The actual element represented by it is minValue.
 
-        long long topVal = st.top();
-
-        if (topVal < mini) {
-            // Encoded → actual value is current minimum
-            return mini;
+            Otherwise, top itself is the actual element.
+        */
+        if (st.top() < minValue) {
+            return minValue;
         }
 
-        return topVal;
+        return st.top();
     }
 
     int getMin() {
-        return mini;
+        // The minimum is always available in O(1).
+        return minValue;
     }
 };
 ```
 
 ### Sliding Window Maximum
+                    current element
+                           ↓
+                 ┌──────────────────┐
+                 │                  │
+          expired?            smaller behind?
+                 │                  │
+             pop_front         pop_back
+                 │                  │
+                 └────────┬─────────┘
+                          ↓
+                     push current
+                          ↓
+                   front = maximum
 ```cpp
-vector<int> maxSlidingWindow(vector<int> &arr, int k) {
+vector<int> maxSlidingWindow(vector<int>& arr, int k) {
+    /*
+        INTUITION:
+        Use a max heap storing {value, index}.
+
+        As the window moves:
+        1. Add the new element to the heap.
+        2. Remove elements whose index is outside the window.
+        3. The heap top is the maximum of the current window.
+
+        We store the index along with the value so we can identify
+        and discard elements that have left the window.
+    */
 
     int n = arr.size();
     vector<int> result;
 
-    deque<int> dq;  
-    // stores indices
-    // maintains decreasing values: arr[dq[0]] >= arr[dq[1]] >= ...
+    // Max heap: largest value stays on top.
+    // Pair = {value, index}
+    priority_queue<pair<int, int>> maxHeap;
 
-    for (int i = 0; i < n; i++) {
+    // Build the first window.
+    for (int i = 0; i < k; i++) maxHeap.push({arr[i], i});
 
-        // 1) Remove indices out of current window [i-k+1, i]
-        if (!dq.empty() && dq.front() <= i - k) {
+    result.push_back(maxHeap.top().first);
+
+    // Slide the window from left to right.
+    for (int right = k; right < n; right++) {
+        // Add the new element entering the window.
+        maxHeap.push({arr[right], right});
+
+        // Current window = [windowStart ... right]
+        int windowStart = right - k + 1;
+
+        // Remove stale elements from the top.
+        while (maxHeap.top().second < windowStart) maxHeap.pop();
+
+        // Top is the maximum of the current window.
+        result.push_back(maxHeap.top().first);
+    }
+
+    return result;
+}
+```
+```cpp
+vector<int> maxSlidingWindow(vector<int>& arr, int k) {
+
+    /*
+        INTUITION:
+        The deque stores indices of useful candidates for the maximum.
+
+        Maintain values in decreasing order:
+            arr[dq.front()] >= arr[dq.back()]
+
+        For every new element:
+        1. Remove indices that left the window.
+        2. Remove smaller/equal elements from the back because
+           the current element makes them useless.
+        3. Add the current index.
+        4. Once the first window is complete, deque front is the maximum.
+    */
+
+    int n = arr.size();
+    vector<int> result;
+    deque<int> dq;  // Stores indices, not values.
+
+    for (int right = 0; right < n; right++) {
+
+        // Current window is [right - k + 1 ... right].
+        int windowStart = right - k + 1;
+
+        // Remove elements that are outside the current window.
+        if (!dq.empty() && dq.front() < windowStart)
             dq.pop_front();
-        }
 
-        // 2) Maintain monotonic decreasing order
-        // Remove all smaller/equal elements from back
-        while (!dq.empty() && arr[dq.back()] <= arr[i]) {
+        // Remove candidates smaller than the current element.
+        // They can never become the maximum while current is present.
+        while (!dq.empty() && arr[dq.back()] <= arr[right])
             dq.pop_back();
-        }
 
-        // 3) Add current index
-        dq.push_back(i);
+        // Current element becomes a candidate.
+        dq.push_back(right);
 
-        // 4) Record answer when window is valid
-        if (i >= k - 1) {
-            result.push_back(arr[dq.front()]);  // max of window
-        }
+        // A complete window exists only after k elements.
+        if (right >= k - 1)
+            result.push_back(arr[dq.front()]);
     }
 
     return result;
@@ -884,135 +1057,124 @@ vector<int> maxSlidingWindow(vector<int> &arr, int k) {
 
 ### Trapping Rainwater Problem
 ```cpp
-class Solution {
-public:
-    int trap(vector<int> &height) {
+int trap(vector<int>& height) {
 
-        int n = height.size();
-        int left = 0, right = n - 1;
-        int leftMax = 0, rightMax = 0;
-        int water = 0;
+    /*
+        INTUITION:
+        Water at i = min(leftMax, rightMax) - height[i].
 
-        /*
-        CORE IDEA:
-        ----------
-        Water at index i depends on:
-        min(max height on left, max height on right) - height[i]
+        We use two pointers and only process the side with
+        the smaller boundary.
 
-        Instead of precomputing arrays,
-        we use two pointers and maintain running max.
-        */
+        If height[left] <= height[right]:
+            leftMax is the limiting boundary, so we can safely
+            calculate water at left and move left forward.
 
-        while (left < right) {
+        Otherwise:
+            rightMax is the limiting boundary, so we can safely
+            calculate water at right and move right backward.
 
-            /*
-            Always move the side with smaller height
-            because it is the limiting factor
-            */
-            if (height[left] <= height[right]) {
+        We only need leftMax and rightMax instead of arrays.
+    */
 
-                // If current bar is lower than leftMax → water can be trapped
-                if (height[left] < leftMax) {
-                    water += leftMax - height[left];
-                }
-                else {
-                    // Update left boundary
-                    leftMax = height[left];
-                }
+    int n = height.size();
 
-                left++;
-            }
-            else {
+    int left = 0;
+    int right = n - 1;
 
-                // Same logic for right side
-                if (height[right] < rightMax) {
-                    water += rightMax - height[right];
-                }
-                else {
-                    // Update right boundary
-                    rightMax = height[right];
-                }
+    int leftMax = 0;
+    int rightMax = 0;
 
-                right--;
-            }
+    int water = 0;
+
+    while (left < right) {
+
+        // Left side has the smaller/equal boundary.
+        if (height[left] <= height[right]) {
+
+            // Current bar is below the best left boundary.
+            if (height[left] < leftMax)
+                water += leftMax - height[left];
+            else
+                leftMax = height[left];
+
+            left++;
         }
 
-        return water;
+        // Right side has the smaller boundary.
+        else {
+
+            // Current bar is below the best right boundary.
+            if (height[right] < rightMax)
+                water += rightMax - height[right];
+            else
+                rightMax = height[right];
+
+            right--;
+        }
     }
-};
+
+    return water;
+}
 ```
 
 ### Largest rectangle in a Histogram
 ```cpp
-class Solution {
-public:
-    int largestRectangleArea(vector<int> &heights) {
+int largestRectangleArea(vector<int>& heights) {
+    /*
+        INTUITION:
+        For every bar, find how far its rectangle can extend.
 
-        int n = heights.size();
-
-        stack<int> st;
-        // Monotonic increasing stack (stores indices)
-        // heights[st[0]] < heights[st[1]] < ...
-
-        int maxArea = 0;
-
-        /*
-        IDEA:
-        -----
-        Each bar tries to expand left and right
-        until a smaller bar blocks it.
+        PSE = Previous Smaller Element
+        NSE = Next Smaller Element
 
         When a bar is popped:
-        - Current index (i) becomes its Next Smaller Element (NSE)
-        - New stack top becomes its Previous Smaller Element (PSE)
+            NSE = current index i
+            PSE = stack top after popping
 
-        → This gives us full width for that bar
-        */
+        width = NSE - PSE - 1
+        area  = height × width
 
-        for (int i = 0; i <= n; i++) {
+        We use a monotonic increasing stack of indices.
 
-            /*
-            For i == n:
-            Treat height as 0 (sentinel)
-            → Forces all remaining bars to be processed
-            → Eliminates need for a separate cleanup loop
-            */
-            int currHeight = (i == n ? 0 : heights[i]);
+        A virtual 0 at the end forces all remaining bars
+        to be popped and their areas calculated.
+    */
 
-            /*
-            If current bar is smaller,
-            it becomes the "right boundary" for taller bars in stack
-            */
-            while (!st.empty() && currHeight < heights[st.top()]) {
+    int n = heights.size();
+    stack<int> st;
 
-                int idx = st.top();
-                st.pop();
+    int largestArea = 0;
 
-                int height = heights[idx];
+    for (int i = 0; i <= n; i++) {
+        // Virtual 0 acts as NSE for remaining bars.
+        int currentHeight = (i == n) ? 0 : heights[i];
 
-                /*
-                Boundaries:
-                - Right boundary → current index i
-                - Left boundary → new stack top after pop
-                */
-                int right = i;
-                int left = st.empty() ? -1 : st.top();
+        // Current height is smaller → previous bars found their NSE.
+        while (!st.empty() && heights[st.top()] >= currentHeight) {
+            int idx = st.top();
+            st.pop();
 
-                int width = right - left - 1;
+            // After popping, stack top is the PSE.
+            int PSE = st.empty() ? -1 : st.top();
 
-                maxArea = max(maxArea, height * width);
-            }
+            // Current index is the NSE.
+            int NSE = i;
 
-            /*
-            Push current index:
-            It may act as a future PSE for upcoming bars
-            */
-            st.push(i);
+            // Bar can extend between PSE and NSE.
+            int width = NSE - PSE - 1;
+
+            int area = heights[idx] * width;
+
+            largestArea = max(largestArea, area);
         }
 
-        return maxArea;
+        // Don't push the virtual index n.
+        if (i < n) st.push(i);
     }
-};
+
+    return largestArea;
+}
 ```
 
 ### Maximum Rectangles
@@ -1022,66 +1184,114 @@ Given a m x n binary matrix filled with 0's and 1's, find the largest rectangle 
 class Solution {
 public:
 
-    // Helper: Largest Rectangle in Histogram
-    int largestRectangleArea(vector<int> &heights) {
+    /*
+        INTUITION:
+        Convert each row into a histogram.
+
+        For every column:
+            1 → increase its height
+            0 → reset its height to 0
+
+        Example:
+
+        Matrix:
+        1 0 1 1
+        1 1 1 1
+        1 1 1 0
+
+        After row 0:
+        heights = [1,0,1,1]
+
+        After row 1:
+        heights = [2,1,2,2]
+
+        After row 2:
+        heights = [3,2,3,0]
+
+        Now the problem becomes:
+            "Find the largest rectangle in this histogram."
+
+        We solve that using a monotonic increasing stack.
+
+        Overall:
+            O(rows × cols)
+    */
+
+    // Largest Rectangle in Histogram
+    int largestRectangleArea(vector<int>& heights) {
 
         int n = heights.size();
-        stack<int> st;
+        stack<int> st;  // Stores indices of increasing heights.
         int maxArea = 0;
 
+        // Extra iteration with height 0 flushes the stack.
         for (int i = 0; i <= n; i++) {
 
-            int currHeight = (i == n ? 0 : heights[i]);
+            int currentHeight = (i == n) ? 0 : heights[i];
 
-            while (!st.empty() && currHeight < heights[st.top()]) {
+            /*
+                Current height is smaller than stack top.
+                Therefore, stack top has found its NSE.
 
-                int idx = st.top();
+                NSE = i
+                PSE = stack top after popping
+            */
+            while (!st.empty() && heights[st.top()] > currentHeight) {
+
+                int index = st.top();
                 st.pop();
 
-                int height = heights[idx];
+                int height = heights[index];
 
-                int right = i;
-                int left = st.empty() ? -1 : st.top();
+                // Previous Smaller Element.
+                int PSE = st.empty() ? -1 : st.top();
 
-                int width = right - left - 1;
+                // Next Smaller Element.
+                int NSE = i;
 
-                maxArea = max(maxArea, height * width);
+                int width = NSE - PSE - 1;
+
+                int area = height * width;
+
+                maxArea = max(maxArea, area);
             }
 
-            st.push(i);
+            // Don't store the sentinel index n.
+            if (i < n)
+                st.push(i);
         }
 
         return maxArea;
     }
 
 
-    int maximalAreaOfSubMatrixOfAll1(vector<vector<int>> &matrix) {
+    int maximalAreaOfSubMatrixOfAll1(vector<vector<int>>& matrix) {
 
-        int n = matrix.size();
-        int m = matrix[0].size();
+        int rows = matrix.size();
+        int cols = matrix[0].size();
 
-        vector<int> heights(m, 0);
-
+        vector<int> heights(cols, 0);
         int maxArea = 0;
 
-        // Build histogram row by row
-        for (int row = 0; row < n; row++) {
+        for (int row = 0; row < rows; row++) {
 
-            for (int col = 0; col < m; col++) {
-
-                // If cell = 1 → extend height
-                // If cell = 0 → reset height
+            // Build histogram for the current row.
+            for (int col = 0; col < cols; col++) {
 
                 if (matrix[row][col] == 1)
-                    heights[col] += 1;
+                    heights[col]++;
                 else
                     heights[col] = 0;
             }
 
-            /* Treat current row as histogram */
-            int area = largestRectangleArea(heights);
+            /*
+                Current heights represent consecutive 1s
+                ending at this row.
 
-            maxArea = max(maxArea, area);
+                Find the largest rectangle of 1s
+                using the histogram algorithm.
+            */
+            maxArea = max(maxArea, largestRectangleArea(heights));
         }
 
         return maxArea;
@@ -1091,52 +1301,59 @@ public:
 
 ### Stock Span
 ```cpp
-class Solution
-{
+class Solution {
 private:
-    vector<int> findPGE(vector<int> &arr) {
+
+    /*
+        INTUITION:
+        Stock span for index i = number of consecutive days ending at i
+        where the price is <= today's price.
+
+        Find the Previous Greater Element (PGE).
+
+        PGE[i] = nearest index on the left whose price > arr[i].
+
+        Everything between PGE[i] and i has price <= arr[i],
+        so:
+
+            span[i] = i - PGE[i]
+
+        If no PGE exists:
+            PGE[i] = -1
+            span[i] = i + 1
+    */
+
+    vector<int> findPGE(vector<int>& arr) {
 
         int n = arr.size();
-        vector<int> res(n);
-
-        stack<int> st;
-        // Monotonic decreasing stack (stores indices)
-        // arr[st.top()] always represents a candidate for previous greater
+        vector<int> pge(n);
+        stack<int> st;  // Stores indices
 
         for (int i = 0; i < n; i++) {
 
-            int curr = arr[i];
-
-            // Remove all elements <= current
-            // because they cannot be "previous greater" anymore
-            while (!st.empty() && arr[st.top()] <= curr) {
+            // Remove elements that cannot be the PGE.
+            while (!st.empty() && arr[st.top()] <= arr[i])
                 st.pop();
-            }
 
-            // If stack is empty → no greater element on left
-            // Else → top of stack is nearest greater element
-            res[i] = st.empty() ? -1 : st.top();
+            // Nearest greater element on the left.
+            pge[i] = st.empty() ? -1 : st.top();
 
-            // Push current index for future comparisons
             st.push(i);
         }
 
-        return res;
+        return pge;
     }
 
 public:
+
     vector<int> stockSpan(vector<int> arr, int n) {
 
-        // Step 1: Find Previous Greater Element indices
         vector<int> pge = findPGE(arr);
-
         vector<int> span(n);
 
-        // Step 2: Compute span
         for (int i = 0; i < n; i++) {
 
-            // If no greater element → span = i + 1
-            // Else → span = distance from previous greater
+            // Number of days after the previous greater element.
             span[i] = i - pge[i];
         }
 
@@ -1178,47 +1395,70 @@ public:
 ### Celebrity Problem
 A celebrity is a person who is known by everyone else at the party but does not know anyone in return. Given a square matrix M of size N x N where M[i][j] is 1 if person i knows person j, and 0 otherwise, determine if there is a celebrity at the party. Return the index of the celebrity or -1 if no such person exists.
 ```cpp
-class Solution
-{
-public:
-    int celebrity(vector<vector<int>> &M) {
+int celebrity(vector<vector<int>>& M) {
+    /*
+        INTUITION:
+        A celebrity satisfies:
 
-        int n = M.size();
+            1. Celebrity knows nobody.
+            2. Everybody knows the celebrity.
 
-        int top = 0, bottom = n - 1;
+        Eliminate candidates using two pointers.
 
-        // Step 1: Eliminate non-celebrities
-        while (top < bottom) {
+        If M[leftCandidate][rightCandidate] == 1:
+            leftCandidate knows rightCandidate
+            → leftCandidate cannot be celebrity.
 
-            // If top knows bottom → top cannot be celebrity
-            if (M[top][bottom] == 1) {
-                top++;
-            }
-            // Else → bottom cannot be celebrity
-            else {
-                bottom--;
-            }
+        Otherwise:
+            leftCandidate does not know rightCandidate
+            → rightCandidate cannot be celebrity.
+
+        Continue until only one candidate remains.
+        Then verify that candidate.
+    */
+
+    int n = M.size();
+
+    int leftCandidate = 0;
+    int rightCandidate = n - 1;
+
+    // Eliminate candidates until only one remains.
+    while (leftCandidate < rightCandidate) {
+
+        if (M[leftCandidate][rightCandidate] == 1) {
+
+            // Left candidate knows right candidate.
+            // Therefore, left candidate cannot be celebrity.
+            leftCandidate++;
+
+        } else {
+
+            // Left candidate does not know right candidate.
+            // Therefore, right candidate cannot be celebrity.
+            rightCandidate--;
         }
-
-        // Potential celebrity
-        int candidate = top;
-
-        // Step 2: Verify candidate
-
-        for (int i = 0; i < n; i++) {
-
-            if (i == candidate) continue;
-
-            // Candidate should NOT know anyone
-            if (M[candidate][i] == 1) return -1;
-
-            // Everyone should know candidate
-            if (M[i][candidate] == 0) return -1;
-        }
-
-        return candidate;
     }
-};
+
+    // Both pointers now point to the same possible celebrity.
+    int candidate = leftCandidate;
+
+    // Verify the candidate.
+    for (int person = 0; person < n; person++) {
+
+        if (person == candidate)
+            continue;
+
+        // Celebrity knows nobody.
+        // Everybody else knows the celebrity.
+        if (M[candidate][person] == 1 ||
+            M[person][candidate] == 0) {
+
+            return -1;
+        }
+    }
+
+    return candidate;
+}
 ```
 
 ```cpp
@@ -1274,9 +1514,10 @@ public:
 ### LRU Cache
 ```cpp
 class LRUCache {
-private:
+   private:
+    // Cache entry
     class Node {
-    public:
+       public:
         int key, value;
         Node* prev;
         Node* next;
@@ -1288,15 +1529,16 @@ private:
         }
     };
 
-    int capacity;  // maximum size of cache
+    int capacity;
 
-    unordered_map<int, Node*> mp;  
-    // key → pointer to node in DLL
+    // key -> node for O(1) lookup
+    unordered_map<int, Node*> mp;
 
-    Node* head; // dummy head → most recently used side
-    Node* tail; // dummy tail → least recently used side
+    // HEAD -> MRU ... LRU -> TAIL
+    Node* head;
+    Node* tail;
 
-    // Remove a node from its current position in DLL
+    // Remove node from DLL
     void removeNode(Node* node) {
         Node* prevNode = node->prev;
         Node* nextNode = node->next;
@@ -1305,7 +1547,7 @@ private:
         nextNode->prev = prevNode;
     }
 
-    // Insert node right after head → mark as most recently used
+    // Insert node at MRU position
     void insertAfterHead(Node* node) {
         node->next = head->next;
         node->prev = head;
@@ -1314,12 +1556,11 @@ private:
         head->next = node;
     }
 
-public:
-
+   public:
     LRUCache(int capacity) {
         this->capacity = capacity;
 
-        // Create dummy head and tail to simplify operations
+        // Dummy nodes simplify edge cases
         head = new Node(-1, -1);
         tail = new Node(-1, -1);
 
@@ -1328,14 +1569,14 @@ public:
     }
 
     int get(int key_) {
-
-        // If key not present → return -1
+        // Key not present
         if (mp.find(key_) == mp.end()) {
             return -1;
         }
+
         Node* node = mp[key_];
 
-        // Move accessed node to front (MRU)
+        // Accessed -> move to MRU
         removeNode(node);
         insertAfterHead(node);
 
@@ -1343,24 +1584,29 @@ public:
     }
 
     void put(int key_, int value) {
-
-        // If key already exists → update value and move to front
+        // Key already exists
         if (mp.find(key_) != mp.end()) {
             Node* node = mp[key_];
+
             node->value = value;
+
+            // Updated -> move to MRU
             removeNode(node);
             insertAfterHead(node);
         } else {
-            // If cache is full → remove least recently used node
+            // Evict LRU if cache is full
             if (mp.size() == capacity) {
-                Node* lru = tail->prev;  // last real node
+                Node* lru = tail->prev;
+
                 removeNode(lru);
                 mp.erase(lru->key);
-                delete lru;  // free memory
+
+                delete lru;
             }
 
-            // Insert new node at front (MRU position)
+            // New node -> MRU
             Node* newNode = new Node(key_, value);
+
             insertAfterHead(newNode);
             mp[key_] = newNode;
         }
