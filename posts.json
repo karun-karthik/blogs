@@ -183,6 +183,14 @@
       "domain": "LLD",
       "topic": "1. Booking Management",
       "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/lld/booking-management.md"
+    },
+    {
+      "slug": "vending-machine",
+      "title": "LLD: Vending Machine",
+      "date": "2026-10-20",
+      "domain": "LLD",
+      "topic": "2. Vending Machine",
+      "contentUrl": "https://raw.githubusercontent.com/karun-karthik/blogs/main/lld/vending-machine.md"
     }
   ]
 }
