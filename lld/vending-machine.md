@@ -1044,3 +1044,504 @@ inventory, payment, and physical delivery. Reserve resources before
 irreversible actions, distinguish confirmed outcomes from uncertainty,
 and never claim an external side effect succeeded or failed without
 evidence.
+
+
+---
+
+# 25. Code Revision Appendix — Core Java Design
+
+This appendix adds the code you should be able to explain and reproduce in an interview. It is intentionally organized around **ownership and invariants**, not around creating the maximum number of classes.
+
+The snippets use Java 17. They illustrate the domain model and core workflow; hardware drivers, durable persistence, and complete recovery are intentionally left behind interfaces.
+
+## 25.1 Money and Item
+
+Use a value type for money rather than `double`, which can introduce binary floating-point rounding errors.
+
+```java
+import java.math.BigDecimal;
+import java.util.Objects;
+
+record Money(BigDecimal amount) {
+    Money {
+        Objects.requireNonNull(amount, "amount");
+        if (amount.signum() < 0) {
+            throw new IllegalArgumentException("Money cannot be negative");
+        }
+        amount = amount.setScale(2, java.math.RoundingMode.UNNECESSARY);
+    }
+
+    static Money of(String amount) {
+        return new Money(new BigDecimal(amount));
+    }
+
+    Money plus(Money other) {
+        return new Money(amount.add(other.amount));
+    }
+
+    Money minus(Money other) {
+        if (amount.compareTo(other.amount) < 0) {
+            throw new IllegalArgumentException("Result would be negative");
+        }
+        return new Money(amount.subtract(other.amount));
+    }
+
+    boolean isLessThan(Money other) {
+        return amount.compareTo(other.amount) < 0;
+    }
+
+    boolean isZero() {
+        return amount.signum() == 0;
+    }
+}
+
+record Item(String id, String name, Money price) {
+    Item {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(price);
+        if (id.isBlank() || name.isBlank()) {
+            throw new IllegalArgumentException("Item id and name are required");
+        }
+    }
+}
+```
+
+**Interview explanation:** `Item` describes a product; it does not own stock. `Money` centralizes monetary arithmetic and validation. This example assumes one currency and exactly two decimal places; multi-currency support requires an explicit currency code and defined rounding rules.
+
+## 25.2 Inventory: Atomic Reservation
+
+The key operation is not `isAvailable()` followed later by `decrement()`. That split creates a race. The check and reservation must be one atomic operation.
+
+```java
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+record Reservation(String id, String transactionId, String itemId) {}
+
+interface Inventory {
+    Optional<Item> findItem(String itemId);
+
+    Optional<Reservation> reserve(String itemId, String transactionId);
+
+    void commit(String reservationId);
+
+    void release(String reservationId);
+
+    void restock(String itemId, int quantity);
+}
+
+final class InMemoryInventory implements Inventory {
+    private static final class Entry {
+        final Item item;
+        int available;
+        final Map<String, Reservation> activeByTransaction = new HashMap<>();
+
+        Entry(Item item, int quantity) {
+            this.item = item;
+            this.available = quantity;
+        }
+    }
+
+    private final Map<String, Entry> entries = new HashMap<>();
+    private final Map<String, Reservation> reservations = new HashMap<>();
+    private final Map<String, Boolean> completedReservations = new HashMap<>();
+
+    public synchronized void addItem(Item item, int quantity) {
+        if (quantity < 0) throw new IllegalArgumentException("Negative quantity");
+        if (entries.containsKey(item.id())) {
+            throw new IllegalArgumentException("Item already exists");
+        }
+        entries.put(item.id(), new Entry(item, quantity));
+    }
+
+    @Override
+    public synchronized Optional<Item> findItem(String itemId) {
+        Entry entry = entries.get(itemId);
+        return entry == null ? Optional.empty() : Optional.of(entry.item);
+    }
+
+    @Override
+    public synchronized Optional<Reservation> reserve(
+            String itemId, String transactionId) {
+        Entry entry = entries.get(itemId);
+        if (entry == null) return Optional.empty();
+
+        // A retry for the same transaction returns its existing reservation.
+        Reservation existing = entry.activeByTransaction.get(transactionId);
+        if (existing != null) return Optional.of(existing);
+
+        if (entry.available == 0) return Optional.empty();
+
+        entry.available--;
+        Reservation reservation =
+                new Reservation(java.util.UUID.randomUUID().toString(),
+                                transactionId, itemId);
+        entry.activeByTransaction.put(transactionId, reservation);
+        reservations.put(reservation.id(), reservation);
+        return Optional.of(reservation);
+    }
+
+    @Override
+    public synchronized void commit(String reservationId) {
+        Reservation reservation = reservations.remove(reservationId);
+        if (reservation == null) {
+            // Repeated commit is safe only if this reservation was already committed.
+            if (Boolean.TRUE.equals(completedReservations.get(reservationId))) return;
+            throw new IllegalArgumentException("Unknown reservation");
+        }
+        Entry entry = entries.get(reservation.itemId());
+        entry.activeByTransaction.remove(reservation.transactionId());
+        completedReservations.put(reservationId, true);
+        // available was reduced at reserve time; commit finalizes the sale.
+    }
+
+    @Override
+    public synchronized void release(String reservationId) {
+        Reservation reservation = reservations.remove(reservationId);
+        if (reservation == null) {
+            // Repeated release after a prior release is harmless in this example.
+            if (Boolean.FALSE.equals(completedReservations.get(reservationId))) return;
+            throw new IllegalArgumentException("Unknown reservation");
+        }
+        Entry entry = entries.get(reservation.itemId());
+        entry.available++;
+        entry.activeByTransaction.remove(reservation.transactionId());
+        completedReservations.put(reservationId, false);
+    }
+
+    @Override
+    public synchronized void restock(String itemId, int quantity) {
+        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
+        Entry entry = entries.get(itemId);
+        if (entry == null) throw new IllegalArgumentException("Unknown item");
+        entry.available += quantity;
+    }
+
+    public synchronized int availableQuantity(String itemId) {
+        Entry entry = entries.get(itemId);
+        if (entry == null) throw new IllegalArgumentException("Unknown item");
+        return entry.available;
+    }
+}
+```
+
+### What to explain—and what to improve in production
+
+- `reserve()` checks and claims stock under the same lock, so two threads cannot reserve the last unit.
+- Stock is made unavailable at reservation time, not only after dispensing.
+- `commit()` does not subtract stock again because reservation already made the unit unavailable.
+- `release()` makes the unit available again only when the workflow knows that releasing it is safe.
+- The `synchronized` keyword protects only this in-memory object inside one process. It does not coordinate multiple application instances.
+- A production repository should persist reservation state and transitions atomically. The in-memory idempotency maps disappear on restart.
+
+For a shorter interview answer, present the interface and explain the atomicity requirement; implement the synchronized version only if time permits.
+
+## 25.3 Hardware Boundaries and Explicit Outcomes
+
+```java
+enum DispenseOutcome {
+    DISPENSED,
+    NOT_DISPENSED,
+    UNKNOWN
+}
+
+record DispenseResult(DispenseOutcome outcome, String detail) {}
+
+interface Dispenser {
+    DispenseResult dispense(String transactionId, String itemId);
+
+    // Optional recovery operation if the device supports outcome lookup.
+    DispenseResult getOutcome(String transactionId);
+}
+
+enum OperationStatus {
+    SUCCEEDED,
+    FAILED,
+    UNKNOWN
+}
+
+record PaymentResult(OperationStatus status, Money acceptedAmount, String detail) {}
+record RefundResult(OperationStatus status, String detail) {}
+record ChangeResult(OperationStatus status, String detail) {}
+
+interface PaymentProcessor {
+    PaymentResult acceptPayment(String transactionId, Money amount);
+
+    RefundResult refund(String operationId, String transactionId, Money amount);
+
+    ChangeResult returnChange(String operationId, String transactionId, Money amount);
+}
+```
+
+**Do not replace `UNKNOWN` with `false`.** A timeout can mean the command completed but its response was lost. Payment acceptance, refund, and change return can have the same ambiguity as dispensing.
+
+Stable operation IDs allow an adapter/device that supports deduplication to recognize retries. The IDs alone do not provide exactly-once physical behavior.
+
+## 25.4 Purchase State
+
+```java
+enum PurchaseStatus {
+    CREATED,
+    INVENTORY_RESERVED,
+    PAYMENT_ACCEPTED,
+    DISPENSING,
+    RECONCILIATION_REQUIRED,
+    REFUND_PENDING,
+    CHANGE_PENDING,
+    COMPLETED,
+    FAILED,
+    REFUNDED
+}
+
+final class PurchaseTransaction {
+    private final String id;
+    private final String itemId;
+    private final Money price;
+
+    private PurchaseStatus status = PurchaseStatus.CREATED;
+    private String reservationId;
+    private Money acceptedAmount = Money.of("0.00");
+    private Money changeDue = Money.of("0.00");
+    private String note = "";
+
+    PurchaseTransaction(String id, String itemId, Money price) {
+        this.id = Objects.requireNonNull(id);
+        this.itemId = Objects.requireNonNull(itemId);
+        this.price = Objects.requireNonNull(price);
+    }
+
+    String id() { return id; }
+    String itemId() { return itemId; }
+    Money price() { return price; }
+    PurchaseStatus status() { return status; }
+    String reservationId() { return reservationId; }
+    Money acceptedAmount() { return acceptedAmount; }
+    Money changeDue() { return changeDue; }
+    String note() { return note; }
+
+    void setReservationId(String id) { this.reservationId = id; }
+    void setAcceptedAmount(Money amount) { this.acceptedAmount = amount; }
+    void setChangeDue(Money amount) { this.changeDue = amount; }
+    void setNote(String note) { this.note = note; }
+
+    void transitionTo(PurchaseStatus next) {
+        // Production code should validate allowed transitions explicitly.
+        this.status = next;
+    }
+}
+```
+
+This deliberately keeps state transitions simple for readability. In an interview, say that transition methods should guard invalid transitions—for example, a transaction must not move from `CREATED` directly to `COMPLETED`. A production implementation should persist every important transition.
+
+## 25.5 Transaction Repository
+
+```java
+import java.util.Optional;
+
+interface TransactionRepository {
+    void save(PurchaseTransaction transaction);
+    Optional<PurchaseTransaction> findById(String transactionId);
+}
+```
+
+The repository abstraction is useful if the design needs durable recovery or replaceable storage. An in-memory implementation is enough for a simple demo, but it cannot recover transactions after process restart.
+
+## 25.6 Purchase Coordinator: The Important Branches
+
+The following is **workflow-oriented reference code**, not a complete production implementation. It focuses on the decision points that interviewers usually probe. The exact behavior of payment acceptance must match the chosen cash hardware contract.
+
+```java
+final class VendingMachine {
+    private final Inventory inventory;
+    private final PaymentProcessor payments;
+    private final Dispenser dispenser;
+    private final TransactionRepository transactions;
+
+    VendingMachine(
+            Inventory inventory,
+            PaymentProcessor payments,
+            Dispenser dispenser,
+            TransactionRepository transactions) {
+        this.inventory = inventory;
+        this.payments = payments;
+        this.dispenser = dispenser;
+        this.transactions = transactions;
+    }
+
+    PurchaseTransaction purchase(String itemId, Money offeredAmount) {
+        Item item = inventory.findItem(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown item"));
+
+        String txId = java.util.UUID.randomUUID().toString();
+        PurchaseTransaction tx = new PurchaseTransaction(txId, itemId, item.price());
+        transactions.save(tx);
+
+        // 1. Reserve before accepting payment.
+        Reservation reservation = inventory.reserve(itemId, txId)
+                .orElseThrow(() -> new IllegalStateException("Out of stock"));
+        tx.setReservationId(reservation.id());
+        tx.transitionTo(PurchaseStatus.INVENTORY_RESERVED);
+        transactions.save(tx);
+
+        // 2. Accept payment. This assumes the adapter returns the confirmed amount.
+        PaymentResult payment = payments.acceptPayment(txId, offeredAmount);
+        if (payment.status() == OperationStatus.UNKNOWN) {
+            tx.transitionTo(PurchaseStatus.RECONCILIATION_REQUIRED);
+            tx.setNote("Payment outcome unknown; query/reconcile payment device");
+            transactions.save(tx);
+            return tx;
+        }
+        if (payment.status() != OperationStatus.SUCCEEDED) {
+            inventory.release(reservation.id());
+            tx.transitionTo(PurchaseStatus.FAILED);
+            tx.setNote("Payment was not accepted");
+            transactions.save(tx);
+            return tx;
+        }
+
+        Money accepted = payment.acceptedAmount();
+        tx.setAcceptedAmount(accepted);
+        tx.transitionTo(PurchaseStatus.PAYMENT_ACCEPTED);
+        transactions.save(tx);
+
+        if (accepted.isLessThan(item.price())) {
+            refundAndRelease(tx, reservation.id(), accepted, "Insufficient payment");
+            return tx;
+        }
+
+        tx.setChangeDue(accepted.minus(item.price()));
+        tx.transitionTo(PurchaseStatus.DISPENSING);
+        transactions.save(tx);
+
+        // 3. Request dispense with the stable transaction ID.
+        DispenseResult result = dispenser.dispense(txId, itemId);
+
+        if (result.outcome() == DispenseOutcome.UNKNOWN) {
+            tx.transitionTo(PurchaseStatus.RECONCILIATION_REQUIRED);
+            tx.setNote("Dispense outcome unknown; do not blindly refund or retry");
+            transactions.save(tx);
+            return tx; // Keep reservation until outcome is resolved.
+        }
+
+        if (result.outcome() == DispenseOutcome.NOT_DISPENSED) {
+            refundAndRelease(tx, reservation.id(), accepted, "Item not dispensed");
+            return tx;
+        }
+
+        // 4. Confirmed delivery: commit stock exactly once.
+        inventory.commit(reservation.id());
+
+        // 5. Settle change if any. Use a stable operation ID for retry safety.
+        if (!tx.changeDue().isZero()) {
+            ChangeResult change = payments.returnChange(
+                    txId + ":change", txId, tx.changeDue());
+
+            if (change.status() != OperationStatus.SUCCEEDED) {
+                tx.transitionTo(PurchaseStatus.CHANGE_PENDING);
+                tx.setNote("Item dispensed; change settlement requires follow-up");
+                transactions.save(tx);
+                return tx;
+            }
+        }
+
+        tx.transitionTo(PurchaseStatus.COMPLETED);
+        transactions.save(tx);
+        return tx;
+    }
+
+    private void refundAndRelease(
+            PurchaseTransaction tx,
+            String reservationId,
+            Money refundAmount,
+            String reason) {
+        tx.transitionTo(PurchaseStatus.REFUND_PENDING);
+        tx.setNote(reason);
+        transactions.save(tx);
+
+        RefundResult refund = payments.refund(
+                tx.id() + ":refund", tx.id(), refundAmount);
+
+        if (refund.status() == OperationStatus.SUCCEEDED) {
+            inventory.release(reservationId);
+            tx.transitionTo(PurchaseStatus.REFUNDED);
+        } else {
+            // Do not claim a refund happened when its outcome is failed/unknown.
+            tx.transitionTo(PurchaseStatus.REFUND_PENDING);
+            tx.setNote(reason + "; refund requires follow-up");
+        }
+        transactions.save(tx);
+    }
+}
+```
+
+### Important caveats about this teaching flow
+
+1. `acceptPayment()` is modeled as one operation for simplicity. Real cash hardware often accepts denominations incrementally; define the contract before coding.
+2. This sample does not implement a complete reconciliation worker. For `UNKNOWN`, persist enough information to query the device later and resume the correct branch.
+3. A real system should persist intent before every external side effect and record the confirmed result afterward. The sample shows save calls to communicate that intent, but a durable implementation needs transactional storage and crash-recovery rules.
+4. The sample's repository must return the same transaction on duplicate client requests if those requests represent the same purchase. A new random ID on every incoming retry is not sufficient. In production, accept a client/request idempotency key or create the transaction before the request can be retried.
+5. The adapter must define the meaning of `FAILED` versus `UNKNOWN`. Never infer “not dispensed” from a timeout alone.
+6. If the change result is `UNKNOWN`, do not blindly submit a new payout with a new operation ID. Query/reconcile the original operation.
+7. For brevity, state-transition validation and exception handling are omitted. They should be added if the interviewer asks for implementation-level completeness.
+
+## 25.7 Purchase Flow in One View
+
+```text
+Create transaction
+       |
+       v
+Reserve stock atomically
+       |
+       v
+Accept payment
+  | failed / unknown
+  |--------------------> release only when safe / reconcile
+       |
+       v
+Enough money?
+  | no
+  v
+Refund accepted amount
+  | confirmed -> release reservation -> REFUNDED
+  | unknown  -> REFUND_PENDING
+       |
+       v yes
+Request dispense with stable transaction ID
+  | DISPENSED
+  |     v
+  |  Commit reservation
+  |     v
+  |  Return change if due
+  |     | confirmed -> COMPLETED
+  |     | unresolved -> CHANGE_PENDING
+  |
+  | NOT_DISPENSED
+  |     v
+  |  Refund accepted amount
+  |     | confirmed -> release reservation -> REFUNDED
+  |     | unresolved -> REFUND_PENDING
+  |
+  | UNKNOWN
+  v
+RECONCILIATION_REQUIRED
+(keep reservation; do not blindly refund or retry)
+```
+
+## 25.8 Interview Coding Checklist
+
+When writing the code on a whiteboard or in an editor, implement in this order:
+
+1. `Money` and `Item`.
+2. `Inventory` API and an atomic `reserve()` implementation.
+3. `DispenseOutcome` with all three outcomes.
+4. Payment and dispenser interfaces.
+5. `PurchaseTransaction` and explicit states.
+6. The happy path through `VendingMachine`.
+7. Confirmed dispense failure and refund handling.
+8. Unknown dispense outcome and reconciliation state.
+9. Change-payout failure.
+10. Tests for the last inventory unit, duplicate operations, and every outcome branch.
+
+**Do not start by coding every class.** First explain the invariants and workflow; then implement the smallest set of classes that makes those invariants enforceable.
